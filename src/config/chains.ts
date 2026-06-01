@@ -1,0 +1,43 @@
+export interface ChainConfig {
+  key: string;
+  name: string;
+  ticker: string;
+  coinEnum: string;
+  route: string;
+  defaultFee: number;
+  isNative: boolean;
+  decimalPlaces: number;
+  activeNetwork: 'MAIN' | 'TEST3' | 'TEST4' | 'REGTEST';
+  supportsHtlc: boolean;
+  supportsQortTrades: boolean;
+}
+
+// Shown when /crosschain/blockchains is unavailable (fallback for non-Qortium nodes)
+// defaultFee: in-app fallback in native coin units, used when GET_FOREIGN_FEE is unavailable.
+export const DEFAULT_CHAINS: ChainConfig[] = [
+  { key: 'QORT', name: 'Qortal',       ticker: 'QORT', coinEnum: 'QORT', route: 'qortal',      defaultFee: 0.01,   isNative: true,  decimalPlaces: 8, activeNetwork: 'MAIN', supportsHtlc: false, supportsQortTrades: false },
+  { key: 'BTC',  name: 'Bitcoin',      ticker: 'BTC',  coinEnum: 'BTC',  route: 'bitcoin',     defaultFee: 0.00001,  isNative: false, decimalPlaces: 8, activeNetwork: 'MAIN', supportsHtlc: true,  supportsQortTrades: true  },
+  { key: 'LTC',  name: 'Litecoin',     ticker: 'LTC',  coinEnum: 'LTC',  route: 'litecoin',    defaultFee: 0.001,    isNative: false, decimalPlaces: 8, activeNetwork: 'MAIN', supportsHtlc: true,  supportsQortTrades: true  },
+  { key: 'DOGE', name: 'Dogecoin',     ticker: 'DOGE', coinEnum: 'DOGE', route: 'dogecoin',    defaultFee: 1.0,      isNative: false, decimalPlaces: 8, activeNetwork: 'MAIN', supportsHtlc: true,  supportsQortTrades: true  },
+  { key: 'DGB',  name: 'DigiByte',     ticker: 'DGB',  coinEnum: 'DGB',  route: 'digibyte',    defaultFee: 0.001,    isNative: false, decimalPlaces: 8, activeNetwork: 'MAIN', supportsHtlc: true,  supportsQortTrades: true  },
+  { key: 'RVN',  name: 'Ravencoin',    ticker: 'RVN',  coinEnum: 'RVN',  route: 'ravencoin',   defaultFee: 0.01,     isNative: false, decimalPlaces: 8, activeNetwork: 'MAIN', supportsHtlc: true,  supportsQortTrades: true  },
+  { key: 'ARRR', name: 'Pirate Chain', ticker: 'ARRR', coinEnum: 'ARRR', route: 'piratechain', defaultFee: 0.0001,   isNative: false, decimalPlaces: 8, activeNetwork: 'MAIN', supportsHtlc: true,  supportsQortTrades: true  },
+];
+
+// Full metadata for all known chains — used as a lookup when the API returns extras
+export const KNOWN_CHAINS: ChainConfig[] = [
+  ...DEFAULT_CHAINS,
+  { key: 'BCH',  name: 'Bitcoin Cash',  ticker: 'BCH',  coinEnum: 'BCH',  route: 'bitcoincash', defaultFee: 0.00001,  isNative: false, decimalPlaces: 8, activeNetwork: 'MAIN', supportsHtlc: true,  supportsQortTrades: true  },
+  { key: 'DASH', name: 'Dash',          ticker: 'DASH', coinEnum: 'DASH', route: 'dash',        defaultFee: 0.0001,   isNative: false, decimalPlaces: 8, activeNetwork: 'MAIN', supportsHtlc: true,  supportsQortTrades: true  },
+  { key: 'NMC',  name: 'Namecoin',      ticker: 'NMC',  coinEnum: 'NMC',  route: 'namecoin',    defaultFee: 0.001,    isNative: false, decimalPlaces: 8, activeNetwork: 'MAIN', supportsHtlc: true,  supportsQortTrades: true  },
+  { key: 'PPC',  name: 'Peercoin',      ticker: 'PPC',  coinEnum: 'PPC',  route: 'peercoin',    defaultFee: 0.01,     isNative: false, decimalPlaces: 6, activeNetwork: 'MAIN', supportsHtlc: true,  supportsQortTrades: true  },
+  { key: 'FIRO', name: 'Firo',          ticker: 'FIRO', coinEnum: 'FIRO', route: 'firo',        defaultFee: 0.001,    isNative: false, decimalPlaces: 8, activeNetwork: 'MAIN', supportsHtlc: true,  supportsQortTrades: true  },
+  { key: 'KMD',  name: 'Komodo',        ticker: 'KMD',  coinEnum: 'KMD',  route: 'komodo',      defaultFee: 0.0001,   isNative: false, decimalPlaces: 8, activeNetwork: 'MAIN', supportsHtlc: true,  supportsQortTrades: true  },
+  { key: 'VRSC', name: 'VerusCoin',     ticker: 'VRSC', coinEnum: 'VRSC', route: 'veruscoin',   defaultFee: 0.0001,   isNative: false, decimalPlaces: 8, activeNetwork: 'MAIN', supportsHtlc: true,  supportsQortTrades: true  },
+  { key: 'ZEC',  name: 'Zcash',         ticker: 'ZEC',  coinEnum: 'ZEC',  route: 'zcash',       defaultFee: 0.0001,   isNative: false, decimalPlaces: 8, activeNetwork: 'MAIN', supportsHtlc: true,  supportsQortTrades: true  },
+  { key: 'LBC',  name: 'LBRY Credits',  ticker: 'LBC',  coinEnum: 'LBC',  route: 'lbrycredits', defaultFee: 0.001,    isNative: false, decimalPlaces: 8, activeNetwork: 'MAIN', supportsHtlc: true,  supportsQortTrades: true  },
+  { key: 'XVG',  name: 'Verge',         ticker: 'XVG',  coinEnum: 'XVG',  route: 'verge',       defaultFee: 0.1,      isNative: false, decimalPlaces: 6, activeNetwork: 'MAIN', supportsHtlc: true,  supportsQortTrades: true  },
+];
+
+export const DEFAULT_CHAIN_KEYS = new Set(DEFAULT_CHAINS.map((c) => c.key));
+export const KNOWN_CHAIN_MAP = new Map(KNOWN_CHAINS.map((c) => [c.key, c]));
