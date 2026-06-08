@@ -47,7 +47,7 @@ interface AddressBookLocalStorage {
 /**
  * Debounce timeouts for each coin type
  */
-let publishTimeouts: { [coinType: string]: NodeJS.Timeout } = {};
+const publishTimeouts: { [coinType: string]: NodeJS.Timeout } = {};
 
 /**
  * Generates a hash of the entries for quick comparison
@@ -218,7 +218,7 @@ async function fetchFromQDN(
         );
         return null;
       }
-    } catch (decryptError: any) {
+    } catch {
       console.warn(
         `QDN Sync: Failed to decrypt ${coinType} data. The data may be from an incompatible version.`
       );
@@ -234,7 +234,7 @@ async function fetchFromQDN(
     } else if (typeof decryptedBase64 === 'string') {
       try {
         qdnData = JSON.parse(decryptedBase64);
-      } catch (jsonError) {
+      } catch {
         // Not JSON, assume it's base64-encoded
         try {
           qdnData = base64ToObject(decryptedBase64) as AddressBookQDNData;

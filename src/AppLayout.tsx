@@ -37,7 +37,6 @@ export default function AppLayout() {
 
   // Poll node info into context
   useEffect(() => {
-    let id: ReturnType<typeof setInterval>;
     const poll = async () => {
       try {
         const [nodeInfo, nodeStatus] = await Promise.all([
@@ -55,7 +54,7 @@ export default function AppLayout() {
       } catch { /* silent */ }
     };
     poll();
-    id = setInterval(poll, TIME_MINUTES_1);
+    const id = setInterval(poll, TIME_MINUTES_1);
     return () => clearInterval(id);
   }, [setWalletState]);
 

@@ -144,7 +144,7 @@ export function CoinDetail({ chain }: Props) {
       const servers = await qortalRequest({ action: 'GET_CROSSCHAIN_SERVER_INFO', coin: 'ARRR' } as any);
       if (Array.isArray(servers)) setArrrServers(servers);
     } catch { /* */ }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
   const handleServerChange = useCallback(async (server: any) => {
