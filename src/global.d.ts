@@ -63,7 +63,9 @@ declare function qortalRequestWithTimeout(
 declare global {
   interface Window {
     _qdnBase: any;
-    _qdnTheme: string;
+    _qdnTheme?: string;
+    _qdnLang?: string;
+    _qdnTextSize?: string;
   }
 }
 

@@ -18,13 +18,46 @@ type Language =
   | 'ja'
   | 'zh';
 type Theme = 'dark' | 'light';
+export type TextSize =
+  | 'extra-large'
+  | 'extra-small'
+  | 'large'
+  | 'medium'
+  | 'small';
 
-interface CustomWindow extends Window {
-  _qdnTheme: Theme;
-  _qdnLang: Language;
-}
+const SUPPORTED_TEXT_SIZES: readonly TextSize[] = [
+  'extra-small',
+  'small',
+  'medium',
+  'large',
+  'extra-large',
+];
+
+type CustomWindow = {
+  _qdnTheme?: Theme;
+  _qdnLang?: Language;
+  _qdnTextSize?: TextSize;
+};
 
 const customWindow = window as unknown as CustomWindow;
+
+export function isSupportedTextSize(value: unknown): value is TextSize {
+  return (
+    typeof value === 'string' &&
+    SUPPORTED_TEXT_SIZES.includes(value as TextSize)
+  );
+}
+
+export function applyTextSize(
+  value: unknown,
+  root: HTMLElement = document.documentElement
+) {
+  if (!isSupportedTextSize(value)) {
+    return;
+  }
+
+  root.dataset.textSize = value;
+}
 
 export const useIframe = () => {
   const setTheme = useSetAtom(themeAtom);
@@ -41,9 +74,11 @@ export const useIframe = () => {
 
     const languageDefault = customWindow?._qdnLang;
 
-    if (supportedLanguages?.includes(languageDefault)) {
+    if (languageDefault && supportedLanguages?.includes(languageDefault)) {
       i18n.changeLanguage(languageDefault);
     }
+
+    applyTextSize(customWindow?._qdnTextSize);
 
     function handleNavigation(event: {
       data: {
@@ -51,6 +86,7 @@ export const useIframe = () => {
         path: To;
         theme: Theme;
         language: Language;
+        textSize: TextSize;
       };
     }) {
       if (event.data?.action === 'NAVIGATE_TO_PATH' && event.data.path) {
@@ -74,6 +110,11 @@ export const useIframe = () => {
       ) {
         if (!supportedLanguages?.includes(event.data.language)) return;
         i18n.changeLanguage(event.data.language);
+      } else if (
+        event.data?.action === 'TEXT_SIZE_CHANGED' &&
+        event.data.textSize
+      ) {
+        applyTextSize(event.data.textSize);
       }
     }
 
@@ -82,6 +123,6 @@ export const useIframe = () => {
     return () => {
       window.removeEventListener('message', handleNavigation);
     };
-  }, [navigate, setTheme]);
+  }, [i18n, navigate, setTheme]);
   return { navigate };
 };
