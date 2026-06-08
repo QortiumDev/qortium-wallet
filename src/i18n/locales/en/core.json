@@ -73,7 +73,7 @@
   "max_sendable": "max sendable:",
   "memo": "memo",
   "message": {
-    "generic": {      
+    "generic": {
       "bitcoin_address": "BTC addresses should be 34 characters long for BIP44 (1 prefix) and BIP49 (3 prefix) or 42 characters long for BIP84 (bc1 prefix)",
       "bitcoin_wallet": "Bitcoin Wallet",
       "confirmations": "{{ count }} confirmations",
@@ -101,7 +101,7 @@
       "qortal_address": "Qortal address should be 34 characters long (Name min 3 characters)",
       "qortal_wallet": "Qortal Wallet",
       "ravencoin_address": "RVN addresses should be 34 characters long for BIP44 (R prefix)",
-      "ravencoin_wallet": "Ravencoin Wallet",    
+      "ravencoin_wallet": "Ravencoin Wallet",
       "sending_fee": "Current sending fee is {{ quantity }} {{ coin }}.",
       "sent_transaction": "Sent {{ coin }} transaction was successful.",
       "unconfirmed_translaction": "Unconfirmed",
