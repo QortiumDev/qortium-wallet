@@ -1,6 +1,9 @@
 import { Coin } from 'qapp-core';
 import { AddressBookEntry } from './Types';
-import { ADDRESSBOOK_NAME_LENGTH, ADDRESSBOOK_NOTE_LENGTH } from '../common/constants';
+import {
+  ADDRESSBOOK_NAME_LENGTH,
+  ADDRESSBOOK_NOTE_LENGTH,
+} from '../common/constants';
 import { debouncedPublishToQDN } from './addressBookQDN';
 
 const STORAGE_KEY_PREFIX = 'walletium-addressbook';
@@ -58,7 +61,10 @@ export const getAddressBook = (coinType: Coin): AddressBookEntry[] => {
       a.name.toLowerCase().localeCompare(b.name.toLowerCase())
     );
   } catch (error) {
-    console.error(`Address Book: Error loading addresses for ${coinType}`, error);
+    console.error(
+      `Address Book: Error loading addresses for ${coinType}`,
+      error
+    );
     return [];
   }
 };
@@ -73,12 +79,16 @@ export const addAddress = (
   try {
     // Validate name length
     if (entry.name.length > ADDRESSBOOK_NAME_LENGTH) {
-      throw new Error(`Name must be ${ADDRESSBOOK_NAME_LENGTH} characters or less`);
+      throw new Error(
+        `Name must be ${ADDRESSBOOK_NAME_LENGTH} characters or less`
+      );
     }
 
     // Validate note length
     if (entry.note.length > ADDRESSBOOK_NOTE_LENGTH) {
-      throw new Error(`Note must be ${ADDRESSBOOK_NOTE_LENGTH} characters or less`);
+      throw new Error(
+        `Note must be ${ADDRESSBOOK_NOTE_LENGTH} characters or less`
+      );
     }
 
     // Get existing addresses
@@ -86,7 +96,7 @@ export const addAddress = (
 
     // Check for duplicate address
     const duplicateAddress = existingAddresses.find(
-      existing => existing.address === entry.address
+      (existing) => existing.address === entry.address
     );
 
     if (duplicateAddress) {
@@ -136,22 +146,28 @@ export const updateAddress = (
   try {
     // Validate name length if provided
     if (updates.name && updates.name.length > ADDRESSBOOK_NAME_LENGTH) {
-      throw new Error(`Name must be ${ADDRESSBOOK_NAME_LENGTH} characters or less`);
+      throw new Error(
+        `Name must be ${ADDRESSBOOK_NAME_LENGTH} characters or less`
+      );
     }
 
     // Validate note length if provided
     if (updates.note && updates.note.length > ADDRESSBOOK_NOTE_LENGTH) {
-      throw new Error(`Note must be ${ADDRESSBOOK_NOTE_LENGTH} characters or less`);
+      throw new Error(
+        `Note must be ${ADDRESSBOOK_NOTE_LENGTH} characters or less`
+      );
     }
 
     // Get existing addresses
     const addresses = getAddressBook(coinType);
 
     // Find the entry to update
-    const index = addresses.findIndex(entry => entry.id === id);
+    const index = addresses.findIndex((entry) => entry.id === id);
 
     if (index === -1) {
-      console.warn(`Address Book: Entry with ID ${id} not found for ${coinType}`);
+      console.warn(
+        `Address Book: Entry with ID ${id} not found for ${coinType}`
+      );
       return null;
     }
 
@@ -195,10 +211,12 @@ export const deleteAddress = (id: string, coinType: Coin): boolean => {
     const addresses = getAddressBook(coinType);
 
     // Find the entry to delete
-    const index = addresses.findIndex(entry => entry.id === id);
+    const index = addresses.findIndex((entry) => entry.id === id);
 
     if (index === -1) {
-      console.warn(`Address Book: Entry with ID ${id} not found for ${coinType}`);
+      console.warn(
+        `Address Book: Entry with ID ${id} not found for ${coinType}`
+      );
       return false;
     }
 
@@ -244,10 +262,11 @@ export const searchAddresses = (
     const lowerQuery = query.toLowerCase();
 
     // Filter by name, address or note (case-insensitive, partial match)
-    const filtered = addresses.filter(entry =>
-      entry.name.toLowerCase().includes(lowerQuery) ||
-      entry.address.toLowerCase().includes(lowerQuery) ||
-      entry.note.toLowerCase().includes(lowerQuery)
+    const filtered = addresses.filter(
+      (entry) =>
+        entry.name.toLowerCase().includes(lowerQuery) ||
+        entry.address.toLowerCase().includes(lowerQuery) ||
+        entry.note.toLowerCase().includes(lowerQuery)
     );
 
     return filtered;

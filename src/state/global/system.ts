@@ -8,7 +8,12 @@ export enum EnumTheme {
 
 export const themeAtom = atom<EnumTheme>(EnumTheme.DARK);
 
-export type SortMode = 'custom' | 'name-asc' | 'name-desc' | 'balance-asc' | 'balance-desc';
+export type SortMode =
+  | 'custom'
+  | 'name-asc'
+  | 'name-desc'
+  | 'balance-asc'
+  | 'balance-desc';
 
 export const sortModeAtom = atomWithStorage<SortMode>('qw-sort-mode', 'custom');
 export const customOrderAtom = atomWithStorage<string[]>('qw-custom-order', []);

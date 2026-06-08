@@ -69,7 +69,9 @@ export function timeoutDelay(delay: number) {
 export function cropString(str: string, max_length: number = 24) {
   const one_third: number = max_length / 3;
   return str.length > max_length
-    ? str.substring(0, one_third) + '...' + str.substring(str.length - one_third)
+    ? str.substring(0, one_third) +
+        '...' +
+        str.substring(str.length - one_third)
     : str;
 }
 
@@ -113,7 +115,7 @@ export async function copyToClipboard(text: string): Promise<void> {
   if (processed) return;
 
   console.info('Using clipboard legacy fallback');
-  
+
   // Fallback for older browsers or non-HTTPS contexts
   const textArea = document.createElement('textarea');
   textArea.value = text;

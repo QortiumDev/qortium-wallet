@@ -30,7 +30,10 @@ import { publishToQDN } from '../../utils/addressBookQDN';
 import { AddressBookTable } from './AddressBookTable';
 import { AddressFormDialog } from './AddressFormDialog';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
-import { EMPTY_STRING, ADDRESSBOOK_ROWS_PER_PAGE } from '../../common/constants';
+import {
+  EMPTY_STRING,
+  ADDRESSBOOK_ROWS_PER_PAGE,
+} from '../../common/constants';
 
 interface AddressBookDialogProps {
   open: boolean;
@@ -55,8 +58,12 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
   const [searchQuery, setSearchQuery] = useState(EMPTY_STRING);
   const [openForm, setOpenForm] = useState(false);
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<AddressBookEntry | undefined>(undefined);
-  const [deletingEntry, setDeletingEntry] = useState<AddressBookEntry | undefined>(undefined);
+  const [editingEntry, setEditingEntry] = useState<
+    AddressBookEntry | undefined
+  >(undefined);
+  const [deletingEntry, setDeletingEntry] = useState<
+    AddressBookEntry | undefined
+  >(undefined);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(ADDRESSBOOK_ROWS_PER_PAGE);
   const [saveError, setSaveError] = useState<string>(EMPTY_STRING);
@@ -164,7 +171,8 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
     } catch (error: any) {
       console.error('Error saving address:', error);
       // Set the error message to display in the form
-      const errorMessage = error?.message || t('core:message.error.something_went_wrong');
+      const errorMessage =
+        error?.message || t('core:message.error.something_went_wrong');
       setSaveError(
         errorMessage === 'Address already exists in the address book'
           ? t('core:message.error.address_already_exists')
@@ -194,7 +202,9 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
     setPage(newPage);
   };
 
-  const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRowsPerPageChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
@@ -236,7 +246,11 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
       >
         <AppBar sx={{ position: 'relative' }}>
           <Toolbar>
-            <Typography sx={{ ml: 2, flex: 1, textAlign: 'center' }} variant="h4" component="div">
+            <Typography
+              sx={{ ml: 2, flex: 1, textAlign: 'center' }}
+              variant="h4"
+              component="div"
+            >
               {t('core:address_book_title', {
                 coinType: coinType,
                 postProcess: 'capitalizeFirstChar',
@@ -246,7 +260,9 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
               edge="end"
               color="inherit"
               onClick={onClose}
-              aria-label={t('core:action.close', { postProcess: 'capitalizeFirstChar' })}
+              aria-label={t('core:action.close', {
+                postProcess: 'capitalizeFirstChar',
+              })}
             >
               <Close />
             </IconButton>
@@ -268,7 +284,14 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
             />
 
             {/* QDN Sync and Add New Buttons */}
-            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+            <Box
+              sx={{
+                mb: 2,
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: 2,
+              }}
+            >
               <Button
                 startIcon={<Save />}
                 onClick={handleSyncToQDN}
@@ -285,7 +308,9 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
                   },
                 }}
               >
-                {t('core:address_book_sync_qdn', { postProcess: 'capitalizeFirstChar' })}
+                {t('core:address_book_sync_qdn', {
+                  postProcess: 'capitalizeFirstChar',
+                })}
                 {isSyncing && '...'}
               </Button>
               <Button
@@ -364,7 +389,11 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
         autoHideDuration={4000}
         onClose={handleCloseSyncSuccess}
       >
-        <Alert onClose={handleCloseSyncSuccess} severity="success" sx={{ width: '100%' }}>
+        <Alert
+          onClose={handleCloseSyncSuccess}
+          severity="success"
+          sx={{ width: '100%' }}
+        >
           {t('core:message.success.qdn_sync', {
             coinType: coinType,
             defaultValue: `Successfully synced ${coinType} address book to QDN`,

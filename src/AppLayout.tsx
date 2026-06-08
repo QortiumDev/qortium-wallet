@@ -43,7 +43,9 @@ export default function AppLayout() {
           qortalRequest({ action: 'GET_NODE_INFO' }),
           qortalRequest({ action: 'GET_NODE_STATUS' }),
         ]);
-        const isGateway = await qortalRequest({ action: 'IS_USING_PUBLIC_NODE' });
+        const isGateway = await qortalRequest({
+          action: 'IS_USING_PUBLIC_NODE',
+        });
         if (setWalletState) {
           setWalletState((prev: IContextProps) => ({
             ...prev,
@@ -51,7 +53,9 @@ export default function AppLayout() {
             nodeInfo: { ...nodeInfo, ...nodeStatus },
           }));
         }
-      } catch { /* silent */ }
+      } catch {
+        /* silent */
+      }
     };
     poll();
     const id = setInterval(poll, TIME_MINUTES_1);

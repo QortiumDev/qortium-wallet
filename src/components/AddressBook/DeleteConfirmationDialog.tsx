@@ -16,23 +16,20 @@ interface DeleteConfirmationDialogProps {
   entryName: string;
 }
 
-export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
-  open,
-  onClose,
-  onConfirm,
-  entryName,
-}) => {
+export const DeleteConfirmationDialog: React.FC<
+  DeleteConfirmationDialogProps
+> = ({ open, onClose, onConfirm, entryName }) => {
   const { t } = useTranslation(['core']);
 
   return (
     <DialogGeneral open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{textAlign: 'center'}} variant="h4">
+      <DialogTitle sx={{ textAlign: 'center' }} variant="h4">
         {t('core:address_book_delete', {
           postProcess: 'capitalizeFirstChar',
         })}
       </DialogTitle>
       <DialogContent>
-        <Typography variant="body1" sx={{textAlign: 'center'}}>
+        <Typography variant="body1" sx={{ textAlign: 'center' }}>
           {t('core:address_book_delete_confirm', {
             name: entryName,
             postProcess: 'capitalizeFirstChar',

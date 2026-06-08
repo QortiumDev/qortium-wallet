@@ -313,7 +313,11 @@ async function syncAddressBookOnStartup(
           return;
         }
         console.log(`QDN Sync: No QDN data, publishing local ${coinType} data`);
-        const publishedAt = await publishToQDN(coinType, localEntries, userName);
+        const publishedAt = await publishToQDN(
+          coinType,
+          localEntries,
+          userName
+        );
         if (publishedAt !== null) {
           // Align local timestamp with QDN so next startup goes to the
           // equal-timestamp path rather than re-entering the "local is newer" path.
@@ -381,7 +385,11 @@ async function syncAddressBookOnStartup(
         // Root cause 1 fix: use the timestamp actually stored inside QDN so
         // local and QDN are identical after publish — next startup goes
         // straight to the equal-timestamp path, no hash comparison needed.
-        const publishedAt = await publishToQDN(coinType, localEntries, userName);
+        const publishedAt = await publishToQDN(
+          coinType,
+          localEntries,
+          userName
+        );
         if (publishedAt !== null) {
           const dataToStore: AddressBookLocalStorage = {
             entries: localEntries,

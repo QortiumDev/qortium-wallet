@@ -1,4 +1,4 @@
-import { EMPTY_STRING } from "../common/constants";
+import { EMPTY_STRING } from '../common/constants';
 
 export const capitalizeAll = {
   type: 'postProcessor',

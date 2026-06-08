@@ -436,7 +436,7 @@ describe('AddressBook Integration Tests', () => {
       const coins = [Coin.BTC, Coin.DOGE, Coin.LTC];
 
       // Add 3 entries for each coin
-      coins.forEach(coin => {
+      coins.forEach((coin) => {
         for (let i = 1; i <= 3; i++) {
           addAddress({
             name: `User${i}`,
@@ -448,14 +448,14 @@ describe('AddressBook Integration Tests', () => {
       });
 
       // Verify each coin has 3 entries
-      coins.forEach(coin => {
+      coins.forEach((coin) => {
         const entries = getAddressBook(coin);
         expect(entries).toHaveLength(3);
       });
 
       // Delete all entries from BTC
       const btcEntries = getAddressBook(Coin.BTC);
-      btcEntries.forEach(entry => {
+      btcEntries.forEach((entry) => {
         deleteAddress(entry.id, Coin.BTC);
       });
 
