@@ -96,10 +96,7 @@ describe('syncAllAddressBooksOnStartup', () => {
 
         case 'FETCH_QDN_RESOURCE':
           // Return mock encrypted data only when QDN data has been set for QORT.
-          if (
-            request.identifier === STORAGE_KEY &&
-            qdnDataForQort !== null
-          ) {
+          if (request.identifier === STORAGE_KEY && qdnDataForQort !== null) {
             return 'mock-encrypted-data';
           }
           // Simulate "resource not found" for every other coin / unset QORT.
@@ -132,8 +129,7 @@ describe('syncAllAddressBooksOnStartup', () => {
   const wasQortPublished = () =>
     mockQortalRequest.mock.calls.some(
       ([req]) =>
-        req.action === 'PUBLISH_QDN_RESOURCE' &&
-        req.identifier === STORAGE_KEY
+        req.action === 'PUBLISH_QDN_RESOURCE' && req.identifier === STORAGE_KEY
     );
 
   // -------------------------------------------------------------------------
@@ -544,7 +540,11 @@ describe('syncAllAddressBooksOnStartup', () => {
   describe('BUG FIX — QDN returns resource with mismatched coinType → discard', () => {
     it('does not store entries from a mismatched top-level coinType into local storage', async () => {
       // QORT local storage is empty. QDN returns DGB data for the QORT identifier.
-      qdnDataForQort = { coinType: 'DGB', entries: [ENTRY_DGB], lastUpdated: 5000 };
+      qdnDataForQort = {
+        coinType: 'DGB',
+        entries: [ENTRY_DGB],
+        lastUpdated: 5000,
+      };
 
       await syncAllAddressBooksOnStartup('TestUser');
 
@@ -556,7 +556,11 @@ describe('syncAllAddressBooksOnStartup', () => {
       setLocalStorage([ENTRY_ALICE], 1000);
       // QDN returns DGB data with a newer timestamp — without the fix this
       // would overwrite ENTRY_ALICE with ENTRY_DGB under the QORT key.
-      qdnDataForQort = { coinType: 'DGB', entries: [ENTRY_DGB], lastUpdated: 5000 };
+      qdnDataForQort = {
+        coinType: 'DGB',
+        entries: [ENTRY_DGB],
+        lastUpdated: 5000,
+      };
 
       await syncAllAddressBooksOnStartup('TestUser');
 

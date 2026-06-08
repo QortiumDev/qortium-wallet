@@ -27,7 +27,11 @@ import { requestWithTimeout } from '../../common/functions';
 import { tokens } from '../../theme/tokens';
 import { useColors } from '../../theme/ColorTokensContext';
 import type { ChainConfig } from '../../config/chains';
-import { sortModeAtom, customOrderAtom, tileSizeAtom } from '../../state/global/system';
+import {
+  sortModeAtom,
+  customOrderAtom,
+  tileSizeAtom,
+} from '../../state/global/system';
 
 // Min tile width in px per zoom level — CSS auto-fill guarantees each level is visually distinct
 const TILE_MIN_PX: Record<number, number> = {
@@ -43,9 +47,17 @@ const TILE_MIN_PX: Record<number, number> = {
 const COIN_ICONS: Record<string, string> = {};
 
 function loadIcons() {
-  const modules = import.meta.glob('../../assets/*.{svg,png}', { eager: true, query: '?url', import: 'default' });
+  const modules = import.meta.glob('../../assets/*.{svg,png}', {
+    eager: true,
+    query: '?url',
+    import: 'default',
+  });
   for (const [path, url] of Object.entries(modules)) {
-    const name = path.split('/').pop()?.replace(/\.(svg|png)$/, '').toUpperCase();
+    const name = path
+      .split('/')
+      .pop()
+      ?.replace(/\.(svg|png)$/, '')
+      .toUpperCase();
     if (name) COIN_ICONS[name] = url as string;
   }
 }
@@ -60,7 +72,14 @@ interface BlockProps {
   isDragging?: boolean;
 }
 
-function CoinBlock({ chain, balance, loading, tileSize, dragListeners, isDragging }: BlockProps) {
+function CoinBlock({
+  chain,
+  balance,
+  loading,
+  tileSize,
+  dragListeners,
+  isDragging,
+}: BlockProps) {
   const c = useColors();
   const navigate = useNavigate();
   const [hovered, setHovered] = useState(false);
@@ -74,7 +93,9 @@ function CoinBlock({ chain, balance, loading, tileSize, dragListeners, isDraggin
     if (!fetchedRef.current) {
       fetchedRef.current = true;
       qortalRequest({ action: 'GET_USER_WALLET', coin: chain.coinEnum })
-        .then((res: any) => { if (res?.address) setAddress(res.address); })
+        .then((res: any) => {
+          if (res?.address) setAddress(res.address);
+        })
         .catch(() => {});
     }
   };
@@ -112,13 +133,15 @@ function CoinBlock({ chain, balance, loading, tileSize, dragListeners, isDraggin
         gap: 1.5,
         p: 2,
         position: 'relative',
-        transition: isDragging ? 'none' : 'background-color 0.15s ease, box-shadow 0.15s ease',
+        transition: isDragging
+          ? 'none'
+          : 'background-color 0.15s ease, box-shadow 0.15s ease',
         userSelect: 'none',
         boxShadow: isDragging
           ? '0 8px 28px rgba(45,58,74,0.35)'
           : hovered
-          ? '0 4px 16px rgba(45,58,74,0.22)'
-          : '0 1px 4px rgba(0,0,0,0.06)',
+            ? '0 4px 16px rgba(45,58,74,0.22)'
+            : '0 1px 4px rgba(0,0,0,0.06)',
         opacity: isDragging ? 0.85 : 1,
       }}
     >
@@ -146,7 +169,16 @@ function CoinBlock({ chain, balance, loading, tileSize, dragListeners, isDraggin
       )}
 
       {/* Logo / action zone */}
-      <Box sx={{ position: 'relative', width: '44%', aspectRatio: '1/1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Box
+        sx={{
+          position: 'relative',
+          width: '44%',
+          aspectRatio: '1/1',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         {iconSrc && (
           <Box
             component="img"
@@ -186,7 +218,11 @@ function CoinBlock({ chain, balance, loading, tileSize, dragListeners, isDraggin
                 '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
               }}
             >
-              {copied ? <CheckIcon sx={{ fontSize: 16 }} /> : <ContentCopyIcon sx={{ fontSize: 16 }} />}
+              {copied ? (
+                <CheckIcon sx={{ fontSize: 16 }} />
+              ) : (
+                <ContentCopyIcon sx={{ fontSize: 16 }} />
+              )}
             </IconButton>
           </Tooltip>
           <Tooltip title="Send" placement="top">
@@ -230,9 +266,19 @@ function CoinBlock({ chain, balance, loading, tileSize, dragListeners, isDraggin
             mt: 0.25,
           }}
         >
-          {loading
-            ? <Skeleton width={60} sx={{ mx: 'auto', bgcolor: hovered ? 'rgba(255,255,255,0.2)' : undefined }} />
-            : balance !== null ? balance : '—'}
+          {loading ? (
+            <Skeleton
+              width={60}
+              sx={{
+                mx: 'auto',
+                bgcolor: hovered ? 'rgba(255,255,255,0.2)' : undefined,
+              }}
+            />
+          ) : balance !== null ? (
+            balance
+          ) : (
+            '—'
+          )}
         </Box>
         {tileSize <= 4 && (
           <Box
@@ -250,7 +296,9 @@ function CoinBlock({ chain, balance, loading, tileSize, dragListeners, isDraggin
             }}
           >
             {address
-              ? address.length > 14 ? `${address.slice(0, 6)}…${address.slice(-5)}` : address
+              ? address.length > 14
+                ? `${address.slice(0, 6)}…${address.slice(-5)}`
+                : address
               : ' '}
           </Box>
         )}
@@ -272,7 +320,14 @@ function SortableCoinBlock({
   tileSize: number;
   isCustomMode: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: chain.key });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: chain.key });
 
   return (
     <Box
@@ -290,7 +345,9 @@ function SortableCoinBlock({
         balance={balance}
         loading={loading}
         tileSize={tileSize}
-        dragListeners={isCustomMode ? (listeners as Record<string, unknown>) : undefined}
+        dragListeners={
+          isCustomMode ? (listeners as Record<string, unknown>) : undefined
+        }
         isDragging={isDragging}
       />
     </Box>
@@ -320,8 +377,10 @@ export function CoinGrid() {
 
   const sortedChains = useMemo(() => {
     const arr = [...chains];
-    if (sortMode === 'name-asc') return arr.sort((a, b) => a.name.localeCompare(b.name));
-    if (sortMode === 'name-desc') return arr.sort((a, b) => b.name.localeCompare(a.name));
+    if (sortMode === 'name-asc')
+      return arr.sort((a, b) => a.name.localeCompare(b.name));
+    if (sortMode === 'name-desc')
+      return arr.sort((a, b) => b.name.localeCompare(a.name));
     if (sortMode === 'balance-asc' || sortMode === 'balance-desc') {
       const dir = sortMode === 'balance-asc' ? 1 : -1;
       return arr.sort((a, b) => {
@@ -361,21 +420,32 @@ export function CoinGrid() {
     const oldIndex = sortedChains.findIndex((c) => c.key === active.id);
     const newIndex = sortedChains.findIndex((c) => c.key === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
-    setCustomOrder(arrayMove(sortedChains.map((c) => c.key), oldIndex, newIndex));
+    setCustomOrder(
+      arrayMove(
+        sortedChains.map((c) => c.key),
+        oldIndex,
+        newIndex
+      )
+    );
   };
 
   // Balance loading with concurrency limit
   useEffect(() => {
     const init: Record<string, boolean> = {};
-    chains.forEach((c) => { init[c.key] = true; });
+    chains.forEach((c) => {
+      init[c.key] = true;
+    });
     setLoading(init);
 
     let slots = 2;
     const waiting: Array<() => void> = [];
-    const acquire = () => new Promise<void>((res) => {
-      if (slots > 0) { slots--; res(); }
-      else waiting.push(res);
-    });
+    const acquire = () =>
+      new Promise<void>((res) => {
+        if (slots > 0) {
+          slots--;
+          res();
+        } else waiting.push(res);
+      });
     const release = () => {
       const next = waiting.shift();
       if (next) next();
@@ -392,11 +462,16 @@ export function CoinGrid() {
           try {
             let balance: string;
             if (chain.isNative) {
-              const wallet = await qortalRequest({ action: 'GET_USER_WALLET', coin: chain.coinEnum } as any);
+              const wallet = await qortalRequest({
+                action: 'GET_USER_WALLET',
+                coin: chain.coinEnum,
+              } as any);
               if (!wallet?.address) throw new Error('no address');
-              const res = await fetch(`/addresses/balance/${encodeURIComponent(wallet.address)}`);
+              const res = await fetch(
+                `/addresses/balance/${encodeURIComponent(wallet.address)}`
+              );
               if (!res.ok) throw new Error(`HTTP ${res.status}`);
-              balance = String(await res.json() ?? 0);
+              balance = String((await res.json()) ?? 0);
             } else {
               const res = await requestWithTimeout(
                 { action: 'GET_WALLET_BALANCE', coin: chain.coinEnum },
@@ -408,7 +483,9 @@ export function CoinGrid() {
             setBalances((prev) => ({ ...prev, [chain.key]: balance }));
             setLoading((prev) => ({ ...prev, [chain.key]: false }));
             return;
-          } catch { /* retry */ }
+          } catch {
+            /* retry */
+          }
         }
         setBalances((prev) => ({ ...prev, [chain.key]: null }));
         setLoading((prev) => ({ ...prev, [chain.key]: false }));
@@ -427,7 +504,10 @@ export function CoinGrid() {
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext items={sortedChains.map((c) => c.key)} strategy={rectSortingStrategy}>
+        <SortableContext
+          items={sortedChains.map((c) => c.key)}
+          strategy={rectSortingStrategy}
+        >
           <Box
             sx={{
               display: 'grid',

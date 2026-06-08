@@ -36,17 +36,19 @@ export const DialogGeneral = styled(Dialog)(({ theme }: { theme: Theme }) => ({
   },
 }));
 
-export const LightwalletDialog = styled(Dialog)(({ theme }: { theme: Theme }) => ({
-  '& .MuiDialogContent-root': {
-    padding: theme.spacing(2),
-  },
-  '& .MuiDialogActions-root': {
-    padding: theme.spacing(1),
-  },
-  '& .MuiDialog-paper': {
-    borderRadius: '15px',
-  },
-}));
+export const LightwalletDialog = styled(Dialog)(
+  ({ theme }: { theme: Theme }) => ({
+    '& .MuiDialogContent-root': {
+      padding: theme.spacing(2),
+    },
+    '& .MuiDialogActions-root': {
+      padding: theme.spacing(1),
+    },
+    '& .MuiDialog-paper': {
+      borderRadius: '15px',
+    },
+  })
+);
 
 export const SubmitDialog = styled(Dialog)(({ theme }: { theme: Theme }) => ({
   '& .MuiDialogContent-root': {
@@ -91,28 +93,32 @@ export const WalletButtons = styled(Button)(({ theme }: { theme: Theme }) => ({
   },
 }));
 
-export const StyledTableCell = styled(TableCell)(({ theme }: { theme: Theme }) => ({
-  [`&.${tableCellClasses.head}`]: {
-    backgroundColor: '#02648d',
-    color: theme.palette.common.white,
-    fontSize: 14,
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-  [`&.${tableCellClasses.body}`]: {
-    fontSize: 13,
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-}));
+export const StyledTableCell = styled(TableCell)(
+  ({ theme }: { theme: Theme }) => ({
+    [`&.${tableCellClasses.head}`]: {
+      backgroundColor: '#02648d',
+      color: theme.palette.common.white,
+      fontSize: 14,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+    },
+    [`&.${tableCellClasses.body}`]: {
+      fontSize: 13,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+    },
+  })
+);
 
-export const StyledTableRow = styled(TableRow)(({ theme }: { theme: Theme }) => ({
-  '&:nth-of-type(odd)': {
-    backgroundColor: theme.palette.action.hover,
-  },
-  '&:last-child td, &:last-child th': {
-    border: 0,
-  },
-}));
+export const StyledTableRow = styled(TableRow)(
+  ({ theme }: { theme: Theme }) => ({
+    '&:nth-of-type(odd)': {
+      backgroundColor: theme.palette.action.hover,
+    },
+    '&:last-child td, &:last-child th': {
+      border: 0,
+    },
+  })
+);

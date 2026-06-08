@@ -68,77 +68,75 @@ export const AddressBookTable: React.FC<AddressBookTableProps> = ({
       <Box>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {paginatedEntries.map((entry) => (
-          <Paper
-            key={entry.id}
-            elevation={2}
-            sx={{ p: 2, borderRadius: 2 }}
-          >
-            <Box sx={{ mb: 1 }}>
-              <Box sx={{ fontWeight: 700, color: 'text.primary', mb: 0.5 }}>
-                {entry.name}
-              </Box>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  color: 'text.secondary',
-                  fontSize: '0.875rem'
-                }}
-              >
-                <span>{cropString(entry.address)}</span>
-                <IconButton
-                  size="small"
-                  onClick={() => handleCopy(entry.address, entry.id)}
-                  aria-label={t('core:address_book_copy', {
-                    postProcess: 'capitalizeFirstChar',
-                  })}
-                >
-                  <ContentCopy fontSize="small" />
-                </IconButton>
-              </Box>
-              {entry.note && (
-                <Box sx={{ color: 'text.secondary', fontSize: '0.75rem', mt: 1 }}>
-                  {entry.note}
+            <Paper key={entry.id} elevation={2} sx={{ p: 2, borderRadius: 2 }}>
+              <Box sx={{ mb: 1 }}>
+                <Box sx={{ fontWeight: 700, color: 'text.primary', mb: 0.5 }}>
+                  {entry.name}
                 </Box>
-              )}
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-              {onUse && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    color: 'text.secondary',
+                    fontSize: '0.875rem',
+                  }}
+                >
+                  <span>{cropString(entry.address)}</span>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleCopy(entry.address, entry.id)}
+                    aria-label={t('core:address_book_copy', {
+                      postProcess: 'capitalizeFirstChar',
+                    })}
+                  >
+                    <ContentCopy fontSize="small" />
+                  </IconButton>
+                </Box>
+                {entry.note && (
+                  <Box
+                    sx={{ color: 'text.secondary', fontSize: '0.75rem', mt: 1 }}
+                  >
+                    {entry.note}
+                  </Box>
+                )}
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                {onUse && (
+                  <IconButton
+                    size="small"
+                    onClick={() => onUse(entry)}
+                    color="primary"
+                    aria-label={t('core:address_book_use', {
+                      postProcess: 'capitalizeFirstChar',
+                    })}
+                  >
+                    <Send fontSize="small" />
+                  </IconButton>
+                )}
                 <IconButton
                   size="small"
-                  onClick={() => onUse(entry)}
+                  onClick={() => onEdit(entry)}
                   color="primary"
-                  aria-label={t('core:address_book_use', {
+                  aria-label={t('core:address_book_edit', {
                     postProcess: 'capitalizeFirstChar',
                   })}
                 >
-                  <Send fontSize="small" />
+                  <Edit fontSize="small" />
                 </IconButton>
-              )}
-              <IconButton
-                size="small"
-                onClick={() => onEdit(entry)}
-                color="primary"
-                aria-label={t('core:address_book_edit', {
-                  postProcess: 'capitalizeFirstChar',
-                })}
-              >
-                <Edit fontSize="small" />
-              </IconButton>
-              <IconButton
-                size="small"
-                onClick={() => onDelete(entry)}
-                color="error"
-                aria-label={t('core:address_book_delete', {
-                  postProcess: 'capitalizeFirstChar',
-                })}
-              >
-                <Delete fontSize="small" />
-              </IconButton>
-            </Box>
-          </Paper>
-        ))}
+                <IconButton
+                  size="small"
+                  onClick={() => onDelete(entry)}
+                  color="error"
+                  aria-label={t('core:address_book_delete', {
+                    postProcess: 'capitalizeFirstChar',
+                  })}
+                >
+                  <Delete fontSize="small" />
+                </IconButton>
+              </Box>
+            </Paper>
+          ))}
         </Box>
         <TablePagination
           component="div"
@@ -186,114 +184,121 @@ export const AddressBookTable: React.FC<AddressBookTableProps> = ({
           </TableHead>
           <TableBody>
             {paginatedEntries.map((entry) => (
-            <TableRow
-              key={entry.id}
-              sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-            >
-              <StyledTableCell component="th" scope="row">
-                 <Tooltip title={entry.name || EMPTY_STRING} placement="top">
-                  <span>{entry.name ? cropString(entry.name, 20) : '-'}</span>
-                </Tooltip>
-              </StyledTableCell>
-              <StyledTableCell>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Tooltip title={entry.address} placement="top">
-                    <span>{cropString(entry.address)}</span>
+              <TableRow
+                key={entry.id}
+                sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+              >
+                <StyledTableCell component="th" scope="row">
+                  <Tooltip title={entry.name || EMPTY_STRING} placement="top">
+                    <span>{entry.name ? cropString(entry.name, 20) : '-'}</span>
                   </Tooltip>
-                  <Tooltip
-                    title={
-                      copiedId === entry.id
-                        ? t('core:address_book_copied', {
-                            postProcess: 'capitalizeFirstChar',
-                          })
-                        : t('core:address_book_copy', {
-                            postProcess: 'capitalizeFirstChar',
-                          })
-                    }
-                    placement="top"
-                  >
-                    <IconButton
-                      size="small"
-                      onClick={() => handleCopy(entry.address, entry.id)}
-                      sx={{
-                        color: copiedId === entry.id ? 'success.main' : 'inherit',
-                      }}
-                    >
-                      <ContentCopy fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </StyledTableCell>
-              <StyledTableCell>
-                <Tooltip title={entry.note || EMPTY_STRING} placement="top">
-                  <span>{entry.note ? cropString(entry.note, 50) : '-'}</span>
-                </Tooltip>
-              </StyledTableCell>
-              <StyledTableCell align="right">
-                <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-                  {onUse && (
+                </StyledTableCell>
+                <StyledTableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Tooltip title={entry.address} placement="top">
+                      <span>{cropString(entry.address)}</span>
+                    </Tooltip>
                     <Tooltip
-                      title={t('core:address_book_use', {
+                      title={
+                        copiedId === entry.id
+                          ? t('core:address_book_copied', {
+                              postProcess: 'capitalizeFirstChar',
+                            })
+                          : t('core:address_book_copy', {
+                              postProcess: 'capitalizeFirstChar',
+                            })
+                      }
+                      placement="top"
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={() => handleCopy(entry.address, entry.id)}
+                        sx={{
+                          color:
+                            copiedId === entry.id ? 'success.main' : 'inherit',
+                        }}
+                      >
+                        <ContentCopy fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </StyledTableCell>
+                <StyledTableCell>
+                  <Tooltip title={entry.note || EMPTY_STRING} placement="top">
+                    <span>{entry.note ? cropString(entry.note, 50) : '-'}</span>
+                  </Tooltip>
+                </StyledTableCell>
+                <StyledTableCell align="right">
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      gap: 0.5,
+                      justifyContent: 'flex-end',
+                    }}
+                  >
+                    {onUse && (
+                      <Tooltip
+                        title={t('core:address_book_use', {
+                          postProcess: 'capitalizeFirstChar',
+                        })}
+                        placement="top"
+                      >
+                        <IconButton
+                          size="small"
+                          onClick={() => onUse(entry)}
+                          color="primary"
+                        >
+                          <Send fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    <Tooltip
+                      title={t('core:address_book_edit', {
                         postProcess: 'capitalizeFirstChar',
                       })}
                       placement="top"
                     >
                       <IconButton
                         size="small"
-                        onClick={() => onUse(entry)}
+                        onClick={() => onEdit(entry)}
                         color="primary"
                       >
-                        <Send fontSize="small" />
+                        <Edit fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                  )}
-                  <Tooltip
-                    title={t('core:address_book_edit', {
-                      postProcess: 'capitalizeFirstChar',
-                    })}
-                    placement="top"
-                  >
-                    <IconButton
-                      size="small"
-                      onClick={() => onEdit(entry)}
-                      color="primary"
+                    <Tooltip
+                      title={t('core:address_book_delete', {
+                        postProcess: 'capitalizeFirstChar',
+                      })}
+                      placement="top"
                     >
-                      <Edit fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip
-                    title={t('core:address_book_delete', {
-                      postProcess: 'capitalizeFirstChar',
-                    })}
-                    placement="top"
-                  >
-                    <IconButton
-                      size="small"
-                      onClick={() => onDelete(entry)}
-                      color="error"
-                    >
-                      <Delete fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </StyledTableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <TablePagination
-        rowsPerPageOptions={[5, 10, 15]}
-        component="div"
-        count={entries.length}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={onPageChange}
-        onRowsPerPageChange={onRowsPerPageChange}
-        labelRowsPerPage={t('core:rows_per_page', {
-          postProcess: 'capitalizeFirstChar',
-        })}
-      />
-    </TableContainer>
+                      <IconButton
+                        size="small"
+                        onClick={() => onDelete(entry)}
+                        color="error"
+                      >
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </StyledTableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 15]}
+          component="div"
+          count={entries.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={onPageChange}
+          onRowsPerPageChange={onRowsPerPageChange}
+          labelRowsPerPage={t('core:rows_per_page', {
+            postProcess: 'capitalizeFirstChar',
+          })}
+        />
+      </TableContainer>
     </Box>
   );
 };

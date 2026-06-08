@@ -14,7 +14,11 @@ import { useTranslation } from 'react-i18next';
 import { DialogGeneral } from '../../styles/page-styles';
 import { AddressBookEntry } from '../../utils/Types';
 import { validateAddress } from '../../utils/addressValidation';
-import { ADDRESSBOOK_NAME_LENGTH, ADDRESSBOOK_NOTE_LENGTH, EMPTY_STRING } from '../../common/constants';
+import {
+  ADDRESSBOOK_NAME_LENGTH,
+  ADDRESSBOOK_NOTE_LENGTH,
+  EMPTY_STRING,
+} from '../../common/constants';
 
 const ADDRESS_LOOKUP_DEBOUNCE_MS = 1000;
 const ADDRESS_MIN_LENGTH = 3;
@@ -218,7 +222,7 @@ export const AddressFormDialog: React.FC<AddressFormDialogProps> = ({
 
   return (
     <DialogGeneral open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{textAlign: 'center'}} variant="h4">
+      <DialogTitle sx={{ textAlign: 'center' }} variant="h4">
         {isEditMode
           ? t('core:address_book_edit', {
               postProcess: 'capitalizeFirstChar',
@@ -240,28 +244,32 @@ export const AddressFormDialog: React.FC<AddressFormDialogProps> = ({
             onChange={handleNameChange}
             error={!!nameError}
             helperText={
-              nameError || (coinType === Coin.QORT && addressValidating
-                ? t('core:message.generic.validating')
-                : (
-                  <Box
-                    component="span"
-                    sx={{ display: 'flex', justifyContent: 'space-between' }}
-                  >
-                    <span></span>
-                    <span style={{ fontSize: '0.75rem' }}>{name.length}/{ADDRESSBOOK_NAME_LENGTH}</span>
-                  </Box>
-                ))
+              nameError ||
+              (coinType === Coin.QORT && addressValidating ? (
+                t('core:message.generic.validating')
+              ) : (
+                <Box
+                  component="span"
+                  sx={{ display: 'flex', justifyContent: 'space-between' }}
+                >
+                  <span></span>
+                  <span style={{ fontSize: '0.75rem' }}>
+                    {name.length}/{ADDRESSBOOK_NAME_LENGTH}
+                  </span>
+                </Box>
+              ))
             }
             slotProps={{
               htmlInput: {
                 maxLength: ADDRESSBOOK_NAME_LENGTH,
               },
               input: {
-                endAdornment: coinType === Coin.QORT && addressValidating ? (
-                  <InputAdornment position="end">
-                    <CircularProgress size={20} />
-                  </InputAdornment>
-                ) : undefined,
+                endAdornment:
+                  coinType === Coin.QORT && addressValidating ? (
+                    <InputAdornment position="end">
+                      <CircularProgress size={20} />
+                    </InputAdornment>
+                  ) : undefined,
               },
             }}
           />
@@ -295,7 +303,9 @@ export const AddressFormDialog: React.FC<AddressFormDialogProps> = ({
                   sx={{ display: 'flex', justifyContent: 'space-between' }}
                 >
                   <span></span>
-                  <span style={{ fontSize: '0.75rem' }}>{note.length}/{ADDRESSBOOK_NOTE_LENGTH}</span>
+                  <span style={{ fontSize: '0.75rem' }}>
+                    {note.length}/{ADDRESSBOOK_NOTE_LENGTH}
+                  </span>
                 </Box>
               )
             }
@@ -309,7 +319,9 @@ export const AddressFormDialog: React.FC<AddressFormDialogProps> = ({
           />
         </Box>
       </DialogContent>
-      <DialogActions sx={{ ml: 1, px: 3, pb: 2, justifyContent: 'space-between' }}>
+      <DialogActions
+        sx={{ ml: 1, px: 3, pb: 2, justifyContent: 'space-between' }}
+      >
         <Box sx={{ color: 'error.main', fontSize: '1rem', maxWidth: '60%' }}>
           {saveError}
         </Box>

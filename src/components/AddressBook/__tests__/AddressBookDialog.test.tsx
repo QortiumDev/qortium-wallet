@@ -60,7 +60,16 @@ vi.mock('../AddressFormDialog', () => ({
   AddressFormDialog: ({ open, onSave, onClose }: any) =>
     open ? (
       <div data-testid="address-form-dialog">
-        <button onClick={() => onSave({ name: 'New', address: 'addr123', note: '', coinType: Coin.BTC })}>
+        <button
+          onClick={() =>
+            onSave({
+              name: 'New',
+              address: 'addr123',
+              note: '',
+              coinType: Coin.BTC,
+            })
+          }
+        >
           Save
         </button>
         <button onClick={onClose}>Close Form</button>
@@ -129,7 +138,9 @@ describe('AddressBookDialog', () => {
   describe('search functionality', () => {
     it('should filter entries when searching', async () => {
       const user = userEvent.setup();
-      vi.mocked(addressBookStorage.searchAddresses).mockReturnValue([mockEntries[0]]);
+      vi.mocked(addressBookStorage.searchAddresses).mockReturnValue([
+        mockEntries[0],
+      ]);
 
       render(<AddressBookDialog {...defaultProps} />);
 
@@ -137,7 +148,10 @@ describe('AddressBookDialog', () => {
       await user.type(searchField, 'Alice');
 
       await waitFor(() => {
-        expect(addressBookStorage.searchAddresses).toHaveBeenCalledWith(Coin.BTC, 'Alice');
+        expect(addressBookStorage.searchAddresses).toHaveBeenCalledWith(
+          Coin.BTC,
+          'Alice'
+        );
       });
     });
   });
@@ -200,7 +214,9 @@ describe('AddressBookDialog', () => {
       const deleteButtons = screen.getAllByText('Delete');
       await user.click(deleteButtons[0]);
 
-      expect(screen.getByTestId('delete-confirmation-dialog')).toBeInTheDocument();
+      expect(
+        screen.getByTestId('delete-confirmation-dialog')
+      ).toBeInTheDocument();
     });
 
     it('should delete entry when confirmed', async () => {
@@ -215,7 +231,10 @@ describe('AddressBookDialog', () => {
       const confirmButton = screen.getByText('Confirm Delete');
       await user.click(confirmButton);
 
-      expect(addressBookStorage.deleteAddress).toHaveBeenCalledWith('1', Coin.BTC);
+      expect(addressBookStorage.deleteAddress).toHaveBeenCalledWith(
+        '1',
+        Coin.BTC
+      );
     });
   });
 
@@ -224,12 +243,20 @@ describe('AddressBookDialog', () => {
       const user = userEvent.setup();
       const onSelectAddress = vi.fn();
 
-      render(<AddressBookDialog {...defaultProps} onSelectAddress={onSelectAddress} />);
+      render(
+        <AddressBookDialog
+          {...defaultProps}
+          onSelectAddress={onSelectAddress}
+        />
+      );
 
       const useButtons = screen.getAllByText('Use');
       await user.click(useButtons[0]);
 
-      expect(onSelectAddress).toHaveBeenCalledWith(mockEntries[0].address, mockEntries[0].name);
+      expect(onSelectAddress).toHaveBeenCalledWith(
+        mockEntries[0].address,
+        mockEntries[0].name
+      );
     });
   });
 });

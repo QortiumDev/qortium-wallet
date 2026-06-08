@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import { Box, CircularProgress, IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
+import {
+  Box,
+  CircularProgress,
+  IconButton,
+  Menu,
+  MenuItem,
+  Tooltip,
+} from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
@@ -10,17 +17,23 @@ import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import { useAtom } from 'jotai';
 import { useLocation } from 'react-router-dom';
-import { EnumTheme, themeAtom, sortModeAtom, tileSizeAtom, type SortMode } from '../../state/global/system';
+import {
+  EnumTheme,
+  themeAtom,
+  sortModeAtom,
+  tileSizeAtom,
+  type SortMode,
+} from '../../state/global/system';
 import { useColors } from '../../theme/ColorTokensContext';
 import { tokens } from '../../theme/tokens';
 import { useSupportedChains } from '../../hooks/useSupportedChains';
 
 const SORT_OPTIONS: { value: SortMode; label: string }[] = [
-  { value: 'custom',        label: 'Custom order' },
-  { value: 'name-asc',     label: 'Name A → Z' },
-  { value: 'name-desc',    label: 'Name Z → A' },
+  { value: 'custom', label: 'Custom order' },
+  { value: 'name-asc', label: 'Name A → Z' },
+  { value: 'name-desc', label: 'Name Z → A' },
   { value: 'balance-desc', label: 'Balance high → low' },
-  { value: 'balance-asc',  label: 'Balance low → high' },
+  { value: 'balance-asc', label: 'Balance low → high' },
 ];
 
 export function TopBar() {
@@ -30,7 +43,9 @@ export function TopBar() {
   const [sortMode, setSortMode] = useAtom(sortModeAtom);
   const [tileSize, setTileSize] = useAtom(tileSizeAtom);
   const [sortAnchor, setSortAnchor] = useState<null | HTMLElement>(null);
-  const [copyState, setCopyState] = useState<'idle' | 'loading' | 'done'>('idle');
+  const [copyState, setCopyState] = useState<'idle' | 'loading' | 'done'>(
+    'idle'
+  );
   const { pathname } = useLocation();
   const isDark = theme === EnumTheme.DARK;
   const isGrid = pathname === '/';
@@ -42,7 +57,10 @@ export function TopBar() {
       const lines = await Promise.all(
         chains.map(async (chain) => {
           try {
-            const res = await qortalRequest({ action: 'GET_USER_WALLET', coin: chain.coinEnum } as any);
+            const res = await qortalRequest({
+              action: 'GET_USER_WALLET',
+              coin: chain.coinEnum,
+            } as any);
             return res?.address ? `${chain.ticker} - ${res.address}` : null;
           } catch {
             return null;
@@ -91,7 +109,10 @@ export function TopBar() {
       </Box>
 
       {/* Copy all addresses */}
-      <Tooltip title={copyState === 'done' ? 'Copied!' : 'Copy all addresses'} placement="bottom">
+      <Tooltip
+        title={copyState === 'done' ? 'Copied!' : 'Copy all addresses'}
+        placement="bottom"
+      >
         <IconButton
           size="small"
           onClick={handleCopyAll}
@@ -103,11 +124,13 @@ export function TopBar() {
           }}
           aria-label="copy all addresses"
         >
-          {copyState === 'loading'
-            ? <CircularProgress size={16} sx={{ color: c.textSecondary }} />
-            : copyState === 'done'
-            ? <DoneAllIcon fontSize="small" />
-            : <ContentCopyIcon fontSize="small" />}
+          {copyState === 'loading' ? (
+            <CircularProgress size={16} sx={{ color: c.textSecondary }} />
+          ) : copyState === 'done' ? (
+            <DoneAllIcon fontSize="small" />
+          ) : (
+            <ContentCopyIcon fontSize="small" />
+          )}
         </IconButton>
       </Tooltip>
 
@@ -120,7 +143,12 @@ export function TopBar() {
                 size="small"
                 onClick={() => setTileSize((s) => Math.min(s + 1, 7))}
                 disabled={tileSize >= 7}
-                sx={{ color: c.textSecondary, borderRadius: `${tokens.shape.radius}px`, '&:hover': { color: c.accent }, '&.Mui-disabled': { opacity: 0.3 } }}
+                sx={{
+                  color: c.textSecondary,
+                  borderRadius: `${tokens.shape.radius}px`,
+                  '&:hover': { color: c.accent },
+                  '&.Mui-disabled': { opacity: 0.3 },
+                }}
               >
                 <ZoomOutIcon fontSize="small" />
               </IconButton>
@@ -133,7 +161,12 @@ export function TopBar() {
                 size="small"
                 onClick={() => setTileSize((s) => Math.max(s - 1, 1))}
                 disabled={tileSize <= 1}
-                sx={{ color: c.textSecondary, borderRadius: `${tokens.shape.radius}px`, '&:hover': { color: c.accent }, '&.Mui-disabled': { opacity: 0.3 } }}
+                sx={{
+                  color: c.textSecondary,
+                  borderRadius: `${tokens.shape.radius}px`,
+                  '&:hover': { color: c.accent },
+                  '&.Mui-disabled': { opacity: 0.3 },
+                }}
               >
                 <ZoomInIcon fontSize="small" />
               </IconButton>
@@ -145,7 +178,10 @@ export function TopBar() {
               size="small"
               onClick={(e) => setSortAnchor(e.currentTarget)}
               sx={{
-                color: sortAnchor || sortMode !== 'custom' ? c.accent : c.textSecondary,
+                color:
+                  sortAnchor || sortMode !== 'custom'
+                    ? c.accent
+                    : c.textSecondary,
                 borderRadius: `${tokens.shape.radius}px`,
                 '&:hover': { color: c.accent },
               }}
@@ -175,12 +211,16 @@ export function TopBar() {
               <MenuItem
                 key={opt.value}
                 selected={sortMode === opt.value}
-                onClick={() => { setSortMode(opt.value); setSortAnchor(null); }}
+                onClick={() => {
+                  setSortMode(opt.value);
+                  setSortAnchor(null);
+                }}
                 sx={{
                   fontSize: '0.8rem',
                   letterSpacing: '0.04em',
                   color: sortMode === opt.value ? c.accent : c.textPrimary,
-                  fontWeight: sortMode === opt.value ? tokens.typography.weightBold : 400,
+                  fontWeight:
+                    sortMode === opt.value ? tokens.typography.weightBold : 400,
                   '&.Mui-selected': { bgcolor: `${c.accent}14` },
                   '&.Mui-selected:hover': { bgcolor: `${c.accent}20` },
                   '&:hover': { bgcolor: `${c.accent}0c` },
@@ -197,17 +237,30 @@ export function TopBar() {
         <IconButton
           size="small"
           onClick={() => setTheme(isDark ? EnumTheme.LIGHT : EnumTheme.DARK)}
-          sx={{ color: c.textSecondary, borderRadius: `${tokens.shape.radius}px`, '&:hover': { color: c.textPrimary } }}
+          sx={{
+            color: c.textSecondary,
+            borderRadius: `${tokens.shape.radius}px`,
+            '&:hover': { color: c.textPrimary },
+          }}
           aria-label="toggle dark mode"
         >
-          {isDark ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+          {isDark ? (
+            <LightModeIcon fontSize="small" />
+          ) : (
+            <DarkModeIcon fontSize="small" />
+          )}
         </IconButton>
       </Tooltip>
 
       <Tooltip title="Settings" placement="bottom">
         <IconButton
           size="small"
-          sx={{ color: c.textSecondary, borderRadius: `${tokens.shape.radius}px`, opacity: 0.4, cursor: 'default' }}
+          sx={{
+            color: c.textSecondary,
+            borderRadius: `${tokens.shape.radius}px`,
+            opacity: 0.4,
+            cursor: 'default',
+          }}
           aria-label="settings"
           disableRipple
         >

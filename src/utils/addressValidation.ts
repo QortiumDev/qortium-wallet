@@ -97,7 +97,9 @@ export const validateAddress = (coinType: Coin, address: string): boolean => {
     case Coin.QORT:
       return validateQortAddress(address);
     default:
-      console.warn(`Address validation not implemented for coin type: ${coinType}`);
+      console.warn(
+        `Address validation not implemented for coin type: ${coinType}`
+      );
       return false;
   }
 };

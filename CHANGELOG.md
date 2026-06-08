@@ -2,6 +2,12 @@
 
 All notable changes to Walletium will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Apply Qortium Home text-size settings on app launch and when Home sends text-size changes, matching the existing theme and language bridge behavior.
+
 ## [1.3.2] - 2026-03-06
 
 ### Fixed

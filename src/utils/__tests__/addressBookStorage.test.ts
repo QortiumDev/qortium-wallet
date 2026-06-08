@@ -96,7 +96,10 @@ describe('addressBookStorage', () => {
           createdAt: Date.now(),
         },
       ];
-      localStorage.setItem('walletium-addressbook-BTC', JSON.stringify(oldFormatData));
+      localStorage.setItem(
+        'walletium-addressbook-BTC',
+        JSON.stringify(oldFormatData)
+      );
 
       const result = getAddressBook(Coin.BTC);
       expect(result).toHaveLength(1);
@@ -123,7 +126,10 @@ describe('addressBookStorage', () => {
           createdAt: 1000,
         },
       ];
-      localStorage.setItem('walletium-addressbook-BTC', JSON.stringify(oldFormatData));
+      localStorage.setItem(
+        'walletium-addressbook-BTC',
+        JSON.stringify(oldFormatData)
+      );
 
       getAddressBook(Coin.BTC);
 

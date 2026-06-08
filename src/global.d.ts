@@ -3,7 +3,7 @@
 interface QortalRequestOptions {
   action: string;
   address?: string;
-  amount?: number | Number;
+  amount?: number;
   assetId?: number;
   blob?: Blob;
   blockLimit?: number;
@@ -63,7 +63,9 @@ declare function qortalRequestWithTimeout(
 declare global {
   interface Window {
     _qdnBase: any;
-    _qdnTheme: string;
+    _qdnTheme?: string;
+    _qdnLang?: string;
+    _qdnTextSize?: string;
   }
 }
 

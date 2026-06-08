@@ -36,9 +36,15 @@ describe('AddressFormDialog', () => {
     it('should render form fields when open', () => {
       render(<AddressFormDialog {...defaultProps} />);
 
-      expect(screen.getByLabelText(/core:address_book_name/)).toBeInTheDocument();
-      expect(screen.getByLabelText(/core:address_book_address/)).toBeInTheDocument();
-      expect(screen.getByLabelText(/core:address_book_note/)).toBeInTheDocument();
+      expect(
+        screen.getByLabelText(/core:address_book_name/)
+      ).toBeInTheDocument();
+      expect(
+        screen.getByLabelText(/core:address_book_address/)
+      ).toBeInTheDocument();
+      expect(
+        screen.getByLabelText(/core:address_book_note/)
+      ).toBeInTheDocument();
     });
 
     it('should show character counters', () => {
@@ -62,9 +68,15 @@ describe('AddressFormDialog', () => {
 
       render(<AddressFormDialog {...defaultProps} entry={entry} />);
 
-      const nameInput = screen.getByLabelText(/core:address_book_name/) as HTMLInputElement;
-      const addressInput = screen.getByLabelText(/core:address_book_address/) as HTMLInputElement;
-      const noteInput = screen.getByLabelText(/core:address_book_note/) as HTMLInputElement;
+      const nameInput = screen.getByLabelText(
+        /core:address_book_name/
+      ) as HTMLInputElement;
+      const addressInput = screen.getByLabelText(
+        /core:address_book_address/
+      ) as HTMLInputElement;
+      const noteInput = screen.getByLabelText(
+        /core:address_book_note/
+      ) as HTMLInputElement;
 
       expect(nameInput.value).toBe('Alice');
       expect(addressInput.value).toBe('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa');
@@ -178,7 +190,9 @@ describe('AddressFormDialog', () => {
 
   describe('error display', () => {
     it('should display save error when provided', () => {
-      render(<AddressFormDialog {...defaultProps} saveError="Duplicate address" />);
+      render(
+        <AddressFormDialog {...defaultProps} saveError="Duplicate address" />
+      );
 
       expect(screen.getByText('Duplicate address')).toBeInTheDocument();
     });
@@ -199,7 +213,9 @@ describe('AddressFormDialog', () => {
 
       // Should show validating message
       await waitFor(() => {
-        expect(screen.getByText(/core:message.generic.validating/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/core:message.generic.validating/)
+        ).toBeInTheDocument();
       });
     });
 

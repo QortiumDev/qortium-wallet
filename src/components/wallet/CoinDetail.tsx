@@ -18,7 +18,9 @@ import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import QRCode from 'react-qr-code';
 import { NumericFormat as _NumericFormat } from 'react-number-format';
-const NumericFormat = _NumericFormat as React.FC<React.ComponentProps<typeof _NumericFormat> & Record<string, unknown>>;
+const NumericFormat = _NumericFormat as React.FC<
+  React.ComponentProps<typeof _NumericFormat> & Record<string, unknown>
+>;
 import { tokens } from '../../theme/tokens';
 import { useColors } from '../../theme/ColorTokensContext';
 import type { ChainConfig } from '../../config/chains';
@@ -31,9 +33,17 @@ import {
 } from '../../common/constants';
 
 const COIN_ICONS: Record<string, string> = {};
-const modules = import.meta.glob('../../assets/*.{svg,png}', { eager: true, query: '?url', import: 'default' });
+const modules = import.meta.glob('../../assets/*.{svg,png}', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+});
 for (const [path, url] of Object.entries(modules)) {
-  const name = path.split('/').pop()?.replace(/\.(svg|png)$/, '').toUpperCase();
+  const name = path
+    .split('/')
+    .pop()
+    ?.replace(/\.(svg|png)$/, '')
+    .toUpperCase();
   if (name) COIN_ICONS[name] = url as string;
 }
 
@@ -64,31 +74,37 @@ export function CoinDetail({ chain }: Props) {
   const iconSrc = COIN_ICONS[chain.key];
   const isARRR = chain.coinEnum === 'ARRR';
 
-  const [address, setAddress]               = useState<string>(EMPTY_STRING);
-  const [balance, setBalance]               = useState<string | null>(null);
+  const [address, setAddress] = useState<string>(EMPTY_STRING);
+  const [balance, setBalance] = useState<string | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(true);
-  const [transactions, setTransactions]     = useState<TxRow[]>([]);
-  const [loadingTx, setLoadingTx]           = useState(true);
-  const [expandedTx, setExpandedTx]         = useState<number | null>(null);
-  const [copied, setCopied]                 = useState(false);
-  const [copiedHash, setCopiedHash]         = useState<number | null>(null);
+  const [transactions, setTransactions] = useState<TxRow[]>([]);
+  const [loadingTx, setLoadingTx] = useState(true);
+  const [expandedTx, setExpandedTx] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [copiedHash, setCopiedHash] = useState<number | null>(null);
 
-  const [sendOpen, setSendOpen]     = useState(() => searchParams.get('send') === 'true');
-  const [amount, setAmount]         = useState<number>(0);
-  const [recipient, setRecipient]   = useState(EMPTY_STRING);
-  const [fee, setFee]               = useState<string>('');
+  const [sendOpen, setSendOpen] = useState(
+    () => searchParams.get('send') === 'true'
+  );
+  const [amount, setAmount] = useState<number>(0);
+  const [recipient, setRecipient] = useState(EMPTY_STRING);
+  const [fee, setFee] = useState<string>('');
   const [feeLoading, setFeeLoading] = useState(false);
-  const [sending, setSending]       = useState(false);
-  const [sendResult, setSendResult] = useState<'success' | 'error' | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sendResult, setSendResult] = useState<'success' | 'error' | null>(
+    null
+  );
 
   // ARRR initialization state
-  const cancelSyncRef                             = useRef(false);
-  const [arrrSynced, setArrrSynced]               = useState(!isARRR);
-  const [arrrSyncing, setArrrSyncing]             = useState(isARRR);
-  const [arrrSyncStatus, setArrrSyncStatus]       = useState('Connecting to Pirate Chain…');
-  const [arrrSyncFailed, setArrrSyncFailed]       = useState(false);
-  const [arrrServers, setArrrServers]             = useState<any[]>([]);
-  const [arrrServerOpen, setArrrServerOpen]       = useState(false);
+  const cancelSyncRef = useRef(false);
+  const [arrrSynced, setArrrSynced] = useState(!isARRR);
+  const [arrrSyncing, setArrrSyncing] = useState(isARRR);
+  const [arrrSyncStatus, setArrrSyncStatus] = useState(
+    'Connecting to Pirate Chain…'
+  );
+  const [arrrSyncFailed, setArrrSyncFailed] = useState(false);
+  const [arrrServers, setArrrServers] = useState<any[]>([]);
+  const [arrrServerOpen, setArrrServerOpen] = useState(false);
 
   const syncArrr = useCallback(async () => {
     cancelSyncRef.current = false;
@@ -104,7 +120,9 @@ export function CoinDetail({ chain }: Props) {
       while (!cancelSyncRef.current) {
         let status: string;
         try {
-          status = await qortalRequest({ action: 'GET_ARRR_SYNC_STATUS' } as any);
+          status = await qortalRequest({
+            action: 'GET_ARRR_SYNC_STATUS',
+          } as any);
         } catch {
           break;
         }
@@ -134,40 +152,62 @@ export function CoinDetail({ chain }: Props) {
 
         await new Promise<void>((r) => setTimeout(r, ARRR_POLL_MS));
       }
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
 
     if (cancelSyncRef.current) return;
     setArrrSyncFailed(true);
     setArrrSyncing(false);
     setArrrSyncStatus('Sync failed — try a different server.');
     try {
-      const servers = await qortalRequest({ action: 'GET_CROSSCHAIN_SERVER_INFO', coin: 'ARRR' } as any);
+      const servers = await qortalRequest({
+        action: 'GET_CROSSCHAIN_SERVER_INFO',
+        coin: 'ARRR',
+      } as any);
       if (Array.isArray(servers)) setArrrServers(servers);
-    } catch { /* */ }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    } catch {
+      /* */
+    }
   }, []);
 
-  const handleServerChange = useCallback(async (server: any) => {
-    setArrrServerOpen(false);
-    try {
-      await qortalRequest({ action: 'SET_CURRENT_FOREIGN_SERVER', coin: 'ARRR', server } as any);
-    } catch { /* */ }
-    syncArrr();
-  }, [syncArrr]);
+  const handleServerChange = useCallback(
+    async (server: any) => {
+      setArrrServerOpen(false);
+      try {
+        await qortalRequest({
+          action: 'SET_CURRENT_FOREIGN_SERVER',
+          coin: 'ARRR',
+          server,
+        } as any);
+      } catch {
+        /* */
+      }
+      syncArrr();
+    },
+    [syncArrr]
+  );
 
   // Kick off ARRR sync once on mount; cancel on unmount
   useEffect(() => {
     if (!isARRR) return;
     syncArrr();
-    return () => { cancelSyncRef.current = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelSyncRef.current = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchAddress = useCallback(async () => {
     try {
-      const res = await qortalRequest({ action: 'GET_USER_WALLET', coin: chain.coinEnum });
+      const res = await qortalRequest({
+        action: 'GET_USER_WALLET',
+        coin: chain.coinEnum,
+      });
       if (res?.address) setAddress(res.address);
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, [chain.coinEnum]);
 
   const fetchBalance = useCallback(async () => {
@@ -179,11 +219,16 @@ export function CoinDetail({ chain }: Props) {
       try {
         let result: string;
         if (chain.isNative) {
-          const wallet = await qortalRequest({ action: 'GET_USER_WALLET', coin: chain.coinEnum } as any);
+          const wallet = await qortalRequest({
+            action: 'GET_USER_WALLET',
+            coin: chain.coinEnum,
+          } as any);
           if (!wallet?.address) throw new Error('no address');
-          const res = await fetch(`/addresses/balance/${encodeURIComponent(wallet.address)}`);
+          const res = await fetch(
+            `/addresses/balance/${encodeURIComponent(wallet.address)}`
+          );
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          result = String(await res.json() ?? 0);
+          result = String((await res.json()) ?? 0);
         } else {
           const res = await requestWithTimeout(
             { action: 'GET_WALLET_BALANCE', coin: chain.coinEnum },
@@ -195,7 +240,9 @@ export function CoinDetail({ chain }: Props) {
         setBalance(result);
         setLoadingBalance(false);
         return;
-      } catch { /* retry */ }
+      } catch {
+        /* retry */
+      }
     }
     setBalance(null);
     setLoadingBalance(false);
@@ -205,9 +252,15 @@ export function CoinDetail({ chain }: Props) {
     setLoadingTx(true);
     try {
       if (chain.isNative) {
-        const wallet = await qortalRequest({ action: 'GET_USER_WALLET', coin: chain.coinEnum } as any);
+        const wallet = await qortalRequest({
+          action: 'GET_USER_WALLET',
+          coin: chain.coinEnum,
+        } as any);
         const addr = wallet?.address;
-        if (!addr) { setTransactions([]); return; }
+        if (!addr) {
+          setTransactions([]);
+          return;
+        }
         const res = await fetch(
           `/transactions/search?txType=PAYMENT&address=${encodeURIComponent(addr)}&confirmationStatus=CONFIRMED&limit=20&reverse=true`
         );
@@ -266,10 +319,18 @@ export function CoinDetail({ chain }: Props) {
     if (chain.isNative || chain.coinEnum === 'ARRR') return;
     setFeeLoading(true);
     try {
-      const res = await qortalRequest({ action: 'GET_FOREIGN_FEE', coin: chain.coinEnum, type: 'TRADE' } as any);
-      const live = res?.fee ?? (typeof res === 'number' || typeof res === 'string' ? res : null);
+      const res = await qortalRequest({
+        action: 'GET_FOREIGN_FEE',
+        coin: chain.coinEnum,
+        type: 'TRADE',
+      } as any);
+      const live =
+        res?.fee ??
+        (typeof res === 'number' || typeof res === 'string' ? res : null);
       if (live != null) setFee(String(live));
-    } catch { /* keep hardcoded fallback */ }
+    } catch {
+      /* keep hardcoded fallback */
+    }
     setFeeLoading(false);
   }, [chain.coinEnum, chain.defaultFee, chain.isNative]);
 
@@ -323,7 +384,8 @@ export function CoinDetail({ chain }: Props) {
     return raw.toFixed(chain.decimalPlaces);
   };
 
-  const txFee = (row: TxRow) => (Number(row.feeAmount ?? 0) / divisor).toFixed(chain.decimalPlaces);
+  const txFee = (row: TxRow) =>
+    (Number(row.feeAmount ?? 0) / divisor).toFixed(chain.decimalPlaces);
 
   const isPositive = (row: TxRow) => (row.totalAmount ?? 0) > 0;
 
@@ -354,7 +416,6 @@ export function CoinDetail({ chain }: Props) {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: c.bg }}>
-
       {/* ── sticky sub-header ── */}
       <Box
         sx={{
@@ -370,14 +431,29 @@ export function CoinDetail({ chain }: Props) {
           gap: 2,
         }}
       >
-        <IconButton onClick={() => navigate('/')} size="small" sx={{ borderRadius: 0, color: c.textPrimary }}>
+        <IconButton
+          onClick={() => navigate('/')}
+          size="small"
+          sx={{ borderRadius: 0, color: c.textPrimary }}
+        >
           <ArrowBackIcon fontSize="small" />
         </IconButton>
         {iconSrc && (
-          <Box component="img" src={iconSrc} alt={chain.ticker}
-            sx={{ height: 24, width: 24, objectFit: 'contain' }} />
+          <Box
+            component="img"
+            src={iconSrc}
+            alt={chain.ticker}
+            sx={{ height: 24, width: 24, objectFit: 'contain' }}
+          />
         )}
-        <Box sx={{ fontWeight: tokens.typography.weightBold, letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: '0.85rem' }}>
+        <Box
+          sx={{
+            fontWeight: tokens.typography.weightBold,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            fontSize: '0.85rem',
+          }}
+        >
           {chain.name}
         </Box>
         {chain.activeNetwork !== 'MAIN' && (
@@ -423,9 +499,7 @@ export function CoinDetail({ chain }: Props) {
       </Box>
 
       <Box sx={{ maxWidth: 720, mx: 'auto', px: { xs: 2, md: 4 }, py: 4 }}>
-
         {isARRR && !arrrSynced ? (
-
           /* ── ARRR initialization overlay ── */
           <Box
             sx={{
@@ -442,27 +516,66 @@ export function CoinDetail({ chain }: Props) {
             }}
           >
             {iconSrc && (
-              <Box component="img" src={iconSrc} alt="ARRR"
-                sx={{ height: 56, width: 56, objectFit: 'contain', opacity: arrrSyncFailed ? 0.35 : 0.75 }} />
+              <Box
+                component="img"
+                src={iconSrc}
+                alt="ARRR"
+                sx={{
+                  height: 56,
+                  width: 56,
+                  objectFit: 'contain',
+                  opacity: arrrSyncFailed ? 0.35 : 0.75,
+                }}
+              />
             )}
-            {arrrSyncing && <CircularProgress size={36} sx={{ color: c.accent }} />}
+            {arrrSyncing && (
+              <CircularProgress size={36} sx={{ color: c.accent }} />
+            )}
             <Box>
-              <Box sx={{ fontSize: '0.95rem', fontWeight: tokens.typography.weightBold, color: arrrSyncFailed ? c.error : c.textPrimary, mb: 0.75 }}>
+              <Box
+                sx={{
+                  fontSize: '0.95rem',
+                  fontWeight: tokens.typography.weightBold,
+                  color: arrrSyncFailed ? c.error : c.textPrimary,
+                  mb: 0.75,
+                }}
+              >
                 {arrrSyncStatus}
               </Box>
               {!arrrSyncFailed && (
-                <Box sx={{ fontSize: '0.78rem', color: c.textSecondary, maxWidth: 380, lineHeight: 1.6 }}>
-                  Pirate Chain uses a shielded blockchain that must sync before balances or transactions are available.
+                <Box
+                  sx={{
+                    fontSize: '0.78rem',
+                    color: c.textSecondary,
+                    maxWidth: 380,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Pirate Chain uses a shielded blockchain that must sync before
+                  balances or transactions are available.
                 </Box>
               )}
             </Box>
             {arrrSyncFailed && (
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: 2,
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
+                }}
+              >
                 <Button
                   variant="contained"
                   onClick={syncArrr}
                   disableElevation
-                  sx={{ bgcolor: c.accent, color: c.accentText, '&:hover': { bgcolor: c.accentHover }, borderRadius: '50px', px: 3 }}
+                  sx={{
+                    bgcolor: c.accent,
+                    color: c.accentText,
+                    '&:hover': { bgcolor: c.accentHover },
+                    borderRadius: '50px',
+                    px: 3,
+                  }}
                 >
                   Retry
                 </Button>
@@ -470,7 +583,16 @@ export function CoinDetail({ chain }: Props) {
                   <Button
                     variant="outlined"
                     onClick={() => setArrrServerOpen(true)}
-                    sx={{ borderColor: c.accent, color: c.accent, '&:hover': { borderColor: c.accentHover, color: c.accentHover }, borderRadius: '50px', px: 3 }}
+                    sx={{
+                      borderColor: c.accent,
+                      color: c.accent,
+                      '&:hover': {
+                        borderColor: c.accentHover,
+                        color: c.accentHover,
+                      },
+                      borderRadius: '50px',
+                      px: 3,
+                    }}
                   >
                     Change Server
                   </Button>
@@ -478,7 +600,6 @@ export function CoinDetail({ chain }: Props) {
               </Box>
             )}
           </Box>
-
         ) : (
           <>
             {/* ── balance hero ── */}
@@ -496,10 +617,23 @@ export function CoinDetail({ chain }: Props) {
                 gap: { xs: 3, sm: 4 },
               }}
             >
-              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', width: '100%' }}>
+              <Box
+                sx={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  width: '100%',
+                }}
+              >
                 {iconSrc && (
-                  <Box component="img" src={iconSrc} alt={chain.ticker}
-                    sx={{ height: 56, width: 56, objectFit: 'contain', mb: 2 }} />
+                  <Box
+                    component="img"
+                    src={iconSrc}
+                    alt={chain.ticker}
+                    sx={{ height: 56, width: 56, objectFit: 'contain', mb: 2 }}
+                  />
                 )}
                 {loadingBalance ? (
                   <Skeleton width={220} height={64} sx={{ mx: 'auto' }} />
@@ -515,7 +649,15 @@ export function CoinDetail({ chain }: Props) {
                     }}
                   >
                     {balance ?? '—'}
-                    <Box component="span" sx={{ fontSize: '1.1rem', fontWeight: tokens.typography.weightBold, ml: 1.5, color: c.textSecondary }}>
+                    <Box
+                      component="span"
+                      sx={{
+                        fontSize: '1.1rem',
+                        fontWeight: tokens.typography.weightBold,
+                        ml: 1.5,
+                        color: c.textSecondary,
+                      }}
+                    >
                       {chain.ticker}
                     </Box>
                   </Typography>
@@ -523,8 +665,21 @@ export function CoinDetail({ chain }: Props) {
               </Box>
 
               {address && (
-                <Box sx={{ flexShrink: 0, p: 1.5, bgcolor: '#fff', borderRadius: `${tokens.shape.radius / 2}px`, display: 'flex' }}>
-                  <QRCode value={address} size={120} bgColor="#ffffff" fgColor="#111111" />
+                <Box
+                  sx={{
+                    flexShrink: 0,
+                    p: 1.5,
+                    bgcolor: '#fff',
+                    borderRadius: `${tokens.shape.radius / 2}px`,
+                    display: 'flex',
+                  }}
+                >
+                  <QRCode
+                    value={address}
+                    size={120}
+                    bgColor="#ffffff"
+                    fgColor="#111111"
+                  />
                 </Box>
               )}
             </Box>
@@ -562,9 +717,13 @@ export function CoinDetail({ chain }: Props) {
               >
                 {address || '—'}
               </Box>
-              {copied
-                ? <CheckIcon sx={{ fontSize: 16, color: c.accentText }} />
-                : <ContentCopyIcon sx={{ fontSize: 16, color: c.textSecondary }} />}
+              {copied ? (
+                <CheckIcon sx={{ fontSize: 16, color: c.accentText }} />
+              ) : (
+                <ContentCopyIcon
+                  sx={{ fontSize: 16, color: c.textSecondary }}
+                />
+              )}
               <Box
                 sx={{
                   fontSize: '0.65rem',
@@ -594,13 +753,28 @@ export function CoinDetail({ chain }: Props) {
               Transactions
             </Box>
 
-            <Box sx={{ border: `${tokens.shape.borderWidth} solid ${c.borderLight}`, borderRadius: `${tokens.shape.radius}px`, overflow: 'hidden', boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
+            <Box
+              sx={{
+                border: `${tokens.shape.borderWidth} solid ${c.borderLight}`,
+                borderRadius: `${tokens.shape.radius}px`,
+                overflow: 'hidden',
+                boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
+              }}
+            >
               {loadingTx ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
                   <CircularProgress size={28} sx={{ color: c.accent }} />
                 </Box>
               ) : transactions.length === 0 ? (
-                <Box sx={{ py: 6, textAlign: 'center', color: c.textSecondary, fontSize: '0.85rem', letterSpacing: '0.06em' }}>
+                <Box
+                  sx={{
+                    py: 6,
+                    textAlign: 'center',
+                    color: c.textSecondary,
+                    fontSize: '0.85rem',
+                    letterSpacing: '0.06em',
+                  }}
+                >
                   No transactions yet
                 </Box>
               ) : (
@@ -610,7 +784,12 @@ export function CoinDetail({ chain }: Props) {
                   return (
                     <Box
                       key={i}
-                      sx={{ borderBottom: i < transactions.length - 1 ? `1px solid ${c.borderLight}` : 'none' }}
+                      sx={{
+                        borderBottom:
+                          i < transactions.length - 1
+                            ? `1px solid ${c.borderLight}`
+                            : 'none',
+                      }}
                     >
                       <Box
                         onClick={() => setExpandedTx(expanded ? null : i)}
@@ -626,65 +805,238 @@ export function CoinDetail({ chain }: Props) {
                           transition: 'background-color 0.12s ease',
                         }}
                       >
-                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, bgcolor: isPositive(row) ? c.success : c.error }} />
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            flexShrink: 0,
+                            bgcolor: isPositive(row) ? c.success : c.error,
+                          }}
+                        />
 
-                        <Box sx={{ fontWeight: tokens.typography.weightBold, fontSize: '0.9rem', color: isPositive(row) ? c.success : c.error, minWidth: { xs: 90, sm: 140 }, flexShrink: 0 }}>
-                          {isPositive(row) ? '+' : ''}{txAmount(row)} {chain.ticker}
+                        <Box
+                          sx={{
+                            fontWeight: tokens.typography.weightBold,
+                            fontSize: '0.9rem',
+                            color: isPositive(row) ? c.success : c.error,
+                            minWidth: { xs: 90, sm: 140 },
+                            flexShrink: 0,
+                          }}
+                        >
+                          {isPositive(row) ? '+' : ''}
+                          {txAmount(row)} {chain.ticker}
                         </Box>
 
-                        <Box sx={{ flex: 1, fontFamily: 'monospace', fontSize: '0.72rem', color: c.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {cp ? (isPositive(row) ? `from ${fmtAddr(cp)}` : `to ${fmtAddr(cp)}`) : '—'}
+                        <Box
+                          sx={{
+                            flex: 1,
+                            fontFamily: 'monospace',
+                            fontSize: '0.72rem',
+                            color: c.textSecondary,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {cp
+                            ? isPositive(row)
+                              ? `from ${fmtAddr(cp)}`
+                              : `to ${fmtAddr(cp)}`
+                            : '—'}
                         </Box>
 
-                        <Box sx={{ fontSize: '0.7rem', color: c.textSecondary, whiteSpace: 'nowrap', letterSpacing: '0.04em', flexShrink: 0 }}>
-                          {row.timestamp ? epochToAgo(row.timestamp) : 'Unconfirmed'}
+                        <Box
+                          sx={{
+                            fontSize: '0.7rem',
+                            color: c.textSecondary,
+                            whiteSpace: 'nowrap',
+                            letterSpacing: '0.04em',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {row.timestamp
+                            ? epochToAgo(row.timestamp)
+                            : 'Unconfirmed'}
                         </Box>
                       </Box>
 
                       {expanded && (
-                        <Box sx={{ px: 3, py: 2, bgcolor: c.bg, borderTop: `1px solid ${c.borderLight}`, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                        <Box
+                          sx={{
+                            px: 3,
+                            py: 2,
+                            bgcolor: c.bg,
+                            borderTop: `1px solid ${c.borderLight}`,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 1.25,
+                          }}
+                        >
                           {[
-                            { label: 'Hash', value: row.txHash, mono: true, copyIdx: i },
-                            { label: isPositive(row) ? 'From' : 'To', value: cp, mono: true },
-                            { label: isPositive(row) ? 'To' : 'From', value: isPositive(row) ? address : (row.sender ?? address), mono: true },
-                            { label: 'Fee', value: row.feeAmount != null ? `${txFee(row)} ${chain.ticker}` : undefined },
-                            { label: 'Date', value: row.timestamp ? new Date(row.timestamp).toLocaleString() : undefined },
-                          ].map(({ label, value, mono, copyIdx }) => value ? (
-                            <Box key={label} sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                              <Box sx={{ fontSize: '0.65rem', fontWeight: tokens.typography.weightBold, letterSpacing: '0.1em', textTransform: 'uppercase', color: c.textSecondary, minWidth: 44, flexShrink: 0 }}>
-                                {label}
+                            {
+                              label: 'Hash',
+                              value: row.txHash,
+                              mono: true,
+                              copyIdx: i,
+                            },
+                            {
+                              label: isPositive(row) ? 'From' : 'To',
+                              value: cp,
+                              mono: true,
+                            },
+                            {
+                              label: isPositive(row) ? 'To' : 'From',
+                              value: isPositive(row)
+                                ? address
+                                : (row.sender ?? address),
+                              mono: true,
+                            },
+                            {
+                              label: 'Fee',
+                              value:
+                                row.feeAmount != null
+                                  ? `${txFee(row)} ${chain.ticker}`
+                                  : undefined,
+                            },
+                            {
+                              label: 'Date',
+                              value: row.timestamp
+                                ? new Date(row.timestamp).toLocaleString()
+                                : undefined,
+                            },
+                          ].map(({ label, value, mono, copyIdx }) =>
+                            value ? (
+                              <Box
+                                key={label}
+                                sx={{
+                                  display: 'flex',
+                                  gap: 2,
+                                  alignItems: 'center',
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    fontSize: '0.65rem',
+                                    fontWeight: tokens.typography.weightBold,
+                                    letterSpacing: '0.1em',
+                                    textTransform: 'uppercase',
+                                    color: c.textSecondary,
+                                    minWidth: 44,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {label}
+                                </Box>
+                                <Box
+                                  sx={{
+                                    fontFamily: mono ? 'monospace' : undefined,
+                                    fontSize: '0.75rem',
+                                    color: c.textPrimary,
+                                    wordBreak: 'break-all',
+                                    flex: 1,
+                                  }}
+                                >
+                                  {value}
+                                </Box>
+                                {copyIdx != null && (
+                                  <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCopyHash(copyIdx, value!);
+                                    }}
+                                    sx={{ flexShrink: 0, p: 0.5 }}
+                                  >
+                                    {copiedHash === copyIdx ? (
+                                      <CheckIcon
+                                        sx={{ fontSize: 14, color: c.success }}
+                                      />
+                                    ) : (
+                                      <ContentCopyIcon
+                                        sx={{
+                                          fontSize: 14,
+                                          color: c.textSecondary,
+                                        }}
+                                      />
+                                    )}
+                                  </IconButton>
+                                )}
                               </Box>
-                              <Box sx={{ fontFamily: mono ? 'monospace' : undefined, fontSize: '0.75rem', color: c.textPrimary, wordBreak: 'break-all', flex: 1 }}>
-                                {value}
-                              </Box>
-                              {copyIdx != null && (
-                                <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleCopyHash(copyIdx, value!); }} sx={{ flexShrink: 0, p: 0.5 }}>
-                                  {copiedHash === copyIdx
-                                    ? <CheckIcon sx={{ fontSize: 14, color: c.success }} />
-                                    : <ContentCopyIcon sx={{ fontSize: 14, color: c.textSecondary }} />}
-                                </IconButton>
-                              )}
-                            </Box>
-                          ) : null)}
+                            ) : null
+                          )}
 
-                          {(row.inputs?.length || row.outputs?.length) ? (
-                            <Box sx={{ mt: 0.5, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                          {row.inputs?.length || row.outputs?.length ? (
+                            <Box
+                              sx={{
+                                mt: 0.5,
+                                display: 'flex',
+                                gap: 3,
+                                flexWrap: 'wrap',
+                              }}
+                            >
                               {row.inputs?.length ? (
                                 <Box>
-                                  <Box sx={{ fontSize: '0.65rem', fontWeight: tokens.typography.weightBold, letterSpacing: '0.1em', textTransform: 'uppercase', color: c.textSecondary, mb: 0.5 }}>Inputs</Box>
+                                  <Box
+                                    sx={{
+                                      fontSize: '0.65rem',
+                                      fontWeight: tokens.typography.weightBold,
+                                      letterSpacing: '0.1em',
+                                      textTransform: 'uppercase',
+                                      color: c.textSecondary,
+                                      mb: 0.5,
+                                    }}
+                                  >
+                                    Inputs
+                                  </Box>
                                   {row.inputs.map((inp, j) => (
-                                    <Box key={j} sx={{ fontFamily: 'monospace', fontSize: '0.7rem', color: inp.addressInWallet ? c.accent : c.textSecondary }}>
-                                      {fmtAddr(inp.address)} · {(inp.amount / divisor).toFixed(chain.decimalPlaces)}
+                                    <Box
+                                      key={j}
+                                      sx={{
+                                        fontFamily: 'monospace',
+                                        fontSize: '0.7rem',
+                                        color: inp.addressInWallet
+                                          ? c.accent
+                                          : c.textSecondary,
+                                      }}
+                                    >
+                                      {fmtAddr(inp.address)} ·{' '}
+                                      {(inp.amount / divisor).toFixed(
+                                        chain.decimalPlaces
+                                      )}
                                     </Box>
                                   ))}
                                 </Box>
                               ) : null}
                               {row.outputs?.length ? (
                                 <Box>
-                                  <Box sx={{ fontSize: '0.65rem', fontWeight: tokens.typography.weightBold, letterSpacing: '0.1em', textTransform: 'uppercase', color: c.textSecondary, mb: 0.5 }}>Outputs</Box>
+                                  <Box
+                                    sx={{
+                                      fontSize: '0.65rem',
+                                      fontWeight: tokens.typography.weightBold,
+                                      letterSpacing: '0.1em',
+                                      textTransform: 'uppercase',
+                                      color: c.textSecondary,
+                                      mb: 0.5,
+                                    }}
+                                  >
+                                    Outputs
+                                  </Box>
                                   {row.outputs.map((out, j) => (
-                                    <Box key={j} sx={{ fontFamily: 'monospace', fontSize: '0.7rem', color: out.addressInWallet ? c.accent : c.textSecondary }}>
-                                      {fmtAddr(out.address)} · {(out.amount / divisor).toFixed(chain.decimalPlaces)}
+                                    <Box
+                                      key={j}
+                                      sx={{
+                                        fontFamily: 'monospace',
+                                        fontSize: '0.7rem',
+                                        color: out.addressInWallet
+                                          ? c.accent
+                                          : c.textSecondary,
+                                      }}
+                                    >
+                                      {fmtAddr(out.address)} ·{' '}
+                                      {(out.amount / divisor).toFixed(
+                                        chain.decimalPlaces
+                                      )}
                                     </Box>
                                   ))}
                                 </Box>
@@ -726,19 +1078,38 @@ export function CoinDetail({ chain }: Props) {
               borderBottom: `${tokens.shape.borderWidth} solid ${c.borderLight}`,
             }}
           >
-            <Box sx={{ fontWeight: tokens.typography.weightBold, letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '0.85rem', flexGrow: 1 }}>
+            <Box
+              sx={{
+                fontWeight: tokens.typography.weightBold,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                fontSize: '0.85rem',
+                flexGrow: 1,
+              }}
+            >
               Send {chain.ticker}
             </Box>
-            <IconButton size="small" onClick={closeSend} sx={{ borderRadius: 0 }}>
+            <IconButton
+              size="small"
+              onClick={closeSend}
+              sx={{ borderRadius: 0 }}
+            >
               <CloseIcon fontSize="small" />
             </IconButton>
           </Box>
 
-          <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <Box
+            sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}
+          >
             {sendResult === 'success' ? (
               <Box sx={{ textAlign: 'center', py: 3 }}>
                 <CheckIcon sx={{ fontSize: 48, color: c.success, mb: 1 }} />
-                <Typography sx={{ fontWeight: tokens.typography.weightBold, letterSpacing: '0.06em' }}>
+                <Typography
+                  sx={{
+                    fontWeight: tokens.typography.weightBold,
+                    letterSpacing: '0.06em',
+                  }}
+                >
                   Transaction sent
                 </Typography>
               </Box>
@@ -750,8 +1121,21 @@ export function CoinDetail({ chain }: Props) {
               </Box>
             ) : (
               <>
-                <Box sx={{ color: c.textSecondary, fontSize: '0.8rem', letterSpacing: '0.06em' }}>
-                  Balance: <Box component="span" sx={{ color: c.textPrimary, fontWeight: tokens.typography.weightBold }}>
+                <Box
+                  sx={{
+                    color: c.textSecondary,
+                    fontSize: '0.8rem',
+                    letterSpacing: '0.06em',
+                  }}
+                >
+                  Balance:{' '}
+                  <Box
+                    component="span"
+                    sx={{
+                      color: c.textPrimary,
+                      fontWeight: tokens.typography.weightBold,
+                    }}
+                  >
                     {balance ?? '—'} {chain.ticker}
                   </Box>
                 </Box>
@@ -776,7 +1160,12 @@ export function CoinDetail({ chain }: Props) {
                       const bal = parseFloat(balance ?? '0');
                       const feeVal = parseFloat(fee || '0');
                       const factor = Math.pow(10, chain.decimalPlaces);
-                      setAmount(Math.max(0, Math.floor((bal - feeVal) * factor) / factor));
+                      setAmount(
+                        Math.max(
+                          0,
+                          Math.floor((bal - feeVal) * factor) / factor
+                        )
+                      );
                     }}
                     sx={{
                       mt: '8px',
@@ -786,7 +1175,10 @@ export function CoinDetail({ chain }: Props) {
                       color: c.accent,
                       fontSize: '0.7rem',
                       whiteSpace: 'nowrap',
-                      '&:hover': { borderColor: c.accentHover, color: c.accentHover },
+                      '&:hover': {
+                        borderColor: c.accentHover,
+                        color: c.accentHover,
+                      },
                     }}
                   >
                     Max
@@ -809,7 +1201,11 @@ export function CoinDetail({ chain }: Props) {
                   disabled={sending || feeLoading}
                   type={feeLoading ? 'text' : 'number'}
                   inputProps={{ step: 'any', min: 0 }}
-                  helperText={chain.coinEnum === 'ARRR' ? 'ARRR network fee is fixed — this value is for display only' : undefined}
+                  helperText={
+                    chain.coinEnum === 'ARRR'
+                      ? 'ARRR network fee is fixed — this value is for display only'
+                      : undefined
+                  }
                 />
 
                 <Button
@@ -828,7 +1224,11 @@ export function CoinDetail({ chain }: Props) {
                     py: 1.5,
                   }}
                 >
-                  {sending ? <CircularProgress size={20} sx={{ color: 'white' }} /> : 'Confirm Send'}
+                  {sending ? (
+                    <CircularProgress size={20} sx={{ color: 'white' }} />
+                  ) : (
+                    'Confirm Send'
+                  )}
                 </Button>
               </>
             )}
@@ -852,11 +1252,31 @@ export function CoinDetail({ chain }: Props) {
           }}
         >
           <DialogContent sx={{ p: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', px: 3, py: 2, borderBottom: `${tokens.shape.borderWidth} solid ${c.borderLight}` }}>
-              <Box sx={{ fontWeight: tokens.typography.weightBold, letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '0.85rem', flexGrow: 1 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                px: 3,
+                py: 2,
+                borderBottom: `${tokens.shape.borderWidth} solid ${c.borderLight}`,
+              }}
+            >
+              <Box
+                sx={{
+                  fontWeight: tokens.typography.weightBold,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  fontSize: '0.85rem',
+                  flexGrow: 1,
+                }}
+              >
                 Select Lightwallet Server
               </Box>
-              <IconButton size="small" onClick={() => setArrrServerOpen(false)} sx={{ borderRadius: 0 }}>
+              <IconButton
+                size="small"
+                onClick={() => setArrrServerOpen(false)}
+                sx={{ borderRadius: 0 }}
+              >
                 <CloseIcon fontSize="small" />
               </IconButton>
             </Box>
@@ -867,18 +1287,37 @@ export function CoinDetail({ chain }: Props) {
                 sx={{
                   px: 3,
                   py: 1.75,
-                  borderBottom: i < arrrServers.length - 1 ? `1px solid ${c.borderLight}` : 'none',
+                  borderBottom:
+                    i < arrrServers.length - 1
+                      ? `1px solid ${c.borderLight}`
+                      : 'none',
                   cursor: 'pointer',
                   '&:hover': { bgcolor: c.borderLight },
                   transition: 'background-color 0.12s ease',
                 }}
               >
-                <Box sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: c.textPrimary }}>
-                  {server.hostName ?? server.hostname ?? server.host ?? JSON.stringify(server)}
+                <Box
+                  sx={{
+                    fontFamily: 'monospace',
+                    fontSize: '0.8rem',
+                    color: c.textPrimary,
+                  }}
+                >
+                  {server.hostName ??
+                    server.hostname ??
+                    server.host ??
+                    JSON.stringify(server)}
                   {server.port ? `:${server.port}` : ''}
                 </Box>
                 {server.connectionType && (
-                  <Box sx={{ fontSize: '0.65rem', color: c.textSecondary, mt: 0.25, letterSpacing: '0.06em' }}>
+                  <Box
+                    sx={{
+                      fontSize: '0.65rem',
+                      color: c.textSecondary,
+                      mt: 0.25,
+                      letterSpacing: '0.06em',
+                    }}
+                  >
                     {server.connectionType}
                   </Box>
                 )}

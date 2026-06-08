@@ -27,7 +27,8 @@ i18n.init({
         address_book_use: 'use address',
         address_book_save: 'save',
         address_book_cancel: 'cancel',
-        address_book_delete_confirm: 'are you sure you want to delete {{name}}?',
+        address_book_delete_confirm:
+          'are you sure you want to delete {{name}}?',
         address_book_name_required: 'name is required',
         address_book_name_max_length: 'name must be 50 characters or less',
         address_book_address_required: 'address is required',
@@ -53,9 +54,7 @@ interface AllTheProvidersProps {
 const AllTheProviders = ({ children }: AllTheProvidersProps) => {
   return (
     <ThemeProvider theme={theme}>
-      <I18nextProvider i18n={i18n}>
-        {children}
-      </I18nextProvider>
+      <I18nextProvider i18n={i18n}>{children}</I18nextProvider>
     </ThemeProvider>
   );
 };
