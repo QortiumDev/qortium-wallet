@@ -1,4 +1,3 @@
-import { atom } from 'jotai';
 import { atomWithStorage } from 'jotai/utils';
 
 export enum EnumTheme {
@@ -6,7 +5,7 @@ export enum EnumTheme {
   DARK = 2,
 }
 
-export const themeAtom = atom<EnumTheme>(EnumTheme.DARK);
+export const themeAtom = atomWithStorage<EnumTheme>('qw-theme', EnumTheme.DARK);
 
 export type SortMode =
   | 'custom'
@@ -19,4 +18,4 @@ export const sortModeAtom = atomWithStorage<SortMode>('qw-sort-mode', 'custom');
 export const customOrderAtom = atomWithStorage<string[]>('qw-custom-order', []);
 
 // 1 = biggest tiles, 7 = smallest tiles
-export const tileSizeAtom = atomWithStorage<number>('qw-tile-zoom', 6);
+export const tileSizeAtom = atomWithStorage<number>('qw-tile-zoom', 1);
