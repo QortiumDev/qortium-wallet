@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { To, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { EnumTheme, themeAtom } from '../state/global/system';
 import { useSetAtom } from 'jotai';
 import { useTranslation } from 'react-i18next';
@@ -39,6 +39,14 @@ type CustomWindow = {
   _qdnTextSize?: TextSize;
 };
 
+type BridgeMessageData = {
+  action?: unknown;
+  language?: unknown;
+  path?: unknown;
+  textSize?: unknown;
+  theme?: unknown;
+};
+
 const customWindow = window as unknown as CustomWindow;
 
 export function isSupportedTextSize(value: unknown): value is TextSize {
@@ -57,6 +65,35 @@ export function applyTextSize(
   }
 
   root.dataset.textSize = value;
+}
+
+function isBridgeMessageData(value: unknown): value is BridgeMessageData {
+  return typeof value === 'object' && value !== null;
+}
+
+export function isTrustedBridgeMessage(event: MessageEvent<unknown>) {
+  return event.source === window.parent || event.source === window;
+}
+
+export function isSafeNavigationPath(value: unknown): value is string {
+  if (typeof value !== 'string') {
+    return false;
+  }
+
+  const path = value.trim();
+  if (!path) {
+    return false;
+  }
+
+  return !/^[a-z][a-z0-9+.-]*:/i.test(path) && !path.startsWith('//');
+}
+
+export function getNavigationReplyTargetOrigin(event: MessageEvent<unknown>) {
+  if (!event.origin || event.origin === 'null') {
+    return null;
+  }
+
+  return event.origin;
 }
 
 export const useIframe = () => {
@@ -80,41 +117,39 @@ export const useIframe = () => {
 
     applyTextSize(customWindow?._qdnTextSize);
 
-    function handleNavigation(event: {
-      data: {
-        action: string;
-        path: To;
-        theme: Theme;
-        language: Language;
-        textSize: TextSize;
-      };
-    }) {
-      if (event.data?.action === 'NAVIGATE_TO_PATH' && event.data.path) {
-        navigate(event.data.path); // Navigate directly to the specified path
+    function handleNavigation(event: MessageEvent<unknown>) {
+      if (!isTrustedBridgeMessage(event) || !isBridgeMessageData(event.data)) {
+        return;
+      }
+
+      const data = event.data;
+
+      if (
+        data.action === 'NAVIGATE_TO_PATH' &&
+        isSafeNavigationPath(data.path)
+      ) {
+        navigate(data.path); // Navigate directly to the specified path
 
         // Send a response back to the parent window after navigation is handled
-        window.parent.postMessage(
-          { action: 'NAVIGATION_SUCCESS', path: event.data.path },
-          '*'
-        );
-      } else if (event.data?.action === 'THEME_CHANGED' && event.data.theme) {
-        const themeColor = event.data.theme;
+        const replyTargetOrigin = getNavigationReplyTargetOrigin(event);
+        if (replyTargetOrigin) {
+          window.parent.postMessage(
+            { action: 'NAVIGATION_SUCCESS', path: data.path },
+            replyTargetOrigin
+          );
+        }
+      } else if (data.action === 'THEME_CHANGED' && data.theme) {
+        const themeColor = data.theme;
         if (themeColor === 'dark') {
           setTheme(EnumTheme.DARK);
         } else if (themeColor === 'light') {
           setTheme(EnumTheme.LIGHT);
         }
-      } else if (
-        event.data?.action === 'LANGUAGE_CHANGED' &&
-        event.data.language
-      ) {
-        if (!supportedLanguages?.includes(event.data.language)) return;
-        i18n.changeLanguage(event.data.language);
-      } else if (
-        event.data?.action === 'TEXT_SIZE_CHANGED' &&
-        event.data.textSize
-      ) {
-        applyTextSize(event.data.textSize);
+      } else if (data.action === 'LANGUAGE_CHANGED' && data.language) {
+        if (!supportedLanguages?.includes(data.language as Language)) return;
+        i18n.changeLanguage(data.language as Language);
+      } else if (data.action === 'TEXT_SIZE_CHANGED' && data.textSize) {
+        applyTextSize(data.textSize);
       }
     }
 
