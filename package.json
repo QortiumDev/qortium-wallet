@@ -28,7 +28,6 @@
     "@mui/icons-material": "^7.3.2",
     "@mui/lab": "^7.0.0-beta.17",
     "@mui/material": "^7.3.1",
-    "@toolpad/core": "^0.16.0",
     "jotai": "^2.13.1",
     "qapp-core": "^1.0.75",
     "react": "^19.0.0",
