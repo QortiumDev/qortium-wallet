@@ -1,9 +1,9 @@
 export const APPS = {
-  chain:   { qdn: 'Chain',   label: 'Chain'   },
-  groups:  { qdn: 'Groups',  label: 'Groups'  },
-  names:   { qdn: 'Names',   label: 'Names'   },
+  chain: { qdn: 'Chain', label: 'Chain' },
+  groups: { qdn: 'Groups', label: 'Groups' },
+  names: { qdn: 'Names', label: 'Names' },
   profile: { qdn: 'Profile', label: 'Profile' },
-  wallet:  { qdn: 'Wallet',  label: 'Wallet'  },
+  wallet: { qdn: 'Wallet', label: 'Wallet' },
 } as const;
 
 export type AppKey = keyof typeof APPS;
