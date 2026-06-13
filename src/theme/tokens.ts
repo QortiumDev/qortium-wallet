@@ -43,6 +43,24 @@ export const darkColors: ColorTokens = {
   overlay: 'rgba(0,0,0,0.7)',
 };
 
+export const ACCENT_MAP: Record<string, { accent: string; accentHover: string }> = {
+  green:  { accent: '#21824a', accentHover: '#1a6638' },
+  blue:   { accent: '#2a79f3', accentHover: '#1a64d0' },
+  orange: { accent: '#de8b23', accentHover: '#b8721c' },
+  purple: { accent: '#7b44da', accentHover: '#6433b5' },
+  red:    { accent: '#d53e3e', accentHover: '#b32e2e' },
+  teal:   { accent: '#17a398', accentHover: '#128078' },
+  cyan:   { accent: '#1298d8', accentHover: '#0d7ab0' },
+  pink:   { accent: '#d43f86', accentHover: '#b0326e' },
+  yellow: { accent: '#d6a828', accentHover: '#b08a20' },
+};
+
+export function applyAccent(colors: ColorTokens, accent: string): ColorTokens {
+  const a = ACCENT_MAP[accent];
+  if (!a) return colors;
+  return { ...colors, accent: a.accent, accentHover: a.accentHover };
+}
+
 export const tokens = {
   typography: {
     fontFamily: 'Inter, sans-serif',

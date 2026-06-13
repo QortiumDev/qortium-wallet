@@ -6,7 +6,7 @@ import { useSupportedChains } from '../hooks/useSupportedChains';
 
 function CoinDetailRouter() {
   const { coinRoute } = useParams<{ coinRoute: string }>();
-  const chains = useSupportedChains();
+  const { chains } = useSupportedChains();
   const chain = chains.find((c) => c.route === coinRoute);
   if (!chain) return null;
   return <CoinDetail chain={chain} />;

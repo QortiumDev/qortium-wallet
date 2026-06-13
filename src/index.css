@@ -52,3 +52,7 @@
 :root[data-text-size='extra-large'] {
   font-size: 24.96px;
 }
+
+:root[data-text-size='huge'] {
+  font-size: 27.96px;
+}

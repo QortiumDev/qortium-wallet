@@ -355,7 +355,7 @@ function SortableCoinBlock({
 }
 
 export function CoinGrid() {
-  const chains = useSupportedChains();
+  const { chains } = useSupportedChains();
   const [balances, setBalances] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
 
