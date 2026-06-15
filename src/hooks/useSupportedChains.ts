@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import {
   DEFAULT_CHAINS,
+  KNOWN_CHAINS,
   KNOWN_CHAIN_MAP,
   type ChainConfig,
 } from '../config/chains';
 
 const SESSION_KEY = 'qortium_supported_chains';
+const SESSION_STATUS_KEY = 'qortium_chain_status';
+
+export type ChainDiscoveryStatus = 'pending' | 'live' | 'fallback';
 
 interface SupportedBlockchainInfo {
   currencyCode: string;
@@ -16,8 +20,15 @@ interface SupportedBlockchainInfo {
   supportsQortTrades: boolean;
 }
 
-export function useSupportedChains(): ChainConfig[] {
-  const [chains, setChains] = useState<ChainConfig[]>(DEFAULT_CHAINS);
+export function useSupportedChains(): {
+  chains: ChainConfig[];
+  status: ChainDiscoveryStatus;
+} {
+  const [chains, setChains] = useState<ChainConfig[]>(KNOWN_CHAINS);
+  const [status, setStatus] = useState<ChainDiscoveryStatus>(() => {
+    const s = sessionStorage.getItem(SESSION_STATUS_KEY);
+    return (s as ChainDiscoveryStatus) ?? 'pending';
+  });
 
   useEffect(() => {
     const cached = sessionStorage.getItem(SESSION_KEY);
@@ -27,13 +38,14 @@ export function useSupportedChains(): ChainConfig[] {
         return;
       } catch {
         sessionStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(SESSION_STATUS_KEY);
       }
     }
 
     async function discover() {
       try {
         // GET /crosschain/blockchains was added to qortium-core.
-        // On non-Qortium nodes this will 404 and we fall back to DEFAULT_CHAINS.
+        // On non-Qortium nodes this will 404 and we fall back to KNOWN_CHAINS.
         const res = await fetch('/crosschain/blockchains');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: SupportedBlockchainInfo[] = await res.json();
@@ -45,9 +57,14 @@ export function useSupportedChains(): ChainConfig[] {
         const foreign: ChainConfig[] = data
           .filter((info) => info.walletEnabled)
           .map((info) => {
-            const known = KNOWN_CHAIN_MAP.get(info.currencyCode);
-            if (!known) return undefined;
-            // Merge live values over static defaults
+            const code = info.currencyCode?.toUpperCase();
+            const known = KNOWN_CHAIN_MAP.get(code);
+            if (!known) {
+              console.warn(
+                `[Walletium] Unknown chain from API: "${info.currencyCode}" — add it to KNOWN_CHAINS in chains.ts`
+              );
+              return undefined;
+            }
             return {
               ...known,
               decimalPlaces: info.decimalPlaces,
@@ -60,14 +77,21 @@ export function useSupportedChains(): ChainConfig[] {
 
         const merged = [qort, ...foreign];
         sessionStorage.setItem(SESSION_KEY, JSON.stringify(merged));
+        sessionStorage.setItem(SESSION_STATUS_KEY, 'live');
         setChains(merged);
-      } catch {
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify(DEFAULT_CHAINS));
+        setStatus('live');
+      } catch (err) {
+        // Don't cache failure — allow retry on next load.
+        console.warn(
+          '[Walletium] /crosschain/blockchains unavailable, showing all known chains:',
+          err
+        );
+        setStatus('fallback');
       }
     }
 
     discover();
   }, []);
 
-  return chains;
+  return { chains, status };
 }

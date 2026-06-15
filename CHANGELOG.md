@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Walletium will be documented in this file.
+All notable changes to Qortium Wallet will be documented in this file.
 
 ## Unreleased
 

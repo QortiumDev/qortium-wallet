@@ -38,7 +38,7 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
 
 export function TopBar() {
   const c = useColors();
-  const chains = useSupportedChains();
+  const { chains, status } = useSupportedChains();
   const [theme, setTheme] = useAtom(themeAtom);
   const [sortMode, setSortMode] = useAtom(sortModeAtom);
   const [tileSize, setTileSize] = useAtom(tileSizeAtom);
@@ -96,16 +96,67 @@ export function TopBar() {
     >
       <Box
         sx={{
-          fontWeight: tokens.typography.weightBlack,
-          fontSize: '1rem',
-          letterSpacing: { xs: '0.08em', sm: '0.18em' },
-          textTransform: 'uppercase',
-          color: c.textPrimary,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
           flexGrow: 1,
-          userSelect: 'none',
+          minWidth: 0,
         }}
       >
-        Walletium
+        <Box
+          sx={{
+            fontWeight: tokens.typography.weightBlack,
+            fontSize: '1rem',
+            letterSpacing: { xs: '0.08em', sm: '0.18em' },
+            textTransform: 'uppercase',
+            color: c.textPrimary,
+            userSelect: 'none',
+            flexShrink: 0,
+          }}
+        >
+          Wallet
+        </Box>
+
+        {status !== 'pending' && (
+          <Tooltip
+            title={
+              status === 'live'
+                ? `Node reported ${chains.length} wallets`
+                : `Node unreachable — showing all ${chains.length} known coins`
+            }
+            placement="bottom"
+          >
+            <Box
+              sx={{
+                fontSize: '0.6rem',
+                fontWeight: tokens.typography.weightBold,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                px: 0.75,
+                py: 0.25,
+                borderRadius: '4px',
+                userSelect: 'none',
+                cursor: 'default',
+                border: `1px solid`,
+                ...(status === 'live'
+                  ? {
+                      color: c.accent,
+                      borderColor: `${c.accent}50`,
+                      bgcolor: `${c.accent}14`,
+                    }
+                  : {
+                      color: '#f59e0b',
+                      borderColor: '#f59e0b50',
+                      bgcolor: '#f59e0b14',
+                    }),
+              }}
+            >
+              {status === 'live'
+                ? `${chains.length} live`
+                : `${chains.length} fallback`}
+            </Box>
+          </Tooltip>
+        )}
       </Box>
 
       {/* Copy all addresses */}

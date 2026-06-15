@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { EnumTheme, themeAtom } from '../state/global/system';
+import { EnumTheme, themeAtom, accentAtom } from '../state/global/system';
 import { useSetAtom } from 'jotai';
 import { useTranslation } from 'react-i18next';
 import { supportedLanguages } from '../i18n/i18n';
@@ -17,10 +17,13 @@ type Language =
   | 'ru'
   | 'ja'
   | 'zh';
+
 type Theme = 'dark' | 'light';
+
 export type TextSize =
   | 'extra-large'
   | 'extra-small'
+  | 'huge'
   | 'large'
   | 'medium'
   | 'small';
@@ -31,23 +34,17 @@ const SUPPORTED_TEXT_SIZES: readonly TextSize[] = [
   'medium',
   'large',
   'extra-large',
+  'huge',
 ];
-
-type CustomWindow = {
-  _qdnTheme?: Theme;
-  _qdnLang?: Language;
-  _qdnTextSize?: TextSize;
-};
 
 type BridgeMessageData = {
   action?: unknown;
+  accent?: unknown;
   language?: unknown;
   path?: unknown;
   textSize?: unknown;
   theme?: unknown;
 };
-
-const customWindow = window as unknown as CustomWindow;
 
 export function isSupportedTextSize(value: unknown): value is TextSize {
   return (
@@ -98,25 +95,11 @@ export function getNavigationReplyTargetOrigin(event: MessageEvent<unknown>) {
 
 export const useIframe = () => {
   const setTheme = useSetAtom(themeAtom);
+  const setAccent = useSetAtom(accentAtom);
   const { i18n } = useTranslation();
 
   const navigate = useNavigate();
   useEffect(() => {
-    const themeColorDefault = customWindow?._qdnTheme;
-    if (themeColorDefault === 'dark') {
-      setTheme(EnumTheme.DARK);
-    } else if (themeColorDefault === 'light') {
-      setTheme(EnumTheme.LIGHT);
-    }
-
-    const languageDefault = customWindow?._qdnLang;
-
-    if (languageDefault && supportedLanguages?.includes(languageDefault)) {
-      i18n.changeLanguage(languageDefault);
-    }
-
-    applyTextSize(customWindow?._qdnTextSize);
-
     function handleNavigation(event: MessageEvent<unknown>) {
       if (!isTrustedBridgeMessage(event) || !isBridgeMessageData(event.data)) {
         return;
@@ -128,9 +111,8 @@ export const useIframe = () => {
         data.action === 'NAVIGATE_TO_PATH' &&
         isSafeNavigationPath(data.path)
       ) {
-        navigate(data.path); // Navigate directly to the specified path
+        navigate(data.path);
 
-        // Send a response back to the parent window after navigation is handled
         const replyTargetOrigin = getNavigationReplyTargetOrigin(event);
         if (replyTargetOrigin) {
           window.parent.postMessage(
@@ -139,15 +121,27 @@ export const useIframe = () => {
           );
         }
       } else if (data.action === 'THEME_CHANGED' && data.theme) {
-        const themeColor = data.theme;
+        const themeColor = data.theme as Theme;
         if (themeColor === 'dark') {
           setTheme(EnumTheme.DARK);
+          document.documentElement.dataset.theme = 'dark';
+          document.documentElement.style.colorScheme = 'dark';
         } else if (themeColor === 'light') {
           setTheme(EnumTheme.LIGHT);
+          document.documentElement.dataset.theme = 'light';
+          document.documentElement.style.colorScheme = 'light';
         }
+      } else if (
+        data.action === 'ACCENT_CHANGED' &&
+        typeof data.accent === 'string'
+      ) {
+        setAccent(data.accent);
       } else if (data.action === 'LANGUAGE_CHANGED' && data.language) {
         if (!supportedLanguages?.includes(data.language as Language)) return;
         i18n.changeLanguage(data.language as Language);
+        document.documentElement.lang = data.language as string;
+        document.documentElement.dir =
+          data.language === 'ar' || data.language === 'he' ? 'rtl' : 'ltr';
       } else if (data.action === 'TEXT_SIZE_CHANGED' && data.textSize) {
         applyTextSize(data.textSize);
       }
@@ -158,6 +152,6 @@ export const useIframe = () => {
     return () => {
       window.removeEventListener('message', handleNavigation);
     };
-  }, [i18n, navigate, setTheme]);
+  }, [i18n, navigate, setTheme, setAccent]);
   return { navigate };
 };
