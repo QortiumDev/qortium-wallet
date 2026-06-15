@@ -60,7 +60,9 @@ export function useSupportedChains(): {
             const code = info.currencyCode?.toUpperCase();
             const known = KNOWN_CHAIN_MAP.get(code);
             if (!known) {
-              console.warn(`[Walletium] Unknown chain from API: "${info.currencyCode}" — add it to KNOWN_CHAINS in chains.ts`);
+              console.warn(
+                `[Walletium] Unknown chain from API: "${info.currencyCode}" — add it to KNOWN_CHAINS in chains.ts`
+              );
               return undefined;
             }
             return {
@@ -80,7 +82,10 @@ export function useSupportedChains(): {
         setStatus('live');
       } catch (err) {
         // Don't cache failure — allow retry on next load.
-        console.warn('[Walletium] /crosschain/blockchains unavailable, showing all known chains:', err);
+        console.warn(
+          '[Walletium] /crosschain/blockchains unavailable, showing all known chains:',
+          err
+        );
         setStatus('fallback');
       }
     }

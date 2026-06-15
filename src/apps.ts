@@ -4,7 +4,7 @@ export const APPS = {
   names: { qdn: 'Names', label: 'Names' },
   profile: { qdn: 'Profile', label: 'Profile' },
   publish: { qdn: 'Publish', label: 'Publish' },
-  wallet:  { qdn: 'Wallet',  label: 'Wallet'  },
+  wallet: { qdn: 'Wallet', label: 'Wallet' },
 } as const;
 
 export type AppKey = keyof typeof APPS;

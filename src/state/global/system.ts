@@ -16,7 +16,8 @@ if (_textSize) document.documentElement.dataset.textSize = _textSize;
 document.documentElement.lang = _lang;
 document.documentElement.dir = _lang === 'ar' || _lang === 'he' ? 'rtl' : 'ltr';
 document.documentElement.dataset.theme = _theme === 'light' ? 'light' : 'dark';
-document.documentElement.style.colorScheme = _theme === 'light' ? 'light' : 'dark';
+document.documentElement.style.colorScheme =
+  _theme === 'light' ? 'light' : 'dark';
 
 export const themeAtom = atom<EnumTheme>(
   _theme === 'light' ? EnumTheme.LIGHT : EnumTheme.DARK

@@ -151,7 +151,9 @@ export function TopBar() {
                     }),
               }}
             >
-              {status === 'live' ? `${chains.length} live` : `${chains.length} fallback`}
+              {status === 'live'
+                ? `${chains.length} live`
+                : `${chains.length} fallback`}
             </Box>
           </Tooltip>
         )}

@@ -131,7 +131,10 @@ export const useIframe = () => {
           document.documentElement.dataset.theme = 'light';
           document.documentElement.style.colorScheme = 'light';
         }
-      } else if (data.action === 'ACCENT_CHANGED' && typeof data.accent === 'string') {
+      } else if (
+        data.action === 'ACCENT_CHANGED' &&
+        typeof data.accent === 'string'
+      ) {
         setAccent(data.accent);
       } else if (data.action === 'LANGUAGE_CHANGED' && data.language) {
         if (!supportedLanguages?.includes(data.language as Language)) return;
