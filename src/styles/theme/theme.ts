@@ -37,6 +37,7 @@ const baseTheme = createTheme({
     MuiDialog: { styleOverrides: { paper: { backgroundImage: 'none' } } },
     MuiPopover: { styleOverrides: { paper: { backgroundImage: 'none' } } },
     MuiPaper: { styleOverrides: { root: { backgroundImage: 'none' } } },
+    MuiTooltip: { defaultProps: { PopperProps: { disablePortal: true } } },
     MuiButton: {
       styleOverrides: {
         root: {

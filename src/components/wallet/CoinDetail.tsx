@@ -87,7 +87,7 @@ export function CoinDetail({ chain }: Props) {
     () => searchParams.get('send') === 'true'
   );
   const [amount, setAmount] = useState<number>(0);
-  const [recipient, setRecipient] = useState(EMPTY_STRING);
+  const [recipient, setRecipient] = useState(() => searchParams.get('to') ?? EMPTY_STRING);
   const [fee, setFee] = useState<string>('');
   const [feeLoading, setFeeLoading] = useState(false);
   const [sending, setSending] = useState(false);
