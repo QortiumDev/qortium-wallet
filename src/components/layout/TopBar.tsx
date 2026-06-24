@@ -60,7 +60,10 @@ export function TopBar() {
   useEffect(() => {
     (async () => {
       try {
-        const list = await qortalRequest({ action: 'GET_LIST', list_name: 'followedNames' } as any);
+        const list = await qortalRequest({
+          action: 'GET_LIST',
+          list_name: 'followedNames',
+        } as any);
         setIsFollowed(Array.isArray(list) && list.includes(APP_QDN_NAME));
       } catch {}
     })();
@@ -71,10 +74,18 @@ export function TopBar() {
     setFollowBusy(true);
     try {
       if (isFollowed) {
-        await qortalRequest({ action: 'REMOVE_FROM_LIST', list_name: 'followedNames', items: [APP_QDN_NAME] } as any);
+        await qortalRequest({
+          action: 'REMOVE_FROM_LIST',
+          list_name: 'followedNames',
+          items: [APP_QDN_NAME],
+        } as any);
         setIsFollowed(false);
       } else {
-        await qortalRequest({ action: 'ADD_TO_LIST', list_name: 'followedNames', items: [APP_QDN_NAME] } as any);
+        await qortalRequest({
+          action: 'ADD_TO_LIST',
+          list_name: 'followedNames',
+          items: [APP_QDN_NAME],
+        } as any);
         setIsFollowed(true);
       }
     } catch {}
@@ -83,7 +94,10 @@ export function TopBar() {
 
   function handleOpenHelp() {
     try {
-      void qortalRequest({ action: 'OPEN_NEW_TAB', address: `qdn://APP/Help/Help?app=${APP_QDN_NAME}` } as any);
+      void qortalRequest({
+        action: 'OPEN_NEW_TAB',
+        address: `qdn://APP/Help/Help?app=${APP_QDN_NAME}`,
+      } as any);
     } catch {}
   }
 
@@ -333,7 +347,11 @@ export function TopBar() {
           }}
           aria-label={isFollowed ? 'unfollow' : 'follow'}
         >
-          {isFollowed ? <PersonRemoveAlt1Icon fontSize="small" /> : <PersonAddAlt1Icon fontSize="small" />}
+          {isFollowed ? (
+            <PersonRemoveAlt1Icon fontSize="small" />
+          ) : (
+            <PersonAddAlt1Icon fontSize="small" />
+          )}
         </IconButton>
       </Tooltip>
 
