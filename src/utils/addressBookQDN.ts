@@ -84,6 +84,11 @@ function publishedHashKey(coinType: string): string {
   return `walletium-addressbook-published-${coinType}`;
 }
 
+async function ensureAccountUnlocked(): Promise<boolean> {
+  const result = await qortalRequest({ action: 'UNLOCK_SELECTED_ACCOUNT' }) as { isUnlocked?: boolean } | null;
+  return result?.isUnlocked === true;
+}
+
 async function publishToQDN(
   coinType: string,
   entries: AddressBookEntry[],
@@ -121,6 +126,7 @@ async function publishToQDN(
     });
 
     // Publish to QDN
+    if (!await ensureAccountUnlocked()) return null;
     await qortalRequest({
       action: 'PUBLISH_QDN_RESOURCE',
       base64: encryptedData,

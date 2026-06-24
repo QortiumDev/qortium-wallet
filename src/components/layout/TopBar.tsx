@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
   CircularProgress,
@@ -15,6 +15,9 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
+import PersonRemoveAlt1Icon from '@mui/icons-material/PersonRemoveAlt1';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { useAtom } from 'jotai';
 import { useLocation } from 'react-router-dom';
 import {
@@ -27,6 +30,8 @@ import {
 import { useColors } from '../../theme/ColorTokensContext';
 import { tokens } from '../../theme/tokens';
 import { useSupportedChains } from '../../hooks/useSupportedChains';
+
+const APP_QDN_NAME = 'Wallet';
 
 const SORT_OPTIONS: { value: SortMode; label: string }[] = [
   { value: 'custom', label: 'Custom order' },
@@ -49,6 +54,38 @@ export function TopBar() {
   const { pathname } = useLocation();
   const isDark = theme === EnumTheme.DARK;
   const isGrid = pathname === '/';
+  const [isFollowed, setIsFollowed] = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await qortalRequest({ action: 'GET_LIST', list_name: 'followedNames' } as any);
+        setIsFollowed(Array.isArray(list) && list.includes(APP_QDN_NAME));
+      } catch {}
+    })();
+  }, []);
+
+  async function handleToggleFollow() {
+    if (followBusy) return;
+    setFollowBusy(true);
+    try {
+      if (isFollowed) {
+        await qortalRequest({ action: 'REMOVE_FROM_LIST', list_name: 'followedNames', items: [APP_QDN_NAME] } as any);
+        setIsFollowed(false);
+      } else {
+        await qortalRequest({ action: 'ADD_TO_LIST', list_name: 'followedNames', items: [APP_QDN_NAME] } as any);
+        setIsFollowed(true);
+      }
+    } catch {}
+    setFollowBusy(false);
+  }
+
+  function handleOpenHelp() {
+    try {
+      void qortalRequest({ action: 'OPEN_NEW_TAB', address: `qdn://APP/Help/Help?app=${APP_QDN_NAME}` } as any);
+    } catch {}
+  }
 
   const handleCopyAll = async () => {
     if (copyState !== 'idle') return;
@@ -283,6 +320,37 @@ export function TopBar() {
           </Menu>
         </>
       )}
+
+      <Tooltip title={isFollowed ? 'Unfollow' : 'Follow'} placement="bottom">
+        <IconButton
+          size="small"
+          onClick={() => void handleToggleFollow()}
+          disabled={followBusy}
+          sx={{
+            color: isFollowed ? c.accent : c.textSecondary,
+            borderRadius: `${tokens.shape.radius}px`,
+            '&:hover': { color: c.accent },
+          }}
+          aria-label={isFollowed ? 'unfollow' : 'follow'}
+        >
+          {isFollowed ? <PersonRemoveAlt1Icon fontSize="small" /> : <PersonAddAlt1Icon fontSize="small" />}
+        </IconButton>
+      </Tooltip>
+
+      <Tooltip title="Help & Feedback" placement="bottom">
+        <IconButton
+          size="small"
+          onClick={handleOpenHelp}
+          sx={{
+            color: c.textSecondary,
+            borderRadius: `${tokens.shape.radius}px`,
+            '&:hover': { color: c.accent },
+          }}
+          aria-label="help and feedback"
+        >
+          <HelpOutlineIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
 
       <Tooltip title={isDark ? 'Light mode' : 'Dark mode'} placement="bottom">
         <IconButton

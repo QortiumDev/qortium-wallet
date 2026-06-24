@@ -67,6 +67,11 @@ const ARRR_OUTER_MAX = 36;
 const ARRR_INNER_MAX = 60;
 const ARRR_POLL_MS = 5000;
 
+async function ensureAccountUnlocked(): Promise<boolean> {
+  const result = await qortalRequest({ action: 'UNLOCK_SELECTED_ACCOUNT' }) as { isUnlocked?: boolean } | null;
+  return result?.isUnlocked === true;
+}
+
 export function CoinDetail({ chain }: Props) {
   const c = useColors();
   const navigate = useNavigate();
@@ -347,6 +352,7 @@ export function CoinDetail({ chain }: Props) {
   const handleSend = async () => {
     setSending(true);
     try {
+      if (!await ensureAccountUnlocked()) return;
       const payload: Record<string, unknown> = {
         action: 'SEND_COIN',
         coin: chain.coinEnum,
