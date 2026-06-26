@@ -11,7 +11,11 @@ import {
 } from '@mui/material';
 import { Coin } from 'qapp-core';
 import { useTranslation } from 'react-i18next';
+import { useAtomValue } from 'jotai';
 import { DialogGeneral } from '../../styles/page-styles';
+import { uiStyleAtom } from '../../state/global/system';
+import { useColors } from '../../theme/ColorTokensContext';
+import { tokens } from '../../theme/tokens';
 import { AddressBookEntry } from '../../utils/Types';
 import { validateAddress } from '../../utils/addressValidation';
 import {
@@ -45,6 +49,9 @@ export const AddressFormDialog: React.FC<AddressFormDialogProps> = ({
   saveError,
 }) => {
   const { t } = useTranslation(['core']);
+  const c = useColors();
+  const uiStyle = useAtomValue(uiStyleAtom);
+  const isClassic = uiStyle === 'classic';
 
   const [name, setName] = useState(EMPTY_STRING);
   const [address, setAddress] = useState(EMPTY_STRING);
@@ -221,7 +228,20 @@ export const AddressFormDialog: React.FC<AddressFormDialogProps> = ({
     (coinType === Coin.QORT ? !addressValidating : true);
 
   return (
-    <DialogGeneral open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <DialogGeneral
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: {
+          maxWidth: isClassic ? c.layoutMaxWidth : undefined,
+          border: isClassic ? `1px solid ${c.border}` : undefined,
+          borderRadius: isClassic ? `${tokens.shape.radiusMd}px` : undefined,
+          boxShadow: isClassic ? c.shadowModal : undefined,
+        },
+      }}
+    >
       <DialogTitle sx={{ textAlign: 'center' }} variant="h4">
         {isEditMode
           ? t('core:address_book_edit', {
@@ -336,13 +356,18 @@ export const AddressFormDialog: React.FC<AddressFormDialogProps> = ({
             variant="contained"
             disabled={!isFormValid}
             sx={{
-              backgroundColor: '#05a2e4',
+              backgroundColor: c.accent,
+              color: c.accentText,
               '&:hover': {
-                backgroundColor: '#02648d',
+                backgroundColor: c.accentHover,
               },
               '&:disabled': {
-                backgroundColor: 'rgba(0, 0, 0, 0.12)',
+                backgroundColor: c.controlBg,
+                color: c.textFaint,
               },
+              borderRadius: isClassic
+                ? `${tokens.shape.radiusMd}px`
+                : undefined,
             }}
           >
             {t('core:address_book_save', {

@@ -63,9 +63,13 @@ export default function AppLayout() {
   }, [setWalletState]);
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: c.bg }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: c.pageBg }}>
       <TopBar />
-      <Box sx={{ pt: `${tokens.spacing.topBarHeight}px` }}>
+      <Box
+        sx={{
+          pt: `var(--wallet-top-bar-height, ${tokens.spacing.topBarHeight}px)`,
+        }}
+      >
         <Outlet />
       </Box>
     </Box>

@@ -1,6 +1,12 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { EnumTheme, themeAtom, accentAtom } from '../state/global/system';
+import {
+  EnumTheme,
+  themeAtom,
+  accentAtom,
+  uiStyleAtom,
+  parseUiStyle,
+} from '../state/global/system';
 import { useSetAtom } from 'jotai';
 import { useTranslation } from 'react-i18next';
 import { supportedLanguages } from '../i18n/i18n';
@@ -44,6 +50,7 @@ type BridgeMessageData = {
   path?: unknown;
   textSize?: unknown;
   theme?: unknown;
+  uiStyle?: unknown;
 };
 
 export function isSupportedTextSize(value: unknown): value is TextSize {
@@ -96,6 +103,7 @@ export function getNavigationReplyTargetOrigin(event: MessageEvent<unknown>) {
 export const useIframe = () => {
   const setTheme = useSetAtom(themeAtom);
   const setAccent = useSetAtom(accentAtom);
+  const setUiStyle = useSetAtom(uiStyleAtom);
   const { i18n } = useTranslation();
 
   const navigate = useNavigate();
@@ -136,6 +144,7 @@ export const useIframe = () => {
         typeof data.accent === 'string'
       ) {
         setAccent(data.accent);
+        document.documentElement.dataset.accent = data.accent;
       } else if (data.action === 'LANGUAGE_CHANGED' && data.language) {
         if (!supportedLanguages?.includes(data.language as Language)) return;
         i18n.changeLanguage(data.language as Language);
@@ -144,6 +153,13 @@ export const useIframe = () => {
           data.language === 'ar' || data.language === 'he' ? 'rtl' : 'ltr';
       } else if (data.action === 'TEXT_SIZE_CHANGED' && data.textSize) {
         applyTextSize(data.textSize);
+      } else if (
+        data.action === 'UI_STYLE_CHANGED' &&
+        typeof data.uiStyle === 'string'
+      ) {
+        const uiStyle = parseUiStyle(data.uiStyle);
+        setUiStyle(uiStyle);
+        document.documentElement.dataset.ui = uiStyle;
       }
     }
 
@@ -152,6 +168,6 @@ export const useIframe = () => {
     return () => {
       window.removeEventListener('message', handleNavigation);
     };
-  }, [i18n, navigate, setTheme, setAccent]);
+  }, [i18n, navigate, setTheme, setAccent, setUiStyle]);
   return { navigate };
 };

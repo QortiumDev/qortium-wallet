@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   Box,
   CircularProgress,
@@ -18,11 +18,12 @@ import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import PersonRemoveAlt1Icon from '@mui/icons-material/PersonRemoveAlt1';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
-import { useAtom } from 'jotai';
+import { useAtom, useAtomValue } from 'jotai';
 import { useLocation } from 'react-router-dom';
 import {
   EnumTheme,
   themeAtom,
+  uiStyleAtom,
   sortModeAtom,
   tileSizeAtom,
   type SortMode,
@@ -45,14 +46,17 @@ export function TopBar() {
   const c = useColors();
   const { chains, status } = useSupportedChains();
   const [theme, setTheme] = useAtom(themeAtom);
+  const uiStyle = useAtomValue(uiStyleAtom);
   const [sortMode, setSortMode] = useAtom(sortModeAtom);
   const [tileSize, setTileSize] = useAtom(tileSizeAtom);
+  const headerRef = useRef<HTMLElement | null>(null);
   const [sortAnchor, setSortAnchor] = useState<null | HTMLElement>(null);
   const [copyState, setCopyState] = useState<'idle' | 'loading' | 'done'>(
     'idle'
   );
   const { pathname } = useLocation();
   const isDark = theme === EnumTheme.DARK;
+  const isClassic = uiStyle === 'classic';
   const isGrid = pathname === '/';
   const [isFollowed, setIsFollowed] = useState(false);
   const [followBusy, setFollowBusy] = useState(false);
@@ -68,6 +72,28 @@ export function TopBar() {
       } catch {}
     })();
   }, []);
+
+  useLayoutEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+
+    const updateHeight = () => {
+      document.documentElement.style.setProperty(
+        '--wallet-top-bar-height',
+        `${header.getBoundingClientRect().height}px`
+      );
+    };
+
+    updateHeight();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateHeight);
+      return () => window.removeEventListener('resize', updateHeight);
+    }
+
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, [isClassic, isGrid, status]);
 
   async function handleToggleFollow() {
     if (followBusy) return;
@@ -127,22 +153,54 @@ export function TopBar() {
     }
   };
 
+  function handleToggleTheme() {
+    const next = isDark ? EnumTheme.LIGHT : EnumTheme.DARK;
+    setTheme(next);
+    document.documentElement.dataset.theme =
+      next === EnumTheme.DARK ? 'dark' : 'light';
+    document.documentElement.style.colorScheme =
+      next === EnumTheme.DARK ? 'dark' : 'light';
+  }
+
+  const buttonSx = {
+    color: c.textSecondary,
+    borderRadius: `${isClassic ? tokens.shape.radiusMd : tokens.shape.radius}px`,
+    minWidth: 36,
+    minHeight: 36,
+    flexShrink: 0,
+    transition: c.transitionControl,
+    '&:hover': {
+      color: c.accent,
+      bgcolor: isClassic ? c.controlHover : 'transparent',
+    },
+    '&.Mui-disabled': { opacity: 0.3 },
+  };
+
   return (
     <Box
       component="header"
+      ref={headerRef}
       sx={{
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
         zIndex: 100,
-        height: tokens.spacing.topBarHeight,
-        borderBottom: `${tokens.shape.borderWidth} solid ${c.borderLight}`,
+        minHeight: isClassic ? 'auto' : tokens.spacing.topBarHeight,
+        borderBottom: `${
+          isClassic ? tokens.shape.classicBorderWidth : tokens.shape.borderWidth
+        } solid ${isClassic ? c.border : c.borderLight}`,
+        boxShadow: isClassic ? c.topBarShadow : 'none',
         bgcolor: c.surface,
-        display: 'flex',
+        display: 'grid',
+        gridTemplateColumns: {
+          xs: 'minmax(0, 1fr)',
+          sm: 'minmax(0, 1fr) auto',
+        },
         alignItems: 'center',
-        px: 3,
-        gap: 1,
+        px: isClassic ? { xs: 1.25, sm: 1.75 } : 3,
+        py: isClassic ? 1 : 0,
+        gap: isClassic ? 1 : 1,
       }}
     >
       <Box
@@ -150,7 +208,6 @@ export function TopBar() {
           display: 'flex',
           alignItems: 'center',
           gap: 1.5,
-          flexGrow: 1,
           minWidth: 0,
         }}
       >
@@ -210,200 +267,207 @@ export function TopBar() {
         )}
       </Box>
 
-      {/* Copy all addresses */}
-      <Tooltip
-        title={copyState === 'done' ? 'Copied!' : 'Copy all addresses'}
-        placement="bottom"
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+          gap: isClassic ? 0.5 : 0.25,
+          flexWrap: 'wrap',
+          minWidth: 0,
+        }}
       >
-        <IconButton
-          size="small"
-          onClick={handleCopyAll}
-          disabled={copyState === 'loading'}
-          sx={{
-            color: copyState === 'done' ? c.accent : c.textSecondary,
-            borderRadius: `${tokens.shape.radius}px`,
-            '&:hover': { color: c.accent },
-          }}
-          aria-label="copy all addresses"
+        {/* Copy all addresses */}
+        <Tooltip
+          title={copyState === 'done' ? 'Copied!' : 'Copy all addresses'}
+          placement="bottom"
         >
-          {copyState === 'loading' ? (
-            <CircularProgress size={16} sx={{ color: c.textSecondary }} />
-          ) : copyState === 'done' ? (
-            <DoneAllIcon fontSize="small" />
-          ) : (
-            <ContentCopyIcon fontSize="small" />
-          )}
-        </IconButton>
-      </Tooltip>
+          <IconButton
+            size="small"
+            onClick={handleCopyAll}
+            disabled={copyState === 'loading'}
+            sx={{
+              ...buttonSx,
+              color: copyState === 'done' ? c.accent : c.textSecondary,
+            }}
+            aria-label="copy all addresses"
+          >
+            {copyState === 'loading' ? (
+              <CircularProgress size={16} sx={{ color: c.textSecondary }} />
+            ) : copyState === 'done' ? (
+              <DoneAllIcon fontSize="small" />
+            ) : (
+              <ContentCopyIcon fontSize="small" />
+            )}
+          </IconButton>
+        </Tooltip>
 
-      {/* Zoom + Sort (grid page only) */}
-      {isGrid && (
-        <>
-          <Tooltip title="Zoom out" placement="bottom">
-            <span>
+        {/* Zoom + Sort (grid page only) */}
+        {isGrid && (
+          <>
+            <Tooltip title="Zoom out" placement="bottom">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={() => setTileSize((s) => Math.min(s + 1, 7))}
+                  disabled={tileSize >= 7}
+                  sx={buttonSx}
+                >
+                  <ZoomOutIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+
+            <Tooltip title="Zoom in" placement="bottom">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={() => setTileSize((s) => Math.max(s - 1, 1))}
+                  disabled={tileSize <= 1}
+                  sx={buttonSx}
+                >
+                  <ZoomInIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+
+            <Tooltip title="Sort" placement="bottom">
               <IconButton
                 size="small"
-                onClick={() => setTileSize((s) => Math.min(s + 1, 7))}
-                disabled={tileSize >= 7}
+                onClick={(e) => setSortAnchor(e.currentTarget)}
                 sx={{
-                  color: c.textSecondary,
-                  borderRadius: `${tokens.shape.radius}px`,
-                  '&:hover': { color: c.accent },
-                  '&.Mui-disabled': { opacity: 0.3 },
+                  ...buttonSx,
+                  color:
+                    sortAnchor || sortMode !== 'custom'
+                      ? c.accent
+                      : c.textSecondary,
                 }}
+                aria-label="sort coins"
               >
-                <ZoomOutIcon fontSize="small" />
+                <SortIcon fontSize="small" />
               </IconButton>
-            </span>
-          </Tooltip>
+            </Tooltip>
 
-          <Tooltip title="Zoom in" placement="bottom">
-            <span>
-              <IconButton
-                size="small"
-                onClick={() => setTileSize((s) => Math.max(s - 1, 1))}
-                disabled={tileSize <= 1}
-                sx={{
-                  color: c.textSecondary,
-                  borderRadius: `${tokens.shape.radius}px`,
-                  '&:hover': { color: c.accent },
-                  '&.Mui-disabled': { opacity: 0.3 },
-                }}
-              >
-                <ZoomInIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-
-          <Tooltip title="Sort" placement="bottom">
-            <IconButton
-              size="small"
-              onClick={(e) => setSortAnchor(e.currentTarget)}
-              sx={{
-                color:
-                  sortAnchor || sortMode !== 'custom'
-                    ? c.accent
-                    : c.textSecondary,
-                borderRadius: `${tokens.shape.radius}px`,
-                '&:hover': { color: c.accent },
-              }}
-              aria-label="sort coins"
-            >
-              <SortIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-
-          <Menu
-            anchorEl={sortAnchor}
-            open={Boolean(sortAnchor)}
-            onClose={() => setSortAnchor(null)}
-            slotProps={{
-              paper: {
-                sx: {
-                  bgcolor: c.surface,
-                  border: `${tokens.shape.borderWidth} solid ${c.borderLight}`,
-                  borderRadius: `${tokens.shape.radius}px`,
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.14)',
-                  minWidth: 190,
+            <Menu
+              anchorEl={sortAnchor}
+              open={Boolean(sortAnchor)}
+              onClose={() => setSortAnchor(null)}
+              slotProps={{
+                paper: {
+                  sx: {
+                    bgcolor: c.surface,
+                    border: `${
+                      isClassic
+                        ? tokens.shape.classicBorderWidth
+                        : tokens.shape.borderWidth
+                    } solid ${isClassic ? c.border : c.borderLight}`,
+                    borderRadius: `${isClassic ? tokens.shape.radiusMd : tokens.shape.radius}px`,
+                    boxShadow: isClassic
+                      ? c.shadowPop
+                      : '0 4px 20px rgba(0,0,0,0.14)',
+                    minWidth: 190,
+                  },
                 },
+              }}
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <MenuItem
+                  key={opt.value}
+                  selected={sortMode === opt.value}
+                  onClick={() => {
+                    setSortMode(opt.value);
+                    setSortAnchor(null);
+                  }}
+                  sx={{
+                    fontSize: '0.8rem',
+                    letterSpacing: '0.04em',
+                    color: sortMode === opt.value ? c.accent : c.textPrimary,
+                    fontWeight:
+                      sortMode === opt.value
+                        ? tokens.typography.weightBold
+                        : 400,
+                    '&.Mui-selected': { bgcolor: c.accentSoft },
+                    '&.Mui-selected:hover': { bgcolor: c.accentRing },
+                    '&:hover': {
+                      bgcolor: isClassic ? c.controlHover : `${c.accent}0c`,
+                    },
+                  }}
+                >
+                  {opt.label}
+                </MenuItem>
+              ))}
+            </Menu>
+          </>
+        )}
+
+        <Tooltip title={isFollowed ? 'Unfollow' : 'Follow'} placement="bottom">
+          <IconButton
+            size="small"
+            onClick={() => void handleToggleFollow()}
+            disabled={followBusy}
+            sx={{
+              ...buttonSx,
+              color: isFollowed ? c.accent : c.textSecondary,
+            }}
+            aria-label={isFollowed ? 'unfollow' : 'follow'}
+          >
+            {isFollowed ? (
+              <PersonRemoveAlt1Icon fontSize="small" />
+            ) : (
+              <PersonAddAlt1Icon fontSize="small" />
+            )}
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title="Help & Feedback" placement="bottom">
+          <IconButton
+            size="small"
+            onClick={handleOpenHelp}
+            sx={buttonSx}
+            aria-label="help and feedback"
+          >
+            <HelpOutlineIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title={isDark ? 'Light mode' : 'Dark mode'} placement="bottom">
+          <IconButton
+            size="small"
+            onClick={handleToggleTheme}
+            sx={{
+              ...buttonSx,
+              color: c.textSecondary,
+              '&:hover': {
+                color: c.textPrimary,
+                bgcolor: isClassic ? c.controlHover : 'transparent',
               },
             }}
+            aria-label="toggle dark mode"
           >
-            {SORT_OPTIONS.map((opt) => (
-              <MenuItem
-                key={opt.value}
-                selected={sortMode === opt.value}
-                onClick={() => {
-                  setSortMode(opt.value);
-                  setSortAnchor(null);
-                }}
-                sx={{
-                  fontSize: '0.8rem',
-                  letterSpacing: '0.04em',
-                  color: sortMode === opt.value ? c.accent : c.textPrimary,
-                  fontWeight:
-                    sortMode === opt.value ? tokens.typography.weightBold : 400,
-                  '&.Mui-selected': { bgcolor: `${c.accent}14` },
-                  '&.Mui-selected:hover': { bgcolor: `${c.accent}20` },
-                  '&:hover': { bgcolor: `${c.accent}0c` },
-                }}
-              >
-                {opt.label}
-              </MenuItem>
-            ))}
-          </Menu>
-        </>
-      )}
+            {isDark ? (
+              <LightModeIcon fontSize="small" />
+            ) : (
+              <DarkModeIcon fontSize="small" />
+            )}
+          </IconButton>
+        </Tooltip>
 
-      <Tooltip title={isFollowed ? 'Unfollow' : 'Follow'} placement="bottom">
-        <IconButton
-          size="small"
-          onClick={() => void handleToggleFollow()}
-          disabled={followBusy}
-          sx={{
-            color: isFollowed ? c.accent : c.textSecondary,
-            borderRadius: `${tokens.shape.radius}px`,
-            '&:hover': { color: c.accent },
-          }}
-          aria-label={isFollowed ? 'unfollow' : 'follow'}
-        >
-          {isFollowed ? (
-            <PersonRemoveAlt1Icon fontSize="small" />
-          ) : (
-            <PersonAddAlt1Icon fontSize="small" />
-          )}
-        </IconButton>
-      </Tooltip>
-
-      <Tooltip title="Help & Feedback" placement="bottom">
-        <IconButton
-          size="small"
-          onClick={handleOpenHelp}
-          sx={{
-            color: c.textSecondary,
-            borderRadius: `${tokens.shape.radius}px`,
-            '&:hover': { color: c.accent },
-          }}
-          aria-label="help and feedback"
-        >
-          <HelpOutlineIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-
-      <Tooltip title={isDark ? 'Light mode' : 'Dark mode'} placement="bottom">
-        <IconButton
-          size="small"
-          onClick={() => setTheme(isDark ? EnumTheme.LIGHT : EnumTheme.DARK)}
-          sx={{
-            color: c.textSecondary,
-            borderRadius: `${tokens.shape.radius}px`,
-            '&:hover': { color: c.textPrimary },
-          }}
-          aria-label="toggle dark mode"
-        >
-          {isDark ? (
-            <LightModeIcon fontSize="small" />
-          ) : (
-            <DarkModeIcon fontSize="small" />
-          )}
-        </IconButton>
-      </Tooltip>
-
-      <Tooltip title="Settings" placement="bottom">
-        <IconButton
-          size="small"
-          sx={{
-            color: c.textSecondary,
-            borderRadius: `${tokens.shape.radius}px`,
-            opacity: 0.4,
-            cursor: 'default',
-          }}
-          aria-label="settings"
-          disableRipple
-        >
-          <SettingsIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+        <Tooltip title="Settings" placement="bottom">
+          <IconButton
+            size="small"
+            sx={{
+              ...buttonSx,
+              color: c.textSecondary,
+              opacity: 0.4,
+              cursor: 'default',
+            }}
+            aria-label="settings"
+            disableRipple
+          >
+            <SettingsIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
     </Box>
   );
 }
