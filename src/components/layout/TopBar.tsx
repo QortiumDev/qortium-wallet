@@ -69,7 +69,9 @@ export function TopBar() {
           list_name: 'followedNames',
         } as any);
         setIsFollowed(Array.isArray(list) && list.includes(APP_QDN_NAME));
-      } catch {}
+      } catch {
+        // Follow-list state is optional chrome; ignore unavailable list APIs.
+      }
     })();
   }, []);
 
@@ -114,7 +116,9 @@ export function TopBar() {
         } as any);
         setIsFollowed(true);
       }
-    } catch {}
+    } catch {
+      // Follow/unfollow is best-effort; keep the current state if the request fails.
+    }
     setFollowBusy(false);
   }
 
@@ -124,7 +128,9 @@ export function TopBar() {
         action: 'OPEN_NEW_TAB',
         address: `qdn://APP/Help/Help?app=${APP_QDN_NAME}`,
       } as any);
-    } catch {}
+    } catch {
+      // Help tab opening is optional and can fail outside Qortium Home.
+    }
   }
 
   const handleCopyAll = async () => {
