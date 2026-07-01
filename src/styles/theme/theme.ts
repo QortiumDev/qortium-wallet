@@ -1,81 +1,144 @@
 import { createTheme } from '@mui/material/styles';
-import { tokens, lightColors, darkColors } from '../../theme/tokens';
+import {
+  getColorTokens,
+  tokens,
+  type AppThemeMode,
+  type ColorTokens,
+  type UiStyle,
+} from '../../theme/tokens';
 
-const baseTheme = createTheme({
-  typography: {
-    fontFamily: tokens.typography.fontFamily,
-    h1: {
-      fontSize: '2.5rem',
-      fontWeight: tokens.typography.weightBlack,
-      letterSpacing: '-0.02em',
+export function createAppTheme({
+  mode,
+  uiStyle,
+  colors,
+}: {
+  mode: AppThemeMode;
+  uiStyle: UiStyle;
+  colors: ColorTokens;
+}) {
+  const isClassic = uiStyle === 'classic';
+
+  return createTheme({
+    palette: {
+      mode,
+      primary: {
+        main: colors.accent,
+        dark: colors.accentStrong,
+        contrastText: colors.accentContrast,
+      },
+      error: { main: colors.error },
+      success: { main: colors.success },
+      background: { default: colors.pageBg, paper: colors.surface },
+      text: {
+        primary: colors.textPrimary,
+        secondary: colors.textSecondary,
+      },
+      divider: isClassic ? colors.border : colors.borderLight,
     },
-    h2: { fontSize: '2rem', fontWeight: tokens.typography.weightBold },
-    h3: { fontSize: '1.5rem', fontWeight: tokens.typography.weightBold },
-    h4: { fontSize: '1.25rem', fontWeight: tokens.typography.weightBold },
-    h5: { fontSize: '1rem', fontWeight: tokens.typography.weightMedium },
-    h6: { fontSize: '0.875rem', fontWeight: tokens.typography.weightMedium },
-    body1: {
-      fontSize: '1rem',
-      fontWeight: tokens.typography.weightRegular,
-      lineHeight: 1.5,
+    typography: {
+      fontFamily: colors.fontFamily,
+      h1: { fontSize: '2.5rem', fontWeight: tokens.typography.weightBlack },
+      h2: { fontSize: '2rem', fontWeight: tokens.typography.weightBold },
+      h3: { fontSize: '1.5rem', fontWeight: tokens.typography.weightBold },
+      h4: { fontSize: '1.25rem', fontWeight: tokens.typography.weightBold },
+      h5: { fontSize: '1rem', fontWeight: tokens.typography.weightMedium },
+      h6: { fontSize: '0.875rem', fontWeight: tokens.typography.weightMedium },
+      body1: {
+        fontSize: '1rem',
+        fontWeight: tokens.typography.weightRegular,
+        lineHeight: 1.5,
+      },
+      body2: {
+        fontSize: '0.875rem',
+        fontWeight: tokens.typography.weightRegular,
+        lineHeight: 1.4,
+      },
+      caption: {
+        fontSize: '0.75rem',
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase' as const,
+      },
+      button: {
+        textTransform: isClassic ? 'none' : 'uppercase',
+        fontWeight: tokens.typography.weightBold,
+        letterSpacing: isClassic ? 0 : '0.08em',
+      },
     },
-    body2: {
-      fontSize: '0.875rem',
-      fontWeight: tokens.typography.weightRegular,
-      lineHeight: 1.4,
-    },
-    caption: {
-      fontSize: '0.75rem',
-      letterSpacing: '0.08em',
-      textTransform: 'uppercase' as const,
-    },
-  },
-  spacing: 8,
-  shape: { borderRadius: tokens.shape.radius },
-  breakpoints: { values: { xs: 0, sm: 600, md: 900, lg: 1200, xl: 1536 } },
-  components: {
-    MuiDialog: { styleOverrides: { paper: { backgroundImage: 'none' } } },
-    MuiPopover: { styleOverrides: { paper: { backgroundImage: 'none' } } },
-    MuiPaper: { styleOverrides: { root: { backgroundImage: 'none' } } },
-    MuiTooltip: { defaultProps: { PopperProps: { disablePortal: true } } },
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          fontWeight: tokens.typography.weightBold,
+    spacing: 8,
+    shape: { borderRadius: tokens.shape.radius },
+    breakpoints: { values: { xs: 0, sm: 600, md: 900, lg: 1200, xl: 1536 } },
+    components: {
+      MuiCssBaseline: {
+        styleOverrides: {
+          html: {
+            backgroundColor: colors.pageBg,
+            color: colors.text,
+            fontFamily: colors.fontFamily,
+          },
+          body: {
+            backgroundColor: colors.pageBg,
+            color: colors.text,
+            fontFamily: colors.fontFamily,
+          },
+          '#root': {
+            minHeight: '100vh',
+          },
+        },
+      },
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            backgroundImage: 'none',
+            backgroundColor: colors.surface,
+            color: colors.text,
+            borderColor: isClassic ? colors.border : undefined,
+            boxShadow: isClassic ? colors.shadowModal : undefined,
+          },
+        },
+      },
+      MuiPopover: {
+        styleOverrides: {
+          paper: {
+            backgroundImage: 'none',
+            backgroundColor: colors.surface,
+            color: colors.text,
+          },
+        },
+      },
+      MuiPaper: {
+        styleOverrides: {
+          root: {
+            backgroundImage: 'none',
+            backgroundColor: colors.surface,
+            color: colors.text,
+          },
+        },
+      },
+      MuiTooltip: { defaultProps: { PopperProps: { disablePortal: true } } },
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            textTransform: isClassic ? 'none' : 'uppercase',
+            letterSpacing: isClassic ? 0 : '0.08em',
+            fontWeight: tokens.typography.weightBold,
+            borderRadius: isClassic
+              ? tokens.shape.radiusMd
+              : tokens.shape.radius,
+          },
         },
       },
     },
-  },
+  });
+}
+
+export const lightTheme = createAppTheme({
+  mode: 'light',
+  uiStyle: 'modern',
+  colors: getColorTokens('light', 'modern', 'green'),
 });
 
-export const lightTheme = createTheme(baseTheme, {
-  palette: {
-    mode: 'light',
-    primary: { main: lightColors.accent, contrastText: lightColors.accentText },
-    error: { main: lightColors.error },
-    success: { main: lightColors.success },
-    background: { default: lightColors.bg, paper: lightColors.surface },
-    text: {
-      primary: lightColors.textPrimary,
-      secondary: lightColors.textSecondary,
-    },
-    divider: lightColors.borderLight,
-  },
-});
-
-export const darkTheme = createTheme(baseTheme, {
-  palette: {
-    mode: 'dark',
-    primary: { main: darkColors.accent, contrastText: darkColors.accentText },
-    error: { main: darkColors.error },
-    success: { main: darkColors.success },
-    background: { default: darkColors.bg, paper: darkColors.surface },
-    text: {
-      primary: darkColors.textPrimary,
-      secondary: darkColors.textSecondary,
-    },
-    divider: darkColors.borderLight,
-  },
+export const darkTheme = createAppTheme({
+  mode: 'dark',
+  uiStyle: 'modern',
+  colors: getColorTokens('dark', 'modern', 'green'),
 });
