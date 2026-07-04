@@ -1,24 +1,37 @@
-import React, { FC } from 'react';
+import React, { FC, useMemo } from 'react';
 import { ThemeProvider } from '@emotion/react';
-import { lightTheme, darkTheme } from './theme';
+import { createAppTheme } from './theme';
 import { CssBaseline } from '@mui/material';
-import { EnumTheme, themeAtom, accentAtom } from '../../state/global/system';
-import { useAtom } from 'jotai';
+import {
+  EnumTheme,
+  themeAtom,
+  accentAtom,
+  uiStyleAtom,
+} from '../../state/global/system';
+import { useAtomValue } from 'jotai';
 import { ColorTokensContext } from '../../theme/ColorTokensContext';
-import { lightColors, darkColors, applyAccent } from '../../theme/tokens';
+import { getColorTokens } from '../../theme/tokens';
 
 interface ThemeProviderWrapperProps {
   children: React.ReactNode;
 }
 
 const ThemeProviderWrapper: FC<ThemeProviderWrapperProps> = ({ children }) => {
-  const [theme] = useAtom(themeAtom);
-  const [accent] = useAtom(accentAtom);
-  const isDark = theme === EnumTheme.DARK;
-  const colors = applyAccent(isDark ? darkColors : lightColors, accent);
+  const theme = useAtomValue(themeAtom);
+  const accent = useAtomValue(accentAtom);
+  const uiStyle = useAtomValue(uiStyleAtom);
+  const mode = theme === EnumTheme.DARK ? 'dark' : 'light';
+  const colors = useMemo(
+    () => getColorTokens(mode, uiStyle, accent),
+    [accent, mode, uiStyle]
+  );
+  const muiTheme = useMemo(
+    () => createAppTheme({ mode, uiStyle, colors }),
+    [colors, mode, uiStyle]
+  );
 
   return (
-    <ThemeProvider theme={isDark ? darkTheme : lightTheme}>
+    <ThemeProvider theme={muiTheme}>
       <ColorTokensContext.Provider value={colors}>
         <CssBaseline />
         {children}

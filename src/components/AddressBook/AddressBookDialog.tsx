@@ -17,7 +17,11 @@ import {
 import { Close, Add, Save } from '@mui/icons-material';
 import { Coin, useGlobal } from 'qapp-core';
 import { useTranslation } from 'react-i18next';
+import { useAtomValue } from 'jotai';
 import { Transition } from '../../styles/page-styles';
+import { uiStyleAtom } from '../../state/global/system';
+import { useColors } from '../../theme/ColorTokensContext';
+import { tokens } from '../../theme/tokens';
 import { AddressBookEntry } from '../../utils/Types';
 import {
   getAddressBook,
@@ -51,8 +55,11 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
   prefillData,
 }) => {
   const { t } = useTranslation(['core']);
+  const c = useColors();
+  const uiStyle = useAtomValue(uiStyleAtom);
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
+  const isClassic = uiStyle === 'classic';
 
   const [entries, setEntries] = useState<AddressBookEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState(EMPTY_STRING);
@@ -243,8 +250,23 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
         slots={{ transition: Transition }}
         maxWidth="md"
         fullWidth
+        PaperProps={{
+          sx: {
+            maxWidth: isClassic ? c.dialogMaxWidth : undefined,
+            border: isClassic ? `1px solid ${c.border}` : undefined,
+            boxShadow: isClassic ? c.shadowModal : undefined,
+          },
+        }}
       >
-        <AppBar sx={{ position: 'relative' }}>
+        <AppBar
+          sx={{
+            position: 'relative',
+            bgcolor: isClassic ? c.surface : undefined,
+            color: isClassic ? c.textPrimary : undefined,
+            borderBottom: isClassic ? `1px solid ${c.border}` : undefined,
+            boxShadow: isClassic ? c.topBarShadow : undefined,
+          }}
+        >
           <Toolbar>
             <Typography
               sx={{ ml: 2, flex: 1, textAlign: 'center' }}
@@ -297,15 +319,18 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
                 onClick={handleSyncToQDN}
                 disabled={isSyncing || !hasUnsyncedChanges}
                 sx={{
-                  backgroundColor: '#4caf50',
-                  color: 'white',
+                  backgroundColor: c.success,
+                  color: c.accentText,
                   '&:hover': {
-                    backgroundColor: '#45a049',
+                    backgroundColor: c.accentHover,
                   },
                   '&:disabled': {
-                    backgroundColor: '#a5d6a7',
-                    color: 'white',
+                    backgroundColor: c.controlBg,
+                    color: c.textFaint,
                   },
+                  borderRadius: isClassic
+                    ? `${tokens.shape.radiusMd}px`
+                    : undefined,
                 }}
               >
                 {t('core:address_book_sync_qdn', {
@@ -318,10 +343,14 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
                 startIcon={<Add />}
                 onClick={handleAddNew}
                 sx={{
-                  backgroundColor: '#05a2e4',
+                  backgroundColor: c.accent,
+                  color: c.accentText,
                   '&:hover': {
-                    backgroundColor: '#02648d',
+                    backgroundColor: c.accentHover,
                   },
+                  borderRadius: isClassic
+                    ? `${tokens.shape.radiusMd}px`
+                    : undefined,
                 }}
               >
                 {t('core:address_book_add_new', {

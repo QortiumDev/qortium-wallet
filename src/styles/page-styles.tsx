@@ -72,21 +72,21 @@ export const CustomWidthTooltip = styled(
   },
 });
 
-export const WalletCard = styled(Card)({
+export const WalletCard = styled(Card)(({ theme }: { theme: Theme }) => ({
   maxWidth: '100%',
   margin: '20px, auto',
   padding: '24px',
-  borderRadius: 16,
-  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-});
+  borderRadius: theme.shape.borderRadius,
+  boxShadow: theme.shadows[2],
+}));
 
 export const WalletButtons = styled(Button)(({ theme }: { theme: Theme }) => ({
   width: 'auto',
-  backgroundColor: '#05a2e4',
-  color: 'white',
+  backgroundColor: theme.palette.primary.main,
+  color: theme.palette.primary.contrastText,
   padding: 'auto',
   '&:hover': {
-    backgroundColor: '#02648d',
+    backgroundColor: theme.palette.primary.dark,
   },
   [theme.breakpoints.down('sm')]: {
     width: '100%',
@@ -96,8 +96,8 @@ export const WalletButtons = styled(Button)(({ theme }: { theme: Theme }) => ({
 export const StyledTableCell = styled(TableCell)(
   ({ theme }: { theme: Theme }) => ({
     [`&.${tableCellClasses.head}`]: {
-      backgroundColor: '#02648d',
-      color: theme.palette.common.white,
+      backgroundColor: theme.palette.primary.dark,
+      color: theme.palette.primary.contrastText,
       fontSize: 14,
       whiteSpace: 'nowrap',
       overflow: 'hidden',

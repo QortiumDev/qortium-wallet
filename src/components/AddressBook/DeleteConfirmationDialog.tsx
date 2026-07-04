@@ -7,7 +7,11 @@ import {
   Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { useAtomValue } from 'jotai';
 import { DialogGeneral } from '../../styles/page-styles';
+import { uiStyleAtom } from '../../state/global/system';
+import { useColors } from '../../theme/ColorTokensContext';
+import { tokens } from '../../theme/tokens';
 
 interface DeleteConfirmationDialogProps {
   open: boolean;
@@ -20,9 +24,24 @@ export const DeleteConfirmationDialog: React.FC<
   DeleteConfirmationDialogProps
 > = ({ open, onClose, onConfirm, entryName }) => {
   const { t } = useTranslation(['core']);
+  const c = useColors();
+  const uiStyle = useAtomValue(uiStyleAtom);
+  const isClassic = uiStyle === 'classic';
 
   return (
-    <DialogGeneral open={open} onClose={onClose} maxWidth="xs" fullWidth>
+    <DialogGeneral
+      open={open}
+      onClose={onClose}
+      maxWidth="xs"
+      fullWidth
+      PaperProps={{
+        sx: {
+          border: isClassic ? `1px solid ${c.border}` : undefined,
+          borderRadius: isClassic ? `${tokens.shape.radiusMd}px` : undefined,
+          boxShadow: isClassic ? c.shadowModal : undefined,
+        },
+      }}
+    >
       <DialogTitle sx={{ textAlign: 'center' }} variant="h4">
         {t('core:address_book_delete', {
           postProcess: 'capitalizeFirstChar',

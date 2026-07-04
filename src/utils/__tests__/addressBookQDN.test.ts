@@ -94,6 +94,9 @@ describe('syncAllAddressBooksOnStartup', () => {
         case 'GET_USER_ACCOUNT':
           return { name: 'TestUser' };
 
+        case 'UNLOCK_SELECTED_ACCOUNT':
+          return { isUnlocked: true };
+
         case 'FETCH_QDN_RESOURCE':
           // Return mock encrypted data only when QDN data has been set for QORT.
           if (request.identifier === STORAGE_KEY && qdnDataForQort !== null) {

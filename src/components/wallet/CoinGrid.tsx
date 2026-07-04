@@ -4,7 +4,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SendIcon from '@mui/icons-material/Send';
 import CheckIcon from '@mui/icons-material/Check';
 import { useNavigate } from 'react-router-dom';
-import { useAtom } from 'jotai';
+import { useAtom, useAtomValue } from 'jotai';
 import {
   DndContext,
   PointerSensor,
@@ -31,6 +31,7 @@ import {
   sortModeAtom,
   customOrderAtom,
   tileSizeAtom,
+  uiStyleAtom,
 } from '../../state/global/system';
 
 // Min tile width in px per zoom level — CSS auto-fill guarantees each level is visually distinct
@@ -81,12 +82,14 @@ function CoinBlock({
   isDragging,
 }: BlockProps) {
   const c = useColors();
+  const uiStyle = useAtomValue(uiStyleAtom);
   const navigate = useNavigate();
   const [hovered, setHovered] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const fetchedRef = useRef(false);
   const iconSrc = COIN_ICONS[chain.key];
+  const isClassic = uiStyle === 'classic';
 
   const handleMouseEnter = () => {
     setHovered(true);
@@ -122,8 +125,10 @@ function CoinBlock({
       onMouseLeave={() => setHovered(false)}
       sx={{
         aspectRatio: '1 / 1',
-        border: `${tokens.shape.borderWidth} solid ${c.borderLight}`,
-        borderRadius: `${tokens.shape.radius}px`,
+        border: `${
+          isClassic ? tokens.shape.classicBorderWidth : tokens.shape.borderWidth
+        } solid ${isClassic ? c.border : c.borderLight}`,
+        borderRadius: `${isClassic ? tokens.shape.radiusMd : tokens.shape.radius}px`,
         bgcolor: hovered ? c.accent : c.surface,
         cursor: dragListeners ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
         display: 'flex',
@@ -138,10 +143,10 @@ function CoinBlock({
           : 'background-color 0.15s ease, box-shadow 0.15s ease',
         userSelect: 'none',
         boxShadow: isDragging
-          ? '0 8px 28px rgba(45,58,74,0.35)'
+          ? c.shadowCardHover
           : hovered
-            ? '0 4px 16px rgba(45,58,74,0.22)'
-            : '0 1px 4px rgba(0,0,0,0.06)',
+            ? c.shadowCardHover
+            : c.shadowCard,
         opacity: isDragging ? 0.85 : 1,
       }}
     >
@@ -283,7 +288,7 @@ function CoinBlock({
         {tileSize <= 4 && (
           <Box
             sx={{
-              fontFamily: 'monospace',
+              fontFamily: c.monoFontFamily,
               fontSize: tileSize <= 2 ? '0.55rem' : '0.6rem',
               color: 'rgba(255,255,255,0.75)',
               mt: 0.5,
@@ -356,6 +361,8 @@ function SortableCoinBlock({
 
 export function CoinGrid() {
   const { chains } = useSupportedChains();
+  const c = useColors();
+  const uiStyle = useAtomValue(uiStyleAtom);
   const [balances, setBalances] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
 
@@ -496,9 +503,16 @@ export function CoinGrid() {
   }, [chains]);
 
   const isCustom = sortMode === 'custom';
+  const isClassic = uiStyle === 'classic';
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 } }}>
+    <Box
+      sx={{
+        bgcolor: isClassic ? c.frameBg : c.bg,
+        minHeight: `calc(100vh - var(--wallet-top-bar-height, ${tokens.spacing.topBarHeight}px))`,
+        p: { xs: isClassic ? 1.5 : 2, md: isClassic ? 3 : 4 },
+      }}
+    >
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}

@@ -17,12 +17,14 @@ import SendIcon from '@mui/icons-material/Send';
 import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import QRCode from 'react-qr-code';
+import { useAtomValue } from 'jotai';
 import { NumericFormat as _NumericFormat } from 'react-number-format';
 const NumericFormat = _NumericFormat as React.FC<
   React.ComponentProps<typeof _NumericFormat> & Record<string, unknown>
 >;
 import { tokens } from '../../theme/tokens';
 import { useColors } from '../../theme/ColorTokensContext';
+import { uiStyleAtom } from '../../state/global/system';
 import type { ChainConfig } from '../../config/chains';
 import { epochToAgo, requestWithTimeout } from '../../common/functions';
 import {
@@ -76,10 +78,12 @@ async function ensureAccountUnlocked(): Promise<boolean> {
 
 export function CoinDetail({ chain }: Props) {
   const c = useColors();
+  const uiStyle = useAtomValue(uiStyleAtom);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const iconSrc = COIN_ICONS[chain.key];
   const isARRR = chain.coinEnum === 'ARRR';
+  const isClassic = uiStyle === 'classic';
 
   const [address, setAddress] = useState<string>(EMPTY_STRING);
   const [balance, setBalance] = useState<string | null>(null);
@@ -425,20 +429,27 @@ export function CoinDetail({ chain }: Props) {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: c.bg }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: isClassic ? c.frameBg : c.bg }}>
       {/* ── sticky sub-header ── */}
       <Box
         sx={{
           position: 'sticky',
-          top: tokens.spacing.topBarHeight,
+          top: `var(--wallet-top-bar-height, ${tokens.spacing.topBarHeight}px)`,
           zIndex: 90,
           bgcolor: c.surface,
-          borderBottom: `${tokens.shape.borderWidth} solid ${c.borderLight}`,
+          borderBottom: `${
+            isClassic
+              ? tokens.shape.classicBorderWidth
+              : tokens.shape.borderWidth
+          } solid ${isClassic ? c.border : c.borderLight}`,
+          boxShadow: isClassic ? c.topBarShadow : 'none',
           display: 'flex',
           alignItems: 'center',
-          px: 3,
-          height: 52,
-          gap: 2,
+          px: { xs: isClassic ? 1.5 : 3, sm: 3 },
+          py: isClassic ? 1 : 0,
+          minHeight: tokens.spacing.topBarHeight,
+          gap: { xs: 1, sm: 2 },
+          flexWrap: { xs: 'wrap', sm: 'nowrap' },
         }}
       >
         <IconButton
@@ -497,9 +508,9 @@ export function CoinDetail({ chain }: Props) {
             color: c.accentText,
             '&:hover': { bgcolor: c.accentHover },
             '&.Mui-disabled': { opacity: 0.4 },
-            borderRadius: '50px',
+            borderRadius: isClassic ? `${tokens.shape.radiusMd}px` : '50px',
             px: 2.5,
-            letterSpacing: '0.06em',
+            letterSpacing: isClassic ? 0 : '0.06em',
             fontWeight: tokens.typography.weightBold,
             fontSize: '0.75rem',
           }}
@@ -508,15 +519,27 @@ export function CoinDetail({ chain }: Props) {
         </Button>
       </Box>
 
-      <Box sx={{ maxWidth: 720, mx: 'auto', px: { xs: 2, md: 4 }, py: 4 }}>
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: isClassic ? c.layoutWideMaxWidth : c.layoutMaxWidth,
+          mx: 'auto',
+          px: { xs: isClassic ? 1.5 : 2, md: isClassic ? 3 : 4 },
+          py: isClassic ? 3 : 4,
+        }}
+      >
         {isARRR && !arrrSynced ? (
           /* ── ARRR initialization overlay ── */
           <Box
             sx={{
-              border: `${tokens.shape.borderWidth} solid ${c.borderLight}`,
-              borderRadius: `${tokens.shape.radius}px`,
+              border: `${
+                isClassic
+                  ? tokens.shape.classicBorderWidth
+                  : tokens.shape.borderWidth
+              } solid ${isClassic ? c.border : c.borderLight}`,
+              borderRadius: `${isClassic ? tokens.shape.radiusMd : tokens.shape.radius}px`,
               bgcolor: c.surface,
-              boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
+              boxShadow: c.shadowCard,
               p: { xs: 4, md: 6 },
               display: 'flex',
               flexDirection: 'column',
@@ -583,7 +606,9 @@ export function CoinDetail({ chain }: Props) {
                     bgcolor: c.accent,
                     color: c.accentText,
                     '&:hover': { bgcolor: c.accentHover },
-                    borderRadius: '50px',
+                    borderRadius: isClassic
+                      ? `${tokens.shape.radiusMd}px`
+                      : '50px',
                     px: 3,
                   }}
                 >
@@ -600,7 +625,9 @@ export function CoinDetail({ chain }: Props) {
                         borderColor: c.accentHover,
                         color: c.accentHover,
                       },
-                      borderRadius: '50px',
+                      borderRadius: isClassic
+                        ? `${tokens.shape.radiusMd}px`
+                        : '50px',
                       px: 3,
                     }}
                   >
@@ -615,10 +642,14 @@ export function CoinDetail({ chain }: Props) {
             {/* ── balance hero ── */}
             <Box
               sx={{
-                border: `${tokens.shape.borderWidth} solid ${c.borderLight}`,
-                borderRadius: `${tokens.shape.radius}px ${tokens.shape.radius}px 0 0`,
+                border: `${
+                  isClassic
+                    ? tokens.shape.classicBorderWidth
+                    : tokens.shape.borderWidth
+                } solid ${isClassic ? c.border : c.borderLight}`,
+                borderRadius: `${isClassic ? tokens.shape.radiusMd : tokens.shape.radius}px ${isClassic ? tokens.shape.radiusMd : tokens.shape.radius}px 0 0`,
                 bgcolor: c.surface,
-                boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
+                boxShadow: c.shadowCard,
                 p: { xs: 3, md: 5 },
                 mb: 0,
                 display: 'flex',
@@ -698,9 +729,13 @@ export function CoinDetail({ chain }: Props) {
             <Box
               onClick={handleCopy}
               sx={{
-                border: `${tokens.shape.borderWidth} solid ${c.borderLight}`,
+                border: `${
+                  isClassic
+                    ? tokens.shape.classicBorderWidth
+                    : tokens.shape.borderWidth
+                } solid ${isClassic ? c.border : c.borderLight}`,
                 borderTop: 'none',
-                borderRadius: `0 0 ${tokens.shape.radius}px ${tokens.shape.radius}px`,
+                borderRadius: `0 0 ${isClassic ? tokens.shape.radiusMd : tokens.shape.radius}px ${isClassic ? tokens.shape.radiusMd : tokens.shape.radius}px`,
                 bgcolor: copied ? c.accent : c.surface,
                 display: 'flex',
                 alignItems: 'center',
@@ -715,7 +750,7 @@ export function CoinDetail({ chain }: Props) {
               <Box
                 sx={{
                   flex: 1,
-                  fontFamily: 'monospace',
+                  fontFamily: c.monoFontFamily,
                   fontSize: '0.8rem',
                   letterSpacing: '0.04em',
                   color: copied ? c.accentText : c.textSecondary,
@@ -765,10 +800,14 @@ export function CoinDetail({ chain }: Props) {
 
             <Box
               sx={{
-                border: `${tokens.shape.borderWidth} solid ${c.borderLight}`,
-                borderRadius: `${tokens.shape.radius}px`,
+                border: `${
+                  isClassic
+                    ? tokens.shape.classicBorderWidth
+                    : tokens.shape.borderWidth
+                } solid ${isClassic ? c.border : c.borderLight}`,
+                borderRadius: `${isClassic ? tokens.shape.radiusMd : tokens.shape.radius}px`,
                 overflow: 'hidden',
-                boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
+                boxShadow: c.shadowCard,
               }}
             >
               {loadingTx ? (
@@ -797,7 +836,7 @@ export function CoinDetail({ chain }: Props) {
                       sx={{
                         borderBottom:
                           i < transactions.length - 1
-                            ? `1px solid ${c.borderLight}`
+                            ? `1px solid ${isClassic ? c.border : c.borderLight}`
                             : 'none',
                       }}
                     >
@@ -810,8 +849,14 @@ export function CoinDetail({ chain }: Props) {
                           py: 1.75,
                           gap: 2,
                           cursor: 'pointer',
-                          bgcolor: expanded ? c.borderLight : 'transparent',
-                          '&:hover': { bgcolor: c.borderLight },
+                          bgcolor: expanded
+                            ? isClassic
+                              ? c.controlSelected
+                              : c.borderLight
+                            : 'transparent',
+                          '&:hover': {
+                            bgcolor: isClassic ? c.controlHover : c.borderLight,
+                          },
                           transition: 'background-color 0.12s ease',
                         }}
                       >
@@ -841,7 +886,7 @@ export function CoinDetail({ chain }: Props) {
                         <Box
                           sx={{
                             flex: 1,
-                            fontFamily: 'monospace',
+                            fontFamily: c.monoFontFamily,
                             fontSize: '0.72rem',
                             color: c.textSecondary,
                             overflow: 'hidden',
@@ -876,8 +921,8 @@ export function CoinDetail({ chain }: Props) {
                           sx={{
                             px: 3,
                             py: 2,
-                            bgcolor: c.bg,
-                            borderTop: `1px solid ${c.borderLight}`,
+                            bgcolor: isClassic ? c.surfaceAlt : c.bg,
+                            borderTop: `1px solid ${isClassic ? c.border : c.borderLight}`,
                             display: 'flex',
                             flexDirection: 'column',
                             gap: 1.25,
@@ -940,7 +985,9 @@ export function CoinDetail({ chain }: Props) {
                                 </Box>
                                 <Box
                                   sx={{
-                                    fontFamily: mono ? 'monospace' : undefined,
+                                    fontFamily: mono
+                                      ? c.monoFontFamily
+                                      : undefined,
                                     fontSize: '0.75rem',
                                     color: c.textPrimary,
                                     wordBreak: 'break-all',
@@ -1003,7 +1050,7 @@ export function CoinDetail({ chain }: Props) {
                                     <Box
                                       key={j}
                                       sx={{
-                                        fontFamily: 'monospace',
+                                        fontFamily: c.monoFontFamily,
                                         fontSize: '0.7rem',
                                         color: inp.addressInWallet
                                           ? c.accent
@@ -1036,7 +1083,7 @@ export function CoinDetail({ chain }: Props) {
                                     <Box
                                       key={j}
                                       sx={{
-                                        fontFamily: 'monospace',
+                                        fontFamily: c.monoFontFamily,
                                         fontSize: '0.7rem',
                                         color: out.addressInWallet
                                           ? c.accent
@@ -1072,9 +1119,15 @@ export function CoinDetail({ chain }: Props) {
         fullWidth
         PaperProps={{
           sx: {
-            border: `${tokens.shape.borderWidth} solid ${c.borderLight}`,
-            borderRadius: 0,
+            maxWidth: isClassic ? c.layoutMaxWidth : undefined,
+            border: `${
+              isClassic
+                ? tokens.shape.classicBorderWidth
+                : tokens.shape.borderWidth
+            } solid ${isClassic ? c.border : c.borderLight}`,
+            borderRadius: isClassic ? `${tokens.shape.radiusMd}px` : 0,
             bgcolor: c.surface,
+            boxShadow: isClassic ? c.shadowModal : undefined,
           },
         }}
       >
@@ -1085,7 +1138,11 @@ export function CoinDetail({ chain }: Props) {
               alignItems: 'center',
               px: 3,
               py: 2,
-              borderBottom: `${tokens.shape.borderWidth} solid ${c.borderLight}`,
+              borderBottom: `${
+                isClassic
+                  ? tokens.shape.classicBorderWidth
+                  : tokens.shape.borderWidth
+              } solid ${isClassic ? c.border : c.borderLight}`,
             }}
           >
             <Box
@@ -1180,7 +1237,9 @@ export function CoinDetail({ chain }: Props) {
                     sx={{
                       mt: '8px',
                       flexShrink: 0,
-                      borderRadius: '50px',
+                      borderRadius: isClassic
+                        ? `${tokens.shape.radiusMd}px`
+                        : '50px',
                       borderColor: c.accent,
                       color: c.accent,
                       fontSize: '0.7rem',
@@ -1230,7 +1289,7 @@ export function CoinDetail({ chain }: Props) {
                     color: c.accentText,
                     '&:hover': { bgcolor: c.accentHover },
                     '&.Mui-disabled': { bgcolor: c.borderLight },
-                    borderRadius: 0,
+                    borderRadius: isClassic ? `${tokens.shape.radiusMd}px` : 0,
                     py: 1.5,
                   }}
                 >
@@ -1255,9 +1314,15 @@ export function CoinDetail({ chain }: Props) {
           fullWidth
           PaperProps={{
             sx: {
-              border: `${tokens.shape.borderWidth} solid ${c.borderLight}`,
-              borderRadius: 0,
+              maxWidth: isClassic ? c.layoutMaxWidth : undefined,
+              border: `${
+                isClassic
+                  ? tokens.shape.classicBorderWidth
+                  : tokens.shape.borderWidth
+              } solid ${isClassic ? c.border : c.borderLight}`,
+              borderRadius: isClassic ? `${tokens.shape.radiusMd}px` : 0,
               bgcolor: c.surface,
+              boxShadow: isClassic ? c.shadowModal : undefined,
             },
           }}
         >
@@ -1268,7 +1333,11 @@ export function CoinDetail({ chain }: Props) {
                 alignItems: 'center',
                 px: 3,
                 py: 2,
-                borderBottom: `${tokens.shape.borderWidth} solid ${c.borderLight}`,
+                borderBottom: `${
+                  isClassic
+                    ? tokens.shape.classicBorderWidth
+                    : tokens.shape.borderWidth
+                } solid ${isClassic ? c.border : c.borderLight}`,
               }}
             >
               <Box
@@ -1299,16 +1368,18 @@ export function CoinDetail({ chain }: Props) {
                   py: 1.75,
                   borderBottom:
                     i < arrrServers.length - 1
-                      ? `1px solid ${c.borderLight}`
+                      ? `1px solid ${isClassic ? c.border : c.borderLight}`
                       : 'none',
                   cursor: 'pointer',
-                  '&:hover': { bgcolor: c.borderLight },
+                  '&:hover': {
+                    bgcolor: isClassic ? c.controlHover : c.borderLight,
+                  },
                   transition: 'background-color 0.12s ease',
                 }}
               >
                 <Box
                   sx={{
-                    fontFamily: 'monospace',
+                    fontFamily: c.monoFontFamily,
                     fontSize: '0.8rem',
                     color: c.textPrimary,
                   }}
