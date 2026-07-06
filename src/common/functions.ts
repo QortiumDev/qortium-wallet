@@ -1,11 +1,15 @@
 import { EMPTY_STRING, ONE_SPACE } from './constants';
 
+export function requestQdn(options: QdnRequestOptions): Promise<any> {
+  return qdnRequest(options);
+}
+
 export function requestWithTimeout(
-  options: Record<string, any>,
+  options: QdnRequestOptions,
   timeoutMs: number
 ): Promise<any> {
   return Promise.race([
-    qortalRequest(options as any),
+    requestQdn(options),
     new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('timeout')), timeoutMs)
     ),

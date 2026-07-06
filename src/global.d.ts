@@ -1,10 +1,12 @@
 // src/global.d.ts
 
-interface QortalRequestOptions {
+interface QdnRequestOptions {
   action: string;
   address?: string;
   amount?: number;
   assetId?: number;
+  base64?: string;
+  blockchain?: string;
   blob?: Blob;
   blockLimit?: number;
   category?: string;
@@ -28,12 +30,15 @@ interface QortalRequestOptions {
   items?: string[];
   limit?: number;
   list_name?: string;
+  maxBytes?: number;
   memo?: string;
   metaData?: string;
+  method?: string;
   mimeType?: string;
   mode?: string;
   name?: string;
   offset?: number;
+  path?: string;
   port?: number;
   query?: string;
   recipient?: string;
@@ -53,14 +58,7 @@ interface QortalRequestOptions {
   type?: string;
 }
 
-declare function qortalRequest(options: QortalRequestOptions): Promise<any>;
-
-declare function qdnRequest(options: { action: string; [key: string]: unknown }): Promise<unknown>;
-
-declare function qortalRequestWithTimeout(
-  options: QortalRequestOptions,
-  time: number
-): Promise<any>;
+declare function qdnRequest(options: QdnRequestOptions): Promise<any>;
 
 declare global {
   interface Window {

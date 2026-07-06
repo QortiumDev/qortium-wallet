@@ -5,7 +5,10 @@ import StarBorderIcon from '@mui/icons-material/StarBorder';
 import { useColors } from '../../theme/ColorTokensContext';
 import { tokens } from '../../theme/tokens';
 
-function requestQdn(options: { action: string; [key: string]: unknown }): Promise<unknown> {
+function requestQdn(options: {
+  action: string;
+  [key: string]: unknown;
+}): Promise<unknown> {
   if (typeof qdnRequest !== 'function') {
     return Promise.reject(new Error('qdnRequest unavailable'));
   }
@@ -21,7 +24,10 @@ const STAR_VALUES = Array.from({ length: 10 }, (_, i) => i + 1);
 
 export function RatingControl({ qdnName }: { qdnName: string }) {
   const c = useColors();
-  const [summary, setSummary] = useState<RatingSummary>({ ratingCount: 0, weightedAverageRating: null });
+  const [summary, setSummary] = useState<RatingSummary>({
+    ratingCount: 0,
+    weightedAverageRating: null,
+  });
   const [myRating, setMyRating] = useState<number | null>(null);
   const [canRate, setCanRate] = useState(false);
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
@@ -29,15 +35,26 @@ export function RatingControl({ qdnName }: { qdnName: string }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    requestQdn({ action: 'GET_RESOURCE_RATING', service: 'APP', name: qdnName, identifier: 'default' })
+    requestQdn({
+      action: 'GET_RESOURCE_RATING',
+      service: 'APP',
+      name: qdnName,
+      identifier: 'default',
+    })
       .then((res) => {
         const data = res as {
-          summary?: { ratingCount?: number; weightedAverageRating?: number | null } | null;
+          summary?: {
+            ratingCount?: number;
+            weightedAverageRating?: number | null;
+          } | null;
           rating?: { rating?: number } | null;
         } | null;
         const s = data?.summary;
         if (s && typeof s.ratingCount === 'number') {
-          setSummary({ ratingCount: s.ratingCount, weightedAverageRating: s.weightedAverageRating ?? null });
+          setSummary({
+            ratingCount: s.ratingCount,
+            weightedAverageRating: s.weightedAverageRating ?? null,
+          });
         }
         const r = data?.rating?.rating;
         if (typeof r === 'number' && r >= 1 && r <= 10) setMyRating(r);
@@ -46,7 +63,8 @@ export function RatingControl({ qdnName }: { qdnName: string }) {
 
     requestQdn({ action: 'SHOW_ACTIONS' })
       .then((actions) => {
-        if (Array.isArray(actions)) setCanRate(actions.includes('RATE_RESOURCE'));
+        if (Array.isArray(actions))
+          setCanRate(actions.includes('RATE_RESOURCE'));
       })
       .catch(() => {});
   }, [qdnName]);
@@ -58,15 +76,23 @@ export function RatingControl({ qdnName }: { qdnName: string }) {
     setMyRating(value === 0 ? null : value);
     try {
       const account = await requestQdn({ action: 'UNLOCK_SELECTED_ACCOUNT' });
-      if (!(account as { isUnlocked?: boolean } | null)?.isUnlocked) throw new Error('Account is locked.');
-      await requestQdn({ action: 'RATE_RESOURCE', service: 'APP', name: qdnName, identifier: 'default', rating: value });
+      if (!(account as { isUnlocked?: boolean } | null)?.isUnlocked)
+        throw new Error('Account is locked.');
+      await requestQdn({
+        action: 'RATE_RESOURCE',
+        service: 'APP',
+        name: qdnName,
+        identifier: 'default',
+        rating: value,
+      });
     } catch {
       setMyRating(previous);
     }
     setBusy(false);
   }
 
-  const average = summary.ratingCount > 0 ? summary.weightedAverageRating : null;
+  const average =
+    summary.ratingCount > 0 ? summary.weightedAverageRating : null;
   const hasMyRating = myRating !== null;
 
   return (
@@ -85,9 +111,20 @@ export function RatingControl({ qdnName }: { qdnName: string }) {
           }}
           aria-label="rate this app"
         >
-          {hasMyRating ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
+          {hasMyRating ? (
+            <StarIcon fontSize="small" />
+          ) : (
+            <StarBorderIcon fontSize="small" />
+          )}
           {average !== null && (
-            <Typography component="span" sx={{ fontSize: '0.8rem', fontWeight: tokens.typography.weightBold, lineHeight: 1 }}>
+            <Typography
+              component="span"
+              sx={{
+                fontSize: '0.8rem',
+                fontWeight: tokens.typography.weightBold,
+                lineHeight: 1,
+              }}
+            >
               {average.toFixed(1)}
             </Typography>
           )}
@@ -120,12 +157,17 @@ export function RatingControl({ qdnName }: { qdnName: string }) {
 
         {canRate ? (
           <>
-            <Typography sx={{ fontSize: '0.7rem', color: c.textSecondary, mb: 0.5 }}>
+            <Typography
+              sx={{ fontSize: '0.7rem', color: c.textSecondary, mb: 0.5 }}
+            >
               {hasMyRating ? `Your rating: ${myRating} / 10` : 'Rate this app:'}
             </Typography>
             <Box sx={{ display: 'flex' }} onMouseLeave={() => setHovered(0)}>
               {STAR_VALUES.map((value) => {
-                const filled = hovered > 0 ? value <= hovered : hasMyRating && value <= (myRating ?? 0);
+                const filled =
+                  hovered > 0
+                    ? value <= hovered
+                    : hasMyRating && value <= (myRating ?? 0);
                 return (
                   <IconButton
                     key={value}
@@ -136,7 +178,11 @@ export function RatingControl({ qdnName }: { qdnName: string }) {
                     sx={{ p: 0.25, color: filled ? c.accent : c.textSecondary }}
                     aria-label={`rate ${value} out of 10`}
                   >
-                    {filled ? <StarIcon sx={{ fontSize: 18 }} /> : <StarBorderIcon sx={{ fontSize: 18 }} />}
+                    {filled ? (
+                      <StarIcon sx={{ fontSize: 18 }} />
+                    ) : (
+                      <StarBorderIcon sx={{ fontSize: 18 }} />
+                    )}
                   </IconButton>
                 );
               })}

@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { syncAllAddressBooksOnStartup } from '../addressBookQDN';
+import {
+  ADDRESS_BOOK_QDN_UNSUPPORTED_REASON,
+  debouncedPublishToQDN,
+  getAddressBookQdnSyncStatus,
+  publishToQDN,
+  syncAllAddressBooksOnStartup,
+} from '../addressBookQDN';
 import type { AddressBookEntry } from '../Types';
 
 // Override the global qapp-core mock (from setup.ts) to include the functions
@@ -74,11 +80,65 @@ function getStoredData(coinType = 'QORT') {
 }
 
 // ---------------------------------------------------------------------------
+// Compatibility gate tests
+// ---------------------------------------------------------------------------
+
+describe('addressBookQDN compatibility gate', () => {
+  let mockQdnRequest: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+    mockQdnRequest = vi.fn();
+    (global as any).qdnRequest = mockQdnRequest;
+  });
+
+  afterEach(() => {
+    delete (global as any).qdnRequest;
+    vi.unstubAllEnvs();
+    vi.useRealTimers();
+  });
+
+  it('reports encrypted QDN address-book sync as unsupported by this Home version', () => {
+    expect(getAddressBookQdnSyncStatus()).toEqual({
+      supported: false,
+      reason: ADDRESS_BOOK_QDN_UNSUPPORTED_REASON,
+    });
+  });
+
+  it('startup sync exits without bridge calls or local mutations', async () => {
+    setLocalStorage([ENTRY_ALICE], 1000);
+
+    await syncAllAddressBooksOnStartup('TestUser');
+
+    expect(mockQdnRequest).not.toHaveBeenCalled();
+    expect(getStoredData().entries).toHaveLength(1);
+    expect(getStoredData().lastUpdated).toBe(1000);
+  });
+
+  it('manual publish returns null without calling unavailable encryption actions', async () => {
+    const result = await publishToQDN('QORT', [ENTRY_ALICE], 'TestUser');
+
+    expect(result).toBeNull();
+    expect(mockQdnRequest).not.toHaveBeenCalled();
+  });
+
+  it('debounced publish does not schedule bridge work when sync is unsupported', () => {
+    vi.useFakeTimers();
+
+    debouncedPublishToQDN('QORT', [ENTRY_ALICE], 10);
+    vi.advanceTimersByTime(20);
+
+    expect(mockQdnRequest).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Test suite
 // ---------------------------------------------------------------------------
 
 describe('syncAllAddressBooksOnStartup', () => {
-  let mockQortalRequest: ReturnType<typeof vi.fn>;
+  let mockQdnRequest: ReturnType<typeof vi.fn>;
 
   // The QDN data returned by DECRYPT_DATA for QORT (null = 404 / no resource).
   let qdnDataForQort: Record<string, unknown> | null;
@@ -86,12 +146,13 @@ describe('syncAllAddressBooksOnStartup', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+    vi.stubEnv('VITE_ENABLE_QDN_ADDRESS_BOOK_SYNC', 'true');
     qdnDataForQort = null;
 
-    // qortalRequest is a Qortal-provided global; simulate it here.
-    mockQortalRequest = vi.fn(async (request: Record<string, unknown>) => {
+    // qdnRequest is a Qortium Home-provided global; simulate it here.
+    mockQdnRequest = vi.fn(async (request: Record<string, unknown>) => {
       switch (request.action) {
-        case 'GET_USER_ACCOUNT':
+        case 'GET_SELECTED_ACCOUNT':
           return { name: 'TestUser' };
 
         case 'UNLOCK_SELECTED_ACCOUNT':
@@ -117,20 +178,21 @@ describe('syncAllAddressBooksOnStartup', () => {
           return { success: true };
 
         default:
-          throw new Error(`Unexpected qortalRequest action: ${request.action}`);
+          throw new Error(`Unexpected qdnRequest action: ${request.action}`);
       }
     });
 
-    (global as any).qortalRequest = mockQortalRequest;
+    (global as any).qdnRequest = mockQdnRequest;
   });
 
   afterEach(() => {
-    delete (global as any).qortalRequest;
+    delete (global as any).qdnRequest;
+    vi.unstubAllEnvs();
   });
 
   // Predicate: was PUBLISH_QDN_RESOURCE called for the QORT address book?
   const wasQortPublished = () =>
-    mockQortalRequest.mock.calls.some(
+    mockQdnRequest.mock.calls.some(
       ([req]) =>
         req.action === 'PUBLISH_QDN_RESOURCE' && req.identifier === STORAGE_KEY
     );
@@ -350,7 +412,7 @@ describe('syncAllAddressBooksOnStartup', () => {
         lastUpdated: alignedTimestamp,
         hash: publishedHash,
       };
-      mockQortalRequest.mockClear();
+      mockQdnRequest.mockClear();
 
       // Second startup: content and timestamp match → must stay silent.
       await syncAllAddressBooksOnStartup('TestUser');
@@ -372,7 +434,7 @@ describe('syncAllAddressBooksOnStartup', () => {
         lastUpdated: alignedTimestamp,
         hash: publishedHash,
       };
-      mockQortalRequest.mockClear();
+      mockQdnRequest.mockClear();
 
       await syncAllAddressBooksOnStartup('TestUser');
 
@@ -425,7 +487,7 @@ describe('syncAllAddressBooksOnStartup', () => {
       expect(wasQortPublished()).toBe(false);
       expect(getStoredData().lastUpdated).toBe(5000);
 
-      mockQortalRequest.mockClear();
+      mockQdnRequest.mockClear();
 
       // Second startup: local now has data aligned with QDN.
       await syncAllAddressBooksOnStartup('TestUser');
@@ -463,7 +525,7 @@ describe('syncAllAddressBooksOnStartup', () => {
         'walletium-addressbook-published-QORT'
       )!;
       const qdnTimestamp = getStoredData().lastUpdated;
-      mockQortalRequest.mockClear();
+      mockQdnRequest.mockClear();
       localStorage.clear();
 
       // Now restore the "post-updateAddress" local state.
@@ -497,7 +559,7 @@ describe('syncAllAddressBooksOnStartup', () => {
       expect(wasQortPublished()).toBe(true);
 
       // Reset call recorder.
-      mockQortalRequest.mockClear();
+      mockQdnRequest.mockClear();
 
       // Second startup: QDN still null (propagation delay), same content.
       await syncAllAddressBooksOnStartup('TestUser');
@@ -509,7 +571,7 @@ describe('syncAllAddressBooksOnStartup', () => {
       // Simulate a prior publish of ENTRY_ALICE.
       setLocalStorage([ENTRY_ALICE], 1000);
       await syncAllAddressBooksOnStartup('TestUser');
-      mockQortalRequest.mockClear();
+      mockQdnRequest.mockClear();
 
       // User adds ENTRY_BOB locally; QDN is still null.
       setLocalStorage([ENTRY_ALICE, ENTRY_BOB], 2000);
@@ -533,7 +595,7 @@ describe('syncAllAddressBooksOnStartup', () => {
   // -------------------------------------------------------------------------
   // BUG FIX: QDN returns a resource for the wrong coin type (storage mix)
   //
-  // Scenario: the Qortal node returns the DGB resource when asked for the QORT
+  // Scenario: the QDN node returns the DGB resource when asked for the QORT
   // identifier (e.g. because the QORT resource does not exist yet and the node
   // falls back to the most-recently-published resource for that service/name).
   // The coinType field on the returned object must cause the sync to discard
