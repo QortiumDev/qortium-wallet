@@ -17,19 +17,6 @@ export interface ChainConfig {
 // only pass fee-per-byte values returned by GET_FOREIGN_FEE.
 export const DEFAULT_CHAINS: ChainConfig[] = [
   {
-    key: 'QORT',
-    name: 'Qortal',
-    ticker: 'QORT',
-    coinEnum: 'QORT',
-    route: 'qortal',
-    defaultFee: 0.01,
-    isNative: true,
-    decimalPlaces: 8,
-    activeNetwork: 'MAIN',
-    supportsHtlc: false,
-    supportsLocalChainTrades: false,
-  },
-  {
     key: 'BTC',
     name: 'Bitcoin',
     ticker: 'BTC',

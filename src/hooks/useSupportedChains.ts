@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
+  DEFAULT_CHAINS,
   KNOWN_CHAIN_MAP,
   type ChainConfig,
 } from '../config/chains';
@@ -96,7 +97,7 @@ export function useSupportedChains(): {
         setStatus('live');
       } catch (err) {
         console.warn('[Walletium] /crosschain/blockchains unavailable:', err);
-        setChains([]);
+        setChains(DEFAULT_CHAINS);
         setStatus('fallback');
       }
     }
