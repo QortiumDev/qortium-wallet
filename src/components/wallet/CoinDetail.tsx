@@ -8,11 +8,13 @@ import {
   IconButton,
   Skeleton,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
+import DnsIcon from '@mui/icons-material/Dns';
 import SendIcon from '@mui/icons-material/Send';
 import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -115,6 +117,10 @@ export function CoinDetail({ chain }: Props) {
     null
   );
 
+  // SHOW_ACTIONS capability flags (updated on mount)
+  const [canSend, setCanSend] = useState(true);
+  const [walletAvailable, setWalletAvailable] = useState(true);
+
   // ARRR initialization state
   const cancelSyncRef = useRef(false);
   const [arrrSynced, setArrrSynced] = useState(!isARRR);
@@ -125,6 +131,11 @@ export function CoinDetail({ chain }: Props) {
   const [arrrSyncFailed, setArrrSyncFailed] = useState(false);
   const [arrrServers, setArrrServers] = useState<any[]>([]);
   const [arrrServerOpen, setArrrServerOpen] = useState(false);
+
+  // ElectrumX server management for non-ARRR foreign coins
+  const [foreignServers, setForeignServers] = useState<any[]>([]);
+  const [foreignServerOpen, setForeignServerOpen] = useState(false);
+  const [foreignServerLoading, setForeignServerLoading] = useState(false);
 
   const syncArrr = useCallback(async () => {
     cancelSyncRef.current = false;
@@ -260,6 +271,53 @@ export function CoinDetail({ chain }: Props) {
     setLoadingBalance(false);
   }, [chain]);
 
+  // Check which actions are available on the current node
+  useEffect(() => {
+    qdnRequest({ action: 'SHOW_ACTIONS' })
+      .then((actions: unknown) => {
+        if (Array.isArray(actions)) {
+          setCanSend(actions.includes('SEND_COIN'));
+          setWalletAvailable(actions.includes('GET_WALLET_BALANCE'));
+        }
+      })
+      .catch(() => {
+        /* assume full access */
+      });
+  }, []);
+
+  const openForeignServerDialog = useCallback(async () => {
+    setForeignServers([]);
+    setForeignServerOpen(true);
+    setForeignServerLoading(true);
+    try {
+      const servers = await qdnRequest({
+        action: 'GET_CROSSCHAIN_SERVER_INFO',
+        coin: chain.coinEnum,
+      });
+      if (Array.isArray(servers)) setForeignServers(servers);
+    } catch {
+      /* */
+    }
+    setForeignServerLoading(false);
+  }, [chain.coinEnum]);
+
+  const handleForeignServerChange = useCallback(
+    async (server: any) => {
+      setForeignServerOpen(false);
+      try {
+        await qdnRequest({
+          action: 'SET_CURRENT_FOREIGN_SERVER',
+          coin: chain.coinEnum,
+          server,
+        } as any);
+      } catch {
+        /* */
+      }
+      fetchBalance();
+    },
+    [chain.coinEnum, fetchBalance]
+  );
+
   const fetchTransactions = useCallback(async () => {
     setLoadingTx(true);
     try {
@@ -270,11 +328,10 @@ export function CoinDetail({ chain }: Props) {
           setTransactions([]);
           return;
         }
-        const res = await fetch(
-          `/transactions/search?txType=PAYMENT&address=${encodeURIComponent(addr)}&confirmationStatus=CONFIRMED&limit=20&reverse=true`
-        );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data: any[] = await res.json();
+        const data: any[] = await qdnRequest({
+          action: 'FETCH_NODE_API',
+          path: `/transactions/search?txType=PAYMENT&address=${encodeURIComponent(addr)}&confirmationStatus=CONFIRMED&limit=20&reverse=true`,
+        }).then((r) => (Array.isArray(r) ? r : []));
         const rows: TxRow[] = data.map((tx) => {
           const incoming = tx.recipient === addr;
           const raw = Math.round(parseFloat(tx.amount ?? '0') * 1e8);
@@ -506,27 +563,45 @@ export function CoinDetail({ chain }: Props) {
           </Box>
         )}
         <Box sx={{ flexGrow: 1 }} />
-        <Button
-          variant="contained"
-          size="small"
-          endIcon={<SendIcon sx={{ fontSize: '1rem !important' }} />}
-          onClick={openSend}
-          disableElevation
-          disabled={isARRR && !arrrSynced}
-          sx={{
-            bgcolor: c.accent,
-            color: c.accentText,
-            '&:hover': { bgcolor: c.accentHover },
-            '&.Mui-disabled': { opacity: 0.4 },
-            borderRadius: isClassic ? `${tokens.shape.radiusMd}px` : '50px',
-            px: 2.5,
-            letterSpacing: isClassic ? 0 : '0.06em',
-            fontWeight: tokens.typography.weightBold,
-            fontSize: '0.75rem',
-          }}
+        {!chain.isNative && !isARRR && (
+          <Tooltip title="ElectrumX servers">
+            <IconButton
+              size="small"
+              onClick={openForeignServerDialog}
+              sx={{ borderRadius: 0, color: c.textSecondary }}
+            >
+              <DnsIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+        <Tooltip
+          title={!canSend ? 'Sending requires a local node' : ''}
+          disableHoverListener={canSend}
         >
-          Send
-        </Button>
+          <span>
+            <Button
+              variant="contained"
+              size="small"
+              endIcon={<SendIcon sx={{ fontSize: '1rem !important' }} />}
+              onClick={openSend}
+              disableElevation
+              disabled={(isARRR && !arrrSynced) || !canSend}
+              sx={{
+                bgcolor: c.accent,
+                color: c.accentText,
+                '&:hover': { bgcolor: c.accentHover },
+                '&.Mui-disabled': { opacity: 0.4 },
+                borderRadius: isClassic ? `${tokens.shape.radiusMd}px` : '50px',
+                px: 2.5,
+                letterSpacing: isClassic ? 0 : '0.06em',
+                fontWeight: tokens.typography.weightBold,
+                fontSize: '0.75rem',
+              }}
+            >
+              Send
+            </Button>
+          </span>
+        </Tooltip>
       </Box>
 
       <Box
@@ -538,7 +613,25 @@ export function CoinDetail({ chain }: Props) {
           py: isClassic ? 3 : 4,
         }}
       >
-        {isARRR && !arrrSynced ? (
+        {!walletAvailable ? (
+          <Box
+            sx={{
+              border: `${isClassic ? tokens.shape.classicBorderWidth : tokens.shape.borderWidth} solid ${isClassic ? c.border : c.borderLight}`,
+              borderRadius: `${isClassic ? tokens.shape.radiusMd : tokens.shape.radius}px`,
+              bgcolor: c.surface,
+              boxShadow: c.shadowCard,
+              p: { xs: 4, md: 6 },
+              textAlign: 'center',
+              color: c.textSecondary,
+              fontSize: '0.875rem',
+              lineHeight: 1.6,
+            }}
+          >
+            Wallet features are not available on a public node.
+            <br />
+            Connect to a local Qortium node to view balances and transactions.
+          </Box>
+        ) : isARRR && !arrrSynced ? (
           /* ── ARRR initialization overlay ── */
           <Box
             sx={{
@@ -1418,6 +1511,126 @@ export function CoinDetail({ chain }: Props) {
                 )}
               </Box>
             ))}
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* ── ElectrumX server selection dialog (non-ARRR foreign coins) ── */}
+      {!chain.isNative && !isARRR && (
+        <Dialog
+          open={foreignServerOpen}
+          onClose={() => setForeignServerOpen(false)}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              maxWidth: isClassic ? c.layoutMaxWidth : undefined,
+              border: `${
+                isClassic
+                  ? tokens.shape.classicBorderWidth
+                  : tokens.shape.borderWidth
+              } solid ${isClassic ? c.border : c.borderLight}`,
+              borderRadius: isClassic ? `${tokens.shape.radiusMd}px` : 0,
+              bgcolor: c.surface,
+              boxShadow: isClassic ? c.shadowModal : undefined,
+            },
+          }}
+        >
+          <DialogContent sx={{ p: 0 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                px: 3,
+                py: 2,
+                borderBottom: `${
+                  isClassic
+                    ? tokens.shape.classicBorderWidth
+                    : tokens.shape.borderWidth
+                } solid ${isClassic ? c.border : c.borderLight}`,
+              }}
+            >
+              <Box
+                sx={{
+                  fontWeight: tokens.typography.weightBold,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  fontSize: '0.85rem',
+                  flexGrow: 1,
+                }}
+              >
+                {chain.ticker} ElectrumX Servers
+              </Box>
+              <IconButton
+                size="small"
+                onClick={() => setForeignServerOpen(false)}
+                sx={{ borderRadius: 0 }}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Box>
+            {foreignServerLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={24} sx={{ color: c.accent }} />
+              </Box>
+            ) : foreignServers.length === 0 ? (
+              <Box
+                sx={{
+                  py: 4,
+                  textAlign: 'center',
+                  color: c.textSecondary,
+                  fontSize: '0.85rem',
+                }}
+              >
+                No servers available
+              </Box>
+            ) : (
+              foreignServers.map((server, i) => (
+                <Box
+                  key={i}
+                  onClick={() => handleForeignServerChange(server)}
+                  sx={{
+                    px: 3,
+                    py: 1.75,
+                    borderBottom:
+                      i < foreignServers.length - 1
+                        ? `1px solid ${isClassic ? c.border : c.borderLight}`
+                        : 'none',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      bgcolor: isClassic ? c.controlHover : c.borderLight,
+                    },
+                    transition: 'background-color 0.12s ease',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      fontFamily: c.monoFontFamily,
+                      fontSize: '0.8rem',
+                      color: c.textPrimary,
+                    }}
+                  >
+                    {server.hostName ??
+                      server.hostname ??
+                      server.host ??
+                      JSON.stringify(server)}
+                    {server.port ? `:${server.port}` : ''}
+                  </Box>
+                  {server.connectionType && (
+                    <Box
+                      sx={{
+                        fontSize: '0.65rem',
+                        color: c.textSecondary,
+                        mt: 0.25,
+                        letterSpacing: '0.06em',
+                      }}
+                    >
+                      {server.connectionType}
+                    </Box>
+                  )}
+                </Box>
+              ))
+            )}
           </DialogContent>
         </Dialog>
       )}
