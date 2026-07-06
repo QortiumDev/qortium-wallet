@@ -40,10 +40,10 @@ export default function AppLayout() {
     const poll = async () => {
       try {
         const [nodeInfo, nodeStatus] = await Promise.all([
-          qortalRequest({ action: 'GET_NODE_INFO' }),
-          qortalRequest({ action: 'GET_NODE_STATUS' }),
+          qdnRequest({ action: 'GET_NODE_INFO' }),
+          qdnRequest({ action: 'GET_NODE_STATUS' }),
         ]);
-        const isGateway = await qortalRequest({
+        const isGateway = await qdnRequest({
           action: 'IS_USING_PUBLIC_NODE',
         });
         if (setWalletState) {

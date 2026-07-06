@@ -8,6 +8,18 @@ All notable changes to Qortium Wallet will be documented in this file.
 
 - Apply Qortium Home text-size settings on app launch and when Home sends text-size changes, matching the existing theme and language bridge behavior.
 
+### Changed
+
+- Migrated Home bridge calls from legacy `qortalRequest` globals to `qdnRequest`.
+- Limited visible wallet chains to Qortium Home-supported wallets: QORT, BTC, LTC, DOGE, DGB, RVN, DASH, NMC, and FIRO.
+
+### Fixed
+
+- Updated native wallet requests to use Home 1.3-compatible native asset forms and `GET_BALANCE`.
+- Disabled encrypted QDN address-book sync when Home does not expose encryption bridge actions, while keeping local address books available.
+- Foreign sends now only pass fee-per-byte values returned by `GET_FOREIGN_FEE`; when fee lookup fails, Home/Core defaults are used.
+- Mapped `/crosschain/blockchains` support data from `supportsLocalChainTrades`.
+
 ## [1.3.2] - 2026-03-06
 
 ### Fixed

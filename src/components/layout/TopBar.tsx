@@ -65,7 +65,7 @@ export function TopBar() {
   useEffect(() => {
     (async () => {
       try {
-        const list = await qortalRequest({
+        const list = await qdnRequest({
           action: 'GET_LIST',
           list_name: 'followedNames',
         } as any);
@@ -103,14 +103,14 @@ export function TopBar() {
     setFollowBusy(true);
     try {
       if (isFollowed) {
-        await qortalRequest({
+        await qdnRequest({
           action: 'REMOVE_FROM_LIST',
           list_name: 'followedNames',
           items: [APP_QDN_NAME],
         } as any);
         setIsFollowed(false);
       } else {
-        await qortalRequest({
+        await qdnRequest({
           action: 'ADD_TO_LIST',
           list_name: 'followedNames',
           items: [APP_QDN_NAME],
@@ -125,7 +125,7 @@ export function TopBar() {
 
   function handleOpenHelp() {
     try {
-      void qortalRequest({
+      void qdnRequest({
         action: 'OPEN_NEW_TAB',
         address: `qdn://APP/Help/Help?app=${APP_QDN_NAME}`,
       } as any);
@@ -141,10 +141,11 @@ export function TopBar() {
       const lines = await Promise.all(
         chains.map(async (chain) => {
           try {
-            const res = await qortalRequest({
-              action: 'GET_USER_WALLET',
-              coin: chain.coinEnum,
-            } as any);
+            const res = await qdnRequest(
+              chain.isNative
+                ? { action: 'GET_USER_WALLET', assetId: 0 }
+                : { action: 'GET_USER_WALLET', coin: chain.coinEnum }
+            );
             return res?.address ? `${chain.ticker} - ${res.address}` : null;
           } catch {
             return null;
@@ -409,7 +410,10 @@ export function TopBar() {
 
         <RatingControl qdnName={APP_QDN_NAME} />
 
-        <Tooltip title={isFollowed ? 'Stop following this app' : 'Follow this app'} placement="bottom">
+        <Tooltip
+          title={isFollowed ? 'Stop following this app' : 'Follow this app'}
+          placement="bottom"
+        >
           <IconButton
             size="small"
             onClick={() => void handleToggleFollow()}
@@ -418,7 +422,9 @@ export function TopBar() {
               ...buttonSx,
               color: isFollowed ? c.accent : c.textSecondary,
             }}
-            aria-label={isFollowed ? 'stop following this app' : 'follow this app'}
+            aria-label={
+              isFollowed ? 'stop following this app' : 'follow this app'
+            }
           >
             {isFollowed ? (
               <PersonRemoveAlt1Icon fontSize="small" />

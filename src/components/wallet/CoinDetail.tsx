@@ -70,10 +70,16 @@ const ARRR_INNER_MAX = 60;
 const ARRR_POLL_MS = 5000;
 
 async function ensureAccountUnlocked(): Promise<boolean> {
-  const result = (await qortalRequest({
+  const result = (await qdnRequest({
     action: 'UNLOCK_SELECTED_ACCOUNT',
   })) as { isUnlocked?: boolean } | null;
   return result?.isUnlocked === true;
+}
+
+function walletRequestForChain(chain: ChainConfig): QdnRequestOptions {
+  return chain.isNative
+    ? { action: 'GET_USER_WALLET', assetId: 0 }
+    : { action: 'GET_USER_WALLET', coin: chain.coinEnum };
 }
 
 export function CoinDetail({ chain }: Props) {
@@ -101,7 +107,8 @@ export function CoinDetail({ chain }: Props) {
   const [recipient, setRecipient] = useState(
     () => searchParams.get('to') ?? EMPTY_STRING
   );
-  const [fee, setFee] = useState<string>('');
+  const [nativeFee, setNativeFee] = useState<string>('');
+  const [foreignFeePerByte, setForeignFeePerByte] = useState<string>('');
   const [feeLoading, setFeeLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState<'success' | 'error' | null>(
@@ -133,7 +140,7 @@ export function CoinDetail({ chain }: Props) {
       while (!cancelSyncRef.current) {
         let status: string;
         try {
-          status = await qortalRequest({
+          status = await qdnRequest({
             action: 'GET_ARRR_SYNC_STATUS',
           } as any);
         } catch {
@@ -174,7 +181,7 @@ export function CoinDetail({ chain }: Props) {
     setArrrSyncing(false);
     setArrrSyncStatus('Sync failed — try a different server.');
     try {
-      const servers = await qortalRequest({
+      const servers = await qdnRequest({
         action: 'GET_CROSSCHAIN_SERVER_INFO',
         coin: 'ARRR',
       } as any);
@@ -188,7 +195,7 @@ export function CoinDetail({ chain }: Props) {
     async (server: any) => {
       setArrrServerOpen(false);
       try {
-        await qortalRequest({
+        await qdnRequest({
           action: 'SET_CURRENT_FOREIGN_SERVER',
           coin: 'ARRR',
           server,
@@ -213,15 +220,12 @@ export function CoinDetail({ chain }: Props) {
 
   const fetchAddress = useCallback(async () => {
     try {
-      const res = await qortalRequest({
-        action: 'GET_USER_WALLET',
-        coin: chain.coinEnum,
-      });
+      const res = await qdnRequest(walletRequestForChain(chain));
       if (res?.address) setAddress(res.address);
     } catch {
       /* silent */
     }
-  }, [chain.coinEnum]);
+  }, [chain]);
 
   const fetchBalance = useCallback(async () => {
     setLoadingBalance(true);
@@ -232,16 +236,11 @@ export function CoinDetail({ chain }: Props) {
       try {
         let result: string;
         if (chain.isNative) {
-          const wallet = await qortalRequest({
-            action: 'GET_USER_WALLET',
-            coin: chain.coinEnum,
-          } as any);
-          if (!wallet?.address) throw new Error('no address');
-          const res = await fetch(
-            `/addresses/balance/${encodeURIComponent(wallet.address)}`
-          );
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          result = String((await res.json()) ?? 0);
+          const res = await qdnRequest({
+            action: 'GET_BALANCE',
+            assetId: 0,
+          });
+          result = String(res ?? 0);
         } else {
           const res = await requestWithTimeout(
             { action: 'GET_WALLET_BALANCE', coin: chain.coinEnum },
@@ -259,16 +258,13 @@ export function CoinDetail({ chain }: Props) {
     }
     setBalance(null);
     setLoadingBalance(false);
-  }, [chain.coinEnum, chain.isNative]);
+  }, [chain]);
 
   const fetchTransactions = useCallback(async () => {
     setLoadingTx(true);
     try {
       if (chain.isNative) {
-        const wallet = await qortalRequest({
-          action: 'GET_USER_WALLET',
-          coin: chain.coinEnum,
-        } as any);
+        const wallet = await qdnRequest(walletRequestForChain(chain));
         const addr = wallet?.address;
         if (!addr) {
           setTransactions([]);
@@ -305,7 +301,7 @@ export function CoinDetail({ chain }: Props) {
     } finally {
       setLoadingTx(false);
     }
-  }, [chain.coinEnum, chain.isNative]);
+  }, [chain]);
 
   useEffect(() => {
     fetchAddress();
@@ -327,12 +323,13 @@ export function CoinDetail({ chain }: Props) {
     setAmount(0);
     setRecipient(EMPTY_STRING);
     setSendResult(null);
-    setFee(String(chain.defaultFee));
+    setNativeFee(chain.isNative ? String(chain.defaultFee) : '');
+    setForeignFeePerByte('');
     setSendOpen(true);
     if (chain.isNative || chain.coinEnum === 'ARRR') return;
     setFeeLoading(true);
     try {
-      const res = await qortalRequest({
+      const res = await qdnRequest({
         action: 'GET_FOREIGN_FEE',
         coin: chain.coinEnum,
         type: 'TRADE',
@@ -340,9 +337,9 @@ export function CoinDetail({ chain }: Props) {
       const live =
         res?.fee ??
         (typeof res === 'number' || typeof res === 'string' ? res : null);
-      if (live != null) setFee(String(live));
+      if (live != null) setForeignFeePerByte(String(live));
     } catch {
-      /* keep hardcoded fallback */
+      /* omit fee and let Home/Core choose the default */
     }
     setFeeLoading(false);
   }, [chain.coinEnum, chain.defaultFee, chain.isNative]);
@@ -361,14 +358,19 @@ export function CoinDetail({ chain }: Props) {
       if (!(await ensureAccountUnlocked())) return;
       const payload: Record<string, unknown> = {
         action: 'SEND_COIN',
-        coin: chain.coinEnum,
         recipient,
         amount,
       };
-      if (chain.coinEnum !== 'ARRR' && fee !== '') {
-        payload.fee = parseFloat(fee);
+      if (chain.isNative) {
+        payload.assetId = 0;
+        if (nativeFee !== '') payload.fee = parseFloat(nativeFee);
+      } else {
+        payload.coin = chain.coinEnum;
+        if (chain.coinEnum !== 'ARRR' && foreignFeePerByte !== '') {
+          payload.fee = parseFloat(foreignFeePerByte);
+        }
       }
-      await qortalRequest(payload as any);
+      await qdnRequest(payload as any);
       setSendResult('success');
       setAmount(0);
       setRecipient(EMPTY_STRING);
@@ -387,11 +389,19 @@ export function CoinDetail({ chain }: Props) {
     setSendResult(null);
     setAmount(0);
     setRecipient(EMPTY_STRING);
-    setFee('');
+    setNativeFee('');
+    setForeignFeePerByte('');
     setSearchParams({});
   };
 
   const divisor = Math.pow(10, chain.decimalPlaces);
+  const sendFeeInputValue = chain.isNative ? nativeFee : foreignFeePerByte;
+  const sendFeeLabel = chain.isNative
+    ? `Optional custom fee (${chain.ticker})`
+    : `Optional fee per byte (${chain.ticker})`;
+  const setSendFeeInputValue = chain.isNative
+    ? setNativeFee
+    : setForeignFeePerByte;
 
   const txAmount = (row: TxRow) => {
     const raw = Number(row.totalAmount ?? 0) / divisor;
@@ -1225,7 +1235,9 @@ export function CoinDetail({ chain }: Props) {
                     disabled={sending || !balance}
                     onClick={() => {
                       const bal = parseFloat(balance ?? '0');
-                      const feeVal = parseFloat(fee || '0');
+                      const feeVal = chain.isNative
+                        ? parseFloat(nativeFee || '0')
+                        : 0;
                       const factor = Math.pow(10, chain.decimalPlaces);
                       setAmount(
                         Math.max(
@@ -1263,9 +1275,9 @@ export function CoinDetail({ chain }: Props) {
                 />
 
                 <TextField
-                  label={`Optional custom fee (${chain.ticker})`}
-                  value={feeLoading ? 'Loading…' : fee}
-                  onChange={(e) => setFee(e.target.value)}
+                  label={sendFeeLabel}
+                  value={feeLoading ? 'Loading…' : sendFeeInputValue}
+                  onChange={(e) => setSendFeeInputValue(e.target.value)}
                   fullWidth
                   disabled={sending || feeLoading}
                   type={feeLoading ? 'text' : 'number'}
@@ -1273,7 +1285,9 @@ export function CoinDetail({ chain }: Props) {
                   helperText={
                     chain.coinEnum === 'ARRR'
                       ? 'ARRR network fee is fixed — this value is for display only'
-                      : undefined
+                      : !chain.isNative && !feeLoading && !foreignFeePerByte
+                        ? 'Fee lookup unavailable — Home/Core default will be used'
+                        : undefined
                   }
                 />
 

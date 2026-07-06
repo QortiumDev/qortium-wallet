@@ -37,7 +37,8 @@ vi.mock('../../../utils/addressBookStorage');
 
 // Mock QDN utilities
 vi.mock('../../../utils/addressBookQDN', () => ({
-  publishToQDN: vi.fn().mockResolvedValue(undefined),
+  getAddressBookQdnSyncStatus: vi.fn(() => ({ supported: true })),
+  publishToQDN: vi.fn().mockResolvedValue(123),
 }));
 
 // Mock child components to simplify testing

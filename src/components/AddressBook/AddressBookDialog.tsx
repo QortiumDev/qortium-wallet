@@ -30,7 +30,10 @@ import {
   addAddress,
   updateAddress,
 } from '../../utils/addressBookStorage';
-import { publishToQDN } from '../../utils/addressBookQDN';
+import {
+  getAddressBookQdnSyncStatus,
+  publishToQDN,
+} from '../../utils/addressBookQDN';
 import { AddressBookTable } from './AddressBookTable';
 import { AddressFormDialog } from './AddressFormDialog';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
@@ -77,6 +80,8 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
   const [isSyncing, setIsSyncing] = useState(false);
   const [hasUnsyncedChanges, setHasUnsyncedChanges] = useState(false);
   const [showSyncSuccess, setShowSyncSuccess] = useState(false);
+  const [syncError, setSyncError] = useState<string>(EMPTY_STRING);
+  const qdnSyncStatus = getAddressBookQdnSyncStatus();
 
   // Get authenticated username for QDN sync
   const userName = useGlobal().auth.name;
@@ -221,7 +226,17 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
 
     try {
       const currentEntries = getAddressBook(coinType);
-      await publishToQDN(coinType, currentEntries, userName || undefined);
+      const publishedAt = await publishToQDN(
+        coinType,
+        currentEntries,
+        userName || undefined
+      );
+      if (publishedAt === null) {
+        setSyncError(
+          qdnSyncStatus.reason || t('core:message.error.something_went_wrong')
+        );
+        return;
+      }
 
       // Show success notification
       console.log(`Address Book: Successfully synced ${coinType} to QDN`);
@@ -231,7 +246,7 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
       setShowSyncSuccess(true);
     } catch (error) {
       console.error('Failed to sync to QDN:', error);
-      // Optional: Show error notification to user
+      setSyncError(t('core:message.error.something_went_wrong'));
     } finally {
       setIsSyncing(false);
     }
@@ -239,6 +254,10 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
 
   const handleCloseSyncSuccess = () => {
     setShowSyncSuccess(false);
+  };
+
+  const handleCloseSyncError = () => {
+    setSyncError(EMPTY_STRING);
   };
 
   return (
@@ -306,6 +325,11 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
             />
 
             {/* QDN Sync and Add New Buttons */}
+            {!qdnSyncStatus.supported && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                {qdnSyncStatus.reason}
+              </Alert>
+            )}
             <Box
               sx={{
                 mb: 2,
@@ -317,7 +341,9 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
               <Button
                 startIcon={<Save />}
                 onClick={handleSyncToQDN}
-                disabled={isSyncing || !hasUnsyncedChanges}
+                disabled={
+                  isSyncing || !hasUnsyncedChanges || !qdnSyncStatus.supported
+                }
                 sx={{
                   backgroundColor: c.success,
                   color: c.accentText,
@@ -428,6 +454,22 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
             defaultValue: `Successfully synced ${coinType} address book to QDN`,
             postProcess: 'capitalizeFirstChar',
           })}
+        </Alert>
+      </Snackbar>
+
+      {/* QDN Sync Error Notification */}
+      <Snackbar
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        open={Boolean(syncError)}
+        autoHideDuration={6000}
+        onClose={handleCloseSyncError}
+      >
+        <Alert
+          onClose={handleCloseSyncError}
+          severity="warning"
+          sx={{ width: '100%' }}
+        >
+          {syncError}
         </Alert>
       </Snackbar>
     </>

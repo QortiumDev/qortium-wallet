@@ -11,12 +11,12 @@ function getAvailableCoins(): Coin[] {
 
 /**
  * Get the current authenticated username
- * This uses qortalRequest to avoid React hook dependency
+ * This uses qdnRequest to avoid React hook dependency
  */
 async function getCurrentUserName(): Promise<string | null> {
   try {
-    const response = await qortalRequest({
-      action: 'GET_USER_ACCOUNT',
+    const response = await qdnRequest({
+      action: 'GET_SELECTED_ACCOUNT',
     });
     return response?.name || null;
   } catch (error) {
@@ -34,6 +34,35 @@ export interface AddressBookQDNData {
   entries: AddressBookEntry[];
   lastUpdated: number; // Unix timestamp
   hash?: string; // Optional: hash of entries for quick comparison
+}
+
+export interface AddressBookQdnSyncStatus {
+  supported: boolean;
+  reason?: string;
+}
+
+export const ADDRESS_BOOK_QDN_UNSUPPORTED_REASON =
+  'Encrypted QDN address-book sync is not supported by this Home version. Local address books remain available.';
+
+let unsupportedLogged = false;
+
+export function getAddressBookQdnSyncStatus(): AddressBookQdnSyncStatus {
+  if (import.meta.env.VITE_ENABLE_QDN_ADDRESS_BOOK_SYNC !== 'true') {
+    return {
+      supported: false,
+      reason: ADDRESS_BOOK_QDN_UNSUPPORTED_REASON,
+    };
+  }
+  return { supported: true };
+}
+
+function canUseEncryptedQdnSync(): boolean {
+  const status = getAddressBookQdnSyncStatus();
+  if (!status.supported && !unsupportedLogged) {
+    unsupportedLogged = true;
+    console.warn(`QDN Sync: ${status.reason}`);
+  }
+  return status.supported;
 }
 
 /**
@@ -85,7 +114,7 @@ function publishedHashKey(coinType: string): string {
 }
 
 async function ensureAccountUnlocked(): Promise<boolean> {
-  const result = (await qortalRequest({
+  const result = (await qdnRequest({
     action: 'UNLOCK_SELECTED_ACCOUNT',
   })) as { isUnlocked?: boolean } | null;
   return result?.isUnlocked === true;
@@ -96,6 +125,8 @@ async function publishToQDN(
   entries: AddressBookEntry[],
   userName?: string
 ): Promise<number | null> {
+  if (!canUseEncryptedQdnSync()) return null;
+
   try {
     // Get user name from parameter or fetch it
     const actualUserName = userName || (await getCurrentUserName());
@@ -122,14 +153,14 @@ async function publishToQDN(
     const base64 = await objectToBase64(qdnData);
 
     // Encrypt with user's private key
-    const encryptedData = await qortalRequest({
+    const encryptedData = await qdnRequest({
       action: 'ENCRYPT_DATA',
       base64,
     });
 
     // Publish to QDN
     if (!(await ensureAccountUnlocked())) return null;
-    await qortalRequest({
+    await qdnRequest({
       action: 'PUBLISH_QDN_RESOURCE',
       base64: encryptedData,
       name: actualUserName,
@@ -162,6 +193,8 @@ async function fetchFromQDN(
   coinType: string,
   userName?: string
 ): Promise<AddressBookQDNData | null> {
+  if (!canUseEncryptedQdnSync()) return null;
+
   try {
     // Get user name from parameter or fetch it
     const actualUserName = userName || (await getCurrentUserName());
@@ -174,7 +207,7 @@ async function fetchFromQDN(
     // Fetch encrypted data from QDN
     let encryptedBase64;
     try {
-      encryptedBase64 = await qortalRequest({
+      encryptedBase64 = await qdnRequest({
         action: 'FETCH_QDN_RESOURCE',
         identifier: `walletium-addressbook-${coinType}`,
         service: 'DOCUMENT_PRIVATE',
@@ -215,7 +248,7 @@ async function fetchFromQDN(
     // Decrypt data (returns the original base64 string)
     let decryptedBase64;
     try {
-      decryptedBase64 = await qortalRequest({
+      decryptedBase64 = await qdnRequest({
         action: 'DECRYPT_DATA',
         encryptedData: encryptedBase64,
       });
@@ -437,6 +470,8 @@ async function syncAddressBookOnStartup(
 export async function syncAllAddressBooksOnStartup(
   userName?: string
 ): Promise<void> {
+  if (!canUseEncryptedQdnSync()) return;
+
   // Get all supported coin types from the Coin enum
   const coinTypes = getAvailableCoins();
 
@@ -464,6 +499,8 @@ export function debouncedPublishToQDN(
   entries: AddressBookEntry[],
   delay = 2000
 ): void {
+  if (!canUseEncryptedQdnSync()) return;
+
   // Clear existing timeout for this coin type
   if (publishTimeouts[coinType]) {
     clearTimeout(publishTimeouts[coinType]);

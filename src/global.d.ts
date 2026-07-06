@@ -1,10 +1,11 @@
 // src/global.d.ts
 
-interface QortalRequestOptions {
+interface QdnRequestOptions {
   action: string;
   address?: string;
   amount?: number;
   assetId?: number;
+  base64?: string;
   blob?: Blob;
   blockLimit?: number;
   category?: string;
@@ -53,14 +54,7 @@ interface QortalRequestOptions {
   type?: string;
 }
 
-declare function qortalRequest(options: QortalRequestOptions): Promise<any>;
-
-declare function qdnRequest(options: { action: string; [key: string]: unknown }): Promise<unknown>;
-
-declare function qortalRequestWithTimeout(
-  options: QortalRequestOptions,
-  time: number
-): Promise<any>;
+declare function qdnRequest(options: QdnRequestOptions): Promise<any>;
 
 declare global {
   interface Window {

@@ -17,7 +17,7 @@ interface SupportedBlockchainInfo {
   decimalPlaces: number;
   activeNetwork: string;
   supportsHtlc: boolean;
-  supportsQortTrades: boolean;
+  supportsLocalChainTrades: boolean;
 }
 
 export function useSupportedChains(): {
@@ -34,7 +34,23 @@ export function useSupportedChains(): {
     const cached = sessionStorage.getItem(SESSION_KEY);
     if (cached) {
       try {
-        setChains(JSON.parse(cached));
+        const parsed = JSON.parse(cached) as ChainConfig[];
+        const supported = parsed
+          .map((chain) => {
+            const known = KNOWN_CHAIN_MAP.get(chain.key);
+            if (!known) return undefined;
+            return {
+              ...known,
+              decimalPlaces: chain.decimalPlaces,
+              activeNetwork: chain.activeNetwork,
+              supportsHtlc: chain.supportsHtlc,
+              supportsLocalChainTrades:
+                chain.supportsLocalChainTrades ??
+                known.supportsLocalChainTrades,
+            };
+          })
+          .filter((chain): chain is ChainConfig => chain !== undefined);
+        setChains(supported.length > 0 ? supported : DEFAULT_CHAINS);
         return;
       } catch {
         sessionStorage.removeItem(SESSION_KEY);
@@ -70,7 +86,7 @@ export function useSupportedChains(): {
               decimalPlaces: info.decimalPlaces,
               activeNetwork: info.activeNetwork as ChainConfig['activeNetwork'],
               supportsHtlc: info.supportsHtlc,
-              supportsQortTrades: info.supportsQortTrades,
+              supportsLocalChainTrades: info.supportsLocalChainTrades,
             };
           })
           .filter((c): c is ChainConfig => c !== undefined);
@@ -83,7 +99,7 @@ export function useSupportedChains(): {
       } catch (err) {
         // Don't cache failure — allow retry on next load.
         console.warn(
-          '[Walletium] /crosschain/blockchains unavailable, showing all known chains:',
+          '[Walletium] /crosschain/blockchains unavailable, showing fallback chains:',
           err
         );
         setStatus('fallback');

@@ -64,6 +64,12 @@ function loadIcons() {
 }
 loadIcons();
 
+function walletRequestForChain(chain: ChainConfig): QdnRequestOptions {
+  return chain.isNative
+    ? { action: 'GET_USER_WALLET', assetId: 0 }
+    : { action: 'GET_USER_WALLET', coin: chain.coinEnum };
+}
+
 interface BlockProps {
   chain: ChainConfig;
   balance: string | null;
@@ -95,7 +101,7 @@ function CoinBlock({
     setHovered(true);
     if (!fetchedRef.current) {
       fetchedRef.current = true;
-      qortalRequest({ action: 'GET_USER_WALLET', coin: chain.coinEnum })
+      qdnRequest(walletRequestForChain(chain))
         .then((res: any) => {
           if (res?.address) setAddress(res.address);
         })
@@ -469,16 +475,11 @@ export function CoinGrid() {
           try {
             let balance: string;
             if (chain.isNative) {
-              const wallet = await qortalRequest({
-                action: 'GET_USER_WALLET',
-                coin: chain.coinEnum,
-              } as any);
-              if (!wallet?.address) throw new Error('no address');
-              const res = await fetch(
-                `/addresses/balance/${encodeURIComponent(wallet.address)}`
-              );
-              if (!res.ok) throw new Error(`HTTP ${res.status}`);
-              balance = String((await res.json()) ?? 0);
+              const res = await qdnRequest({
+                action: 'GET_BALANCE',
+                assetId: 0,
+              });
+              balance = String(res ?? 0);
             } else {
               const res = await requestWithTimeout(
                 { action: 'GET_WALLET_BALANCE', coin: chain.coinEnum },
