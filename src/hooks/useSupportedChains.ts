@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import {
-  DEFAULT_CHAINS,
   KNOWN_CHAIN_MAP,
   type ChainConfig,
 } from '../config/chains';
@@ -70,11 +69,7 @@ export function useSupportedChains(): {
 
         if (!Array.isArray(data)) throw new Error('Unexpected response shape');
 
-        // QORT is the native coin — not in the foreign blockchain registry,
-        // but always shown first.
-        const qort = DEFAULT_CHAINS[0];
-
-        const foreign: ChainConfig[] = data
+        const merged: ChainConfig[] = data
           .filter((info) => info.walletEnabled)
           .map((info) => {
             const code = info.currencyCode?.toUpperCase();
@@ -94,18 +89,14 @@ export function useSupportedChains(): {
             };
           })
           .filter((c): c is ChainConfig => c !== undefined);
-
-        const merged = [qort, ...foreign];
         sessionStorage.setItem(SESSION_KEY, JSON.stringify(merged));
         sessionStorage.setItem(SESSION_STATUS_KEY, 'live');
         setChains(merged);
         setStatus('live');
       } catch (err) {
-        // Node doesn't expose /crosschain/blockchains — use the known default
-        // list. Don't cache so the next session retries discovery.
         console.warn('[Walletium] GET_CROSSCHAIN_BLOCKCHAINS unavailable:', err);
-        setChains(DEFAULT_CHAINS);
-        setStatus('live');
+        setChains([]);
+        setStatus('fallback');
       }
     }
 
