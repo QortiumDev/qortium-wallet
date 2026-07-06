@@ -134,7 +134,7 @@ export function TopBar() {
     try {
       void qdnRequest({
         action: 'OPEN_NEW_TAB',
-        address: `qdn://APP/Help/Help?app=${APP_QDN_NAME}`,
+        address: `qdn://APP/Help/Help?new=${APP_QDN_NAME}`,
       } as any);
     } catch {
       // Help tab opening is optional and can fail outside Qortium Home.
