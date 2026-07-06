@@ -64,7 +64,8 @@ export function useSupportedChains(): {
     async function discover() {
       try {
         const data: SupportedBlockchainInfo[] = await qdnRequest({
-          action: 'GET_CROSSCHAIN_BLOCKCHAINS',
+          action: 'FETCH_NODE_API',
+          path: '/crosschain/blockchains',
         });
 
         if (!Array.isArray(data)) throw new Error('Unexpected response shape');
@@ -83,7 +84,7 @@ export function useSupportedChains(): {
             return {
               ...known,
               decimalPlaces: info.decimalPlaces,
-              activeNetwork: info.activeNetwork as ChainConfig['activeNetwork'],
+              activeNetwork: (info.activeNetwork as ChainConfig['activeNetwork']) ?? 'MAIN',
               supportsHtlc: info.supportsHtlc,
               supportsLocalChainTrades: info.supportsLocalChainTrades,
             };
@@ -94,7 +95,7 @@ export function useSupportedChains(): {
         setChains(merged);
         setStatus('live');
       } catch (err) {
-        console.warn('[Walletium] GET_CROSSCHAIN_BLOCKCHAINS unavailable:', err);
+        console.warn('[Walletium] /crosschain/blockchains unavailable:', err);
         setChains([]);
         setStatus('fallback');
       }
