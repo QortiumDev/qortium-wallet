@@ -73,6 +73,7 @@ function walletRequestForChain(chain: ChainConfig): QdnRequestOptions {
 interface BlockProps {
   chain: ChainConfig;
   balance: string | null;
+  canSend: boolean;
   loading: boolean;
   tileSize: number;
   dragListeners?: Record<string, unknown>;
@@ -82,6 +83,7 @@ interface BlockProps {
 function CoinBlock({
   chain,
   balance,
+  canSend,
   loading,
   tileSize,
   dragListeners,
@@ -236,20 +238,27 @@ function CoinBlock({
               )}
             </IconButton>
           </Tooltip>
-          <Tooltip title="Send" placement="top">
-            <IconButton
-              size="small"
-              onClick={handleSend}
-              sx={{
-                color: c.accentText,
-                bgcolor: 'rgba(255,255,255,0.15)',
-                borderRadius: `${tokens.shape.radius / 2}px`,
-                p: 0.75,
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
-              }}
-            >
-              <SendIcon sx={{ fontSize: 16 }} />
-            </IconButton>
+          <Tooltip
+            title={canSend ? 'Send' : 'Requires a local node'}
+            placement="top"
+          >
+            <span>
+              <IconButton
+                size="small"
+                onClick={handleSend}
+                disabled={!canSend}
+                sx={{
+                  color: c.accentText,
+                  bgcolor: 'rgba(255,255,255,0.15)',
+                  borderRadius: `${tokens.shape.radius / 2}px`,
+                  p: 0.75,
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
+                  '&.Mui-disabled': { opacity: 0.4, color: c.accentText },
+                }}
+              >
+                <SendIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </span>
           </Tooltip>
         </Box>
       </Box>
@@ -321,12 +330,14 @@ function CoinBlock({
 function SortableCoinBlock({
   chain,
   balance,
+  canSend,
   loading,
   tileSize,
   isCustomMode,
 }: {
   chain: ChainConfig;
   balance: string | null;
+  canSend: boolean;
   loading: boolean;
   tileSize: number;
   isCustomMode: boolean;
@@ -354,6 +365,7 @@ function SortableCoinBlock({
       <CoinBlock
         chain={chain}
         balance={balance}
+        canSend={canSend}
         loading={loading}
         tileSize={tileSize}
         dragListeners={
@@ -371,6 +383,17 @@ export function CoinGrid() {
   const uiStyle = useAtomValue(uiStyleAtom);
   const [balances, setBalances] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [canSend, setCanSend] = useState(true);
+
+  useEffect(() => {
+    qdnRequest({ action: 'SHOW_ACTIONS' })
+      .then((actions: unknown) => {
+        if (Array.isArray(actions)) setCanSend(actions.includes('SEND_COIN'));
+      })
+      .catch(() => {
+        /* assume full access */
+      });
+  }, []);
 
   const [sortMode] = useAtom(sortModeAtom);
   const [customOrder, setCustomOrder] = useAtom(customOrderAtom);
@@ -535,6 +558,7 @@ export function CoinGrid() {
                 key={chain.key}
                 chain={chain}
                 balance={balances[chain.key] ?? null}
+                canSend={canSend}
                 loading={loading[chain.key] ?? true}
                 tileSize={tileSize}
                 isCustomMode={isCustom}

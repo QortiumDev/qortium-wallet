@@ -6,6 +6,7 @@ interface QdnRequestOptions {
   amount?: number;
   assetId?: number;
   base64?: string;
+  blockchain?: string;
   blob?: Blob;
   blockLimit?: number;
   category?: string;
@@ -29,12 +30,15 @@ interface QdnRequestOptions {
   items?: string[];
   limit?: number;
   list_name?: string;
+  maxBytes?: number;
   memo?: string;
   metaData?: string;
+  method?: string;
   mimeType?: string;
   mode?: string;
   name?: string;
   offset?: number;
+  path?: string;
   port?: number;
   query?: string;
   recipient?: string;
