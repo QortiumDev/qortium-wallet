@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
   DEFAULT_CHAINS,
-  KNOWN_CHAINS,
   KNOWN_CHAIN_MAP,
   type ChainConfig,
 } from '../config/chains';
@@ -24,13 +23,9 @@ export function useSupportedChains(): {
   chains: ChainConfig[];
   status: ChainDiscoveryStatus;
 } {
-  const [chains, setChains] = useState<ChainConfig[]>(KNOWN_CHAINS);
-  const [status, setStatus] = useState<ChainDiscoveryStatus>(() => {
-    const s = sessionStorage.getItem(SESSION_STATUS_KEY);
-    return (s as ChainDiscoveryStatus) ?? 'pending';
-  });
-
-  useEffect(() => {
+  const [chains, setChains] = useState<ChainConfig[]>(() => {
+    // Seed from session cache so there's no flash on reload; otherwise start
+    // empty so we never show unverified chains during the discovery phase.
     const cached = sessionStorage.getItem(SESSION_KEY);
     if (cached) {
       try {
@@ -50,21 +45,30 @@ export function useSupportedChains(): {
             };
           })
           .filter((chain): chain is ChainConfig => chain !== undefined);
-        setChains(supported.length > 0 ? supported : DEFAULT_CHAINS);
-        return;
+        if (supported.length > 0) return supported;
       } catch {
         sessionStorage.removeItem(SESSION_KEY);
         sessionStorage.removeItem(SESSION_STATUS_KEY);
       }
     }
+    return [];
+  });
+  const [status, setStatus] = useState<ChainDiscoveryStatus>(() => {
+    const s = sessionStorage.getItem(SESSION_STATUS_KEY);
+    return (s as ChainDiscoveryStatus) ?? 'pending';
+  });
+
+  useEffect(() => {
+    // If we already seeded from cache, skip the network call for this session.
+    if (sessionStorage.getItem(SESSION_KEY)) return;
 
     async function discover() {
       try {
-        // GET /crosschain/blockchains was added to qortium-core.
-        // On non-Qortium nodes this will 404 and we fall back to KNOWN_CHAINS.
-        const res = await fetch('/crosschain/blockchains');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data: SupportedBlockchainInfo[] = await res.json();
+        const data: SupportedBlockchainInfo[] = await qdnRequest({
+          action: 'GET_CROSSCHAIN_BLOCKCHAINS',
+        });
+
+        if (!Array.isArray(data)) throw new Error('Unexpected response shape');
 
         // QORT is the native coin — not in the foreign blockchain registry,
         // but always shown first.
@@ -77,7 +81,7 @@ export function useSupportedChains(): {
             const known = KNOWN_CHAIN_MAP.get(code);
             if (!known) {
               console.warn(
-                `[Walletium] Unknown chain from API: "${info.currencyCode}" — add it to KNOWN_CHAINS in chains.ts`
+                `[Walletium] Unknown chain from node: "${info.currencyCode}" — add it to KNOWN_CHAINS in chains.ts`
               );
               return undefined;
             }
@@ -98,10 +102,8 @@ export function useSupportedChains(): {
         setStatus('live');
       } catch (err) {
         // Don't cache failure — allow retry on next load.
-        console.warn(
-          '[Walletium] /crosschain/blockchains unavailable, showing fallback chains:',
-          err
-        );
+        console.warn('[Walletium] GET_CROSSCHAIN_BLOCKCHAINS failed:', err);
+        setChains(DEFAULT_CHAINS);
         setStatus('fallback');
       }
     }
