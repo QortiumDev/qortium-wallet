@@ -18,15 +18,22 @@ import DnsIcon from '@mui/icons-material/Dns';
 import SendIcon from '@mui/icons-material/Send';
 import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import QRCode from 'react-qr-code';
+import _QRCodeDefault from 'react-qr-code';
+// CJS interop guard: Vite/Rollup may resolve the default import to the module
+// namespace object rather than exports.default when __esModule is set via
+// Object.defineProperty. Extracting .default handles both cases safely.
+const QRCode = ((_QRCodeDefault as any).default ??
+  _QRCodeDefault) as typeof _QRCodeDefault;
 import { useAtomValue } from 'jotai';
 import { NumericFormat as _NumericFormat } from 'react-number-format';
+import { useMarketPrices } from '../../hooks/useMarketPrices';
+import { formatFiat } from '../../common/functions';
 const NumericFormat = _NumericFormat as React.FC<
   React.ComponentProps<typeof _NumericFormat> & Record<string, unknown>
 >;
 import { tokens } from '../../theme/tokens';
 import { useColors } from '../../theme/ColorTokensContext';
-import { uiStyleAtom } from '../../state/global/system';
+import { uiStyleAtom, currencyAtom } from '../../state/global/system';
 import type { ChainConfig } from '../../config/chains';
 import { epochToAgo, requestWithTimeout } from '../../common/functions';
 import {
@@ -87,6 +94,9 @@ function walletRequestForChain(chain: ChainConfig): QdnRequestOptions {
 export function CoinDetail({ chain }: Props) {
   const c = useColors();
   const uiStyle = useAtomValue(uiStyleAtom);
+  const currency = useAtomValue(currencyAtom);
+  const prices = useMarketPrices([chain], currency);
+  const pricePerUnit = prices[chain.coinEnum];
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const iconSrc = COIN_ICONS[chain.key];
@@ -178,7 +188,7 @@ export function CoinDetail({ chain }: Props) {
           setArrrSyncStatus(`Syncing shielded blockchain… ${pct}%`);
           if (innerCount >= ARRR_INNER_MAX) break;
         } else {
-          setArrrSyncStatus(status || 'Syncing…');
+          setArrrSyncStatus(typeof status === 'string' ? status : 'Syncing…');
         }
 
         await new Promise<void>((r) => setTimeout(r, ARRR_POLL_MS));
@@ -251,14 +261,17 @@ export function CoinDetail({ chain }: Props) {
             action: 'GET_BALANCE',
             assetId: 0,
           });
-          result = String(res ?? 0);
+          // GET_BALANCE returns decimal QORT; parseFloat normalises Java BigDecimal strings (e.g. "0E-8")
+          result = String(parseFloat(String(res ?? 0)));
         } else {
           const res = await requestWithTimeout(
             { action: 'GET_WALLET_BALANCE', coin: chain.coinEnum },
             TIME_MINUTES_5
           );
           if (res?.error) throw new Error(res.error);
-          result = res ?? '0';
+          // GET_WALLET_BALANCE returns satoshis; convert to coin units
+          const divisor = Math.pow(10, chain.decimalPlaces);
+          result = res != null ? String(Number(res) / divisor) : '0';
         }
         setBalance(result);
         setLoadingBalance(false);
@@ -476,22 +489,36 @@ export function CoinDetail({ chain }: Props) {
     return `${addr.slice(0, 8)}…${addr.slice(-6)}`;
   };
 
+  const str = (v: unknown): string | undefined =>
+    typeof v === 'string' && v ? v : undefined;
+
   const counterparty = (row: TxRow): string | undefined => {
     if (isPositive(row)) {
-      if (row.sender) return row.sender;
+      if (str(row.sender)) return str(row.sender);
       const ext = row.inputs?.find((inp) => !inp.addressInWallet);
-      return ext?.address;
+      return str(ext?.address);
     } else {
-      if (row.recipient) return row.recipient;
+      if (str(row.recipient)) return str(row.recipient);
       const ext = row.outputs?.find((out) => !out.addressInWallet);
-      return ext?.address;
+      return str(ext?.address);
     }
   };
 
   const handleCopyHash = (i: number, hash: string) => {
-    navigator.clipboard.writeText(hash).then(() => {
+    const finish = () => {
       setCopiedHash(i);
       setTimeout(() => setCopiedHash(null), 2000);
+    };
+    navigator.clipboard.writeText(hash).then(finish).catch(() => {
+      const el = document.createElement('textarea');
+      el.value = hash;
+      el.style.cssText = 'position:fixed;top:-9999px';
+      document.body.appendChild(el);
+      el.focus();
+      el.select();
+      try { document.execCommand('copy'); } catch { /* */ }
+      document.body.removeChild(el);
+      finish();
     });
   };
 
@@ -782,29 +809,55 @@ export function CoinDetail({ chain }: Props) {
                 {loadingBalance ? (
                   <Skeleton width={220} height={64} sx={{ mx: 'auto' }} />
                 ) : (
-                  <Typography
-                    sx={{
-                      fontSize: { xs: '2rem', md: '3rem' },
-                      fontWeight: tokens.typography.weightBlack,
-                      letterSpacing: '-0.02em',
-                      lineHeight: 1,
-                      color: c.textPrimary,
-                      wordBreak: 'break-all',
-                    }}
-                  >
-                    {balance ?? '—'}
-                    <Box
-                      component="span"
+                  <>
+                    <Typography
                       sx={{
-                        fontSize: '1.1rem',
-                        fontWeight: tokens.typography.weightBold,
-                        ml: 1.5,
-                        color: c.textSecondary,
+                        fontSize: { xs: '2rem', md: '3rem' },
+                        fontWeight: tokens.typography.weightBlack,
+                        letterSpacing: '-0.02em',
+                        lineHeight: 1,
+                        color: c.textPrimary,
+                        wordBreak: 'break-all',
                       }}
                     >
-                      {chain.ticker}
-                    </Box>
-                  </Typography>
+                      {balance ?? '—'}
+                      <Box
+                        component="span"
+                        sx={{
+                          fontSize: '1.1rem',
+                          fontWeight: tokens.typography.weightBold,
+                          ml: 1.5,
+                          color: c.textSecondary,
+                        }}
+                      >
+                        {chain.ticker}
+                      </Box>
+                    </Typography>
+                    {pricePerUnit != null && (
+                      <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                        {balance != null && parseFloat(balance) > 0 && (
+                          <Box
+                            sx={{
+                              fontSize: '1.1rem',
+                              fontWeight: tokens.typography.weightBold,
+                              color: c.textPrimary,
+                            }}
+                          >
+                            {formatFiat(parseFloat(balance) * pricePerUnit, currency)}
+                          </Box>
+                        )}
+                        <Box
+                          sx={{
+                            fontSize: '0.78rem',
+                            color: c.textSecondary,
+                            letterSpacing: '0.02em',
+                          }}
+                        >
+                          1 {chain.ticker} = {formatFiat(pricePerUnit, currency)}
+                        </Box>
+                      </Box>
+                    )}
+                  </>
                 )}
               </Box>
 
@@ -1034,7 +1087,7 @@ export function CoinDetail({ chain }: Props) {
                           {[
                             {
                               label: 'Hash',
-                              value: row.txHash,
+                              value: str(row.txHash),
                               mono: true,
                               copyIdx: i,
                             },
@@ -1047,7 +1100,7 @@ export function CoinDetail({ chain }: Props) {
                               label: isPositive(row) ? 'To' : 'From',
                               value: isPositive(row)
                                 ? address
-                                : (row.sender ?? address),
+                                : (str(row.sender) ?? address),
                               mono: true,
                             },
                             {
@@ -1097,7 +1150,7 @@ export function CoinDetail({ chain }: Props) {
                                     flex: 1,
                                   }}
                                 >
-                                  {value}
+                                  {String(value)}
                                 </Box>
                                 {copyIdx != null && (
                                   <IconButton
@@ -1506,7 +1559,7 @@ export function CoinDetail({ chain }: Props) {
                       letterSpacing: '0.06em',
                     }}
                   >
-                    {server.connectionType}
+                    {String(server.connectionType)}
                   </Box>
                 )}
               </Box>
@@ -1625,7 +1678,7 @@ export function CoinDetail({ chain }: Props) {
                         letterSpacing: '0.06em',
                       }}
                     >
-                      {server.connectionType}
+                      {String(server.connectionType)}
                     </Box>
                   )}
                 </Box>

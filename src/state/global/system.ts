@@ -50,3 +50,27 @@ export const customOrderAtom = atomWithStorage<string[]>('qw-custom-order', []);
 
 // 1 = biggest tiles, 7 = smallest tiles
 export const tileSizeAtom = atomWithStorage<number>('qw-tile-zoom', 1);
+
+export const FIAT_CURRENCIES: { code: string; label: string }[] = [
+  { code: 'usd', label: 'USD - US Dollar' },
+  { code: 'eur', label: 'EUR - Euro' },
+  { code: 'gbp', label: 'GBP - British Pound' },
+  { code: 'jpy', label: 'JPY - Japanese Yen' },
+  { code: 'aud', label: 'AUD - Australian Dollar' },
+  { code: 'cad', label: 'CAD - Canadian Dollar' },
+  { code: 'chf', label: 'CHF - Swiss Franc' },
+  { code: 'cny', label: 'CNY - Chinese Yuan' },
+  { code: 'inr', label: 'INR - Indian Rupee' },
+  { code: 'krw', label: 'KRW - South Korean Won' },
+  { code: 'brl', label: 'BRL - Brazilian Real' },
+  { code: 'mxn', label: 'MXN - Mexican Peso' },
+  { code: 'sgd', label: 'SGD - Singapore Dollar' },
+  { code: 'hkd', label: 'HKD - Hong Kong Dollar' },
+  { code: 'nok', label: 'NOK - Norwegian Krone' },
+  { code: 'sek', label: 'SEK - Swedish Krona' },
+];
+
+export const currencyAtom = atomWithStorage<string>('qw-currency', 'usd');
+
+// Total fiat value of all coin balances - written by CoinGrid, read by TopBar
+export const portfolioFiatAtom = atom<number | null>(null);

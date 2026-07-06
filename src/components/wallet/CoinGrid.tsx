@@ -4,7 +4,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SendIcon from '@mui/icons-material/Send';
 import CheckIcon from '@mui/icons-material/Check';
 import { useNavigate } from 'react-router-dom';
-import { useAtom, useAtomValue } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import {
   DndContext,
   PointerSensor,
@@ -23,7 +23,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useSupportedChains } from '../../hooks/useSupportedChains';
-import { requestWithTimeout } from '../../common/functions';
+import { useMarketPrices } from '../../hooks/useMarketPrices';
+import { requestWithTimeout, formatFiat } from '../../common/functions';
 import { tokens } from '../../theme/tokens';
 import { useColors } from '../../theme/ColorTokensContext';
 import type { ChainConfig } from '../../config/chains';
@@ -32,6 +33,8 @@ import {
   customOrderAtom,
   tileSizeAtom,
   uiStyleAtom,
+  currencyAtom,
+  portfolioFiatAtom,
 } from '../../state/global/system';
 
 // Min tile width in px per zoom level — CSS auto-fill guarantees each level is visually distinct
@@ -76,6 +79,7 @@ interface BlockProps {
   canSend: boolean;
   loading: boolean;
   tileSize: number;
+  fiatDisplay?: string;
   dragListeners?: Record<string, unknown>;
   isDragging?: boolean;
 }
@@ -86,6 +90,7 @@ function CoinBlock({
   canSend,
   loading,
   tileSize,
+  fiatDisplay,
   dragListeners,
   isDragging,
 }: BlockProps) {
@@ -300,6 +305,18 @@ function CoinBlock({
             '—'
           )}
         </Box>
+        {fiatDisplay && (
+          <Box
+            sx={{
+              fontSize: '0.6rem',
+              color: c.textSecondary,
+              mt: 0.25,
+              opacity: 0.7,
+            }}
+          >
+            {fiatDisplay}
+          </Box>
+        )}
         {tileSize <= 4 && (
           <Box
             sx={{
@@ -333,6 +350,7 @@ function SortableCoinBlock({
   canSend,
   loading,
   tileSize,
+  fiatDisplay,
   isCustomMode,
 }: {
   chain: ChainConfig;
@@ -340,6 +358,7 @@ function SortableCoinBlock({
   canSend: boolean;
   loading: boolean;
   tileSize: number;
+  fiatDisplay?: string;
   isCustomMode: boolean;
 }) {
   const {
@@ -368,6 +387,7 @@ function SortableCoinBlock({
         canSend={canSend}
         loading={loading}
         tileSize={tileSize}
+        fiatDisplay={fiatDisplay}
         dragListeners={
           isCustomMode ? (listeners as Record<string, unknown>) : undefined
         }
@@ -381,6 +401,8 @@ export function CoinGrid() {
   const { chains } = useSupportedChains();
   const c = useColors();
   const uiStyle = useAtomValue(uiStyleAtom);
+  const currency = useAtomValue(currencyAtom);
+  const prices = useMarketPrices(chains, currency);
   const [balances, setBalances] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [canSend, setCanSend] = useState(true);
@@ -394,6 +416,8 @@ export function CoinGrid() {
         /* assume full access */
       });
   }, []);
+
+  const setPortfolioFiat = useSetAtom(portfolioFiatAtom);
 
   const [sortMode] = useAtom(sortModeAtom);
   const [customOrder, setCustomOrder] = useAtom(customOrderAtom);
@@ -443,6 +467,29 @@ export function CoinGrid() {
       return ai - bi;
     });
   }, [sortMode, customOrder, chains, balances, loading]);
+
+  const { fiatDisplays, portfolioTotal } = useMemo(() => {
+    const displays: Record<string, string | undefined> = {};
+    let total = 0;
+    let hasAny = false;
+    for (const chain of chains) {
+      if (chain.isNative) continue;
+      const price = prices[chain.coinEnum];
+      const bal = balances[chain.key];
+      if (price == null || bal == null) continue;
+      const value = parseFloat(bal) * price;
+      if (value > 0) {
+        displays[chain.key] = formatFiat(value, currency);
+        total += value;
+        hasAny = true;
+      }
+    }
+    return { fiatDisplays: displays, portfolioTotal: hasAny ? total : null };
+  }, [chains, prices, balances, currency]);
+
+  useEffect(() => {
+    setPortfolioFiat(portfolioTotal);
+  }, [portfolioTotal, setPortfolioFiat]);
 
   // DnD
   const sensors = useSensors(
@@ -502,14 +549,17 @@ export function CoinGrid() {
                 action: 'GET_BALANCE',
                 assetId: 0,
               });
-              balance = String(res ?? 0);
+              // GET_BALANCE returns decimal QORT; parseFloat normalises Java BigDecimal strings (e.g. "0E-8")
+              balance = String(parseFloat(String(res ?? 0)));
             } else {
               const res = await requestWithTimeout(
                 { action: 'GET_WALLET_BALANCE', coin: chain.coinEnum },
                 30000
               );
               if (res?.error) throw new Error(res.error);
-              balance = res ?? '0';
+              // GET_WALLET_BALANCE returns satoshis; convert to coin units
+              const divisor = Math.pow(10, chain.decimalPlaces);
+              balance = res != null ? String(Number(res) / divisor) : '0';
             }
             setBalances((prev) => ({ ...prev, [chain.key]: balance }));
             setLoading((prev) => ({ ...prev, [chain.key]: false }));
@@ -561,6 +611,7 @@ export function CoinGrid() {
                 canSend={canSend}
                 loading={loading[chain.key] ?? true}
                 tileSize={tileSize}
+                fiatDisplay={fiatDisplays[chain.key]}
                 isCustomMode={isCustom}
               />
             ))}

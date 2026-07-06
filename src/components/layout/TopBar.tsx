@@ -26,8 +26,12 @@ import {
   uiStyleAtom,
   sortModeAtom,
   tileSizeAtom,
+  currencyAtom,
+  portfolioFiatAtom,
+  FIAT_CURRENCIES,
   type SortMode,
 } from '../../state/global/system';
+import { formatFiat } from '../../common/functions';
 import { useColors } from '../../theme/ColorTokensContext';
 import { tokens } from '../../theme/tokens';
 import { useSupportedChains } from '../../hooks/useSupportedChains';
@@ -50,8 +54,11 @@ export function TopBar() {
   const uiStyle = useAtomValue(uiStyleAtom);
   const [sortMode, setSortMode] = useAtom(sortModeAtom);
   const [tileSize, setTileSize] = useAtom(tileSizeAtom);
+  const [currency, setCurrency] = useAtom(currencyAtom);
+  const portfolioFiat = useAtomValue(portfolioFiatAtom);
   const headerRef = useRef<HTMLElement | null>(null);
   const [sortAnchor, setSortAnchor] = useState<null | HTMLElement>(null);
+  const [currencyAnchor, setCurrencyAnchor] = useState<null | HTMLElement>(null);
   const [copyState, setCopyState] = useState<'idle' | 'loading' | 'done'>(
     'idle'
   );
@@ -153,7 +160,18 @@ export function TopBar() {
         })
       );
       const text = lines.filter(Boolean).join('\n');
-      await navigator.clipboard.writeText(text);
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const el = document.createElement('textarea');
+        el.value = text;
+        el.style.cssText = 'position:fixed;top:-9999px';
+        document.body.appendChild(el);
+        el.focus();
+        el.select();
+        try { document.execCommand('copy'); } catch { /* */ }
+        document.body.removeChild(el);
+      }
       setCopyState('done');
       setTimeout(() => setCopyState('idle'), 2000);
     } catch {
@@ -270,6 +288,24 @@ export function TopBar() {
               {status === 'live'
                 ? `${chains.length} live`
                 : `${chains.length} fallback`}
+            </Box>
+          </Tooltip>
+        )}
+
+        {portfolioFiat != null && (
+          <Tooltip title="Total portfolio value" placement="bottom">
+            <Box
+              sx={{
+                fontSize: '0.85rem',
+                fontWeight: tokens.typography.weightBold,
+                color: c.textPrimary,
+                letterSpacing: '0.02em',
+                userSelect: 'none',
+                cursor: 'default',
+                pl: 0.5,
+              }}
+            >
+              {formatFiat(portfolioFiat, currency)}
             </Box>
           </Tooltip>
         )}
@@ -394,6 +430,73 @@ export function TopBar() {
                       sortMode === opt.value
                         ? tokens.typography.weightBold
                         : 400,
+                    '&.Mui-selected': { bgcolor: c.accentSoft },
+                    '&.Mui-selected:hover': { bgcolor: c.accentRing },
+                    '&:hover': {
+                      bgcolor: isClassic ? c.controlHover : `${c.accent}0c`,
+                    },
+                  }}
+                >
+                  {opt.label}
+                </MenuItem>
+              ))}
+            </Menu>
+
+            <Tooltip title="Fiat currency" placement="bottom">
+              <IconButton
+                size="small"
+                onClick={(e) => setCurrencyAnchor(e.currentTarget)}
+                sx={{
+                  ...buttonSx,
+                  color: currencyAnchor ? c.accent : c.textSecondary,
+                  fontSize: '0.6rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.04em',
+                  width: 28,
+                  height: 28,
+                }}
+                aria-label="select fiat currency"
+              >
+                {currency.toUpperCase()}
+              </IconButton>
+            </Tooltip>
+
+            <Menu
+              anchorEl={currencyAnchor}
+              open={Boolean(currencyAnchor)}
+              onClose={() => setCurrencyAnchor(null)}
+              slotProps={{
+                paper: {
+                  sx: {
+                    bgcolor: c.surface,
+                    border: `${
+                      isClassic
+                        ? tokens.shape.classicBorderWidth
+                        : tokens.shape.borderWidth
+                    } solid ${isClassic ? c.border : c.borderLight}`,
+                    borderRadius: `${isClassic ? tokens.shape.radiusMd : tokens.shape.radius}px`,
+                    boxShadow: isClassic
+                      ? c.shadowPop
+                      : '0 4px 20px rgba(0,0,0,0.14)',
+                    minWidth: 190,
+                  },
+                },
+              }}
+            >
+              {FIAT_CURRENCIES.map((opt) => (
+                <MenuItem
+                  key={opt.code}
+                  selected={currency === opt.code}
+                  onClick={() => {
+                    setCurrency(opt.code);
+                    setCurrencyAnchor(null);
+                  }}
+                  sx={{
+                    fontSize: '0.8rem',
+                    letterSpacing: '0.04em',
+                    color: currency === opt.code ? c.accent : c.textPrimary,
+                    fontWeight:
+                      currency === opt.code ? tokens.typography.weightBold : 400,
                     '&.Mui-selected': { bgcolor: c.accentSoft },
                     '&.Mui-selected:hover': { bgcolor: c.accentRing },
                     '&:hover': {

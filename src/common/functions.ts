@@ -107,6 +107,17 @@ export function humanFileSize(
   return bytes.toFixed(dp) + ONE_SPACE + units[u];
 }
 
+export function formatFiat(value: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency.toUpperCase(),
+    }).format(value);
+  } catch {
+    return `${currency.toUpperCase()} ${value.toFixed(2)}`;
+  }
+}
+
 export async function copyToClipboard(text: string): Promise<void> {
   // Try modern clipboard API first
   let processed: boolean = false;

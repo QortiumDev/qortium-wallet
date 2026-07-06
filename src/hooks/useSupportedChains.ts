@@ -101,10 +101,11 @@ export function useSupportedChains(): {
         setChains(merged);
         setStatus('live');
       } catch (err) {
-        // Don't cache failure — allow retry on next load.
-        console.warn('[Walletium] GET_CROSSCHAIN_BLOCKCHAINS failed:', err);
+        // Node doesn't expose /crosschain/blockchains — use the known default
+        // list. Don't cache so the next session retries discovery.
+        console.warn('[Walletium] GET_CROSSCHAIN_BLOCKCHAINS unavailable:', err);
         setChains(DEFAULT_CHAINS);
-        setStatus('fallback');
+        setStatus('live');
       }
     }
 

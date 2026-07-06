@@ -9,6 +9,9 @@ interface QdnRequestOptions {
   blockchain?: string;
   blob?: Blob;
   blockLimit?: number;
+  coins?: string[];
+  currencies?: string[];
+  include24hChange?: boolean;
   category?: string;
   coin?: string;
   confirmationStatus?: string;
