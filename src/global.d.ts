@@ -55,6 +55,8 @@ interface QortalRequestOptions {
 
 declare function qortalRequest(options: QortalRequestOptions): Promise<any>;
 
+declare function qdnRequest(options: { action: string; [key: string]: unknown }): Promise<unknown>;
+
 declare function qortalRequestWithTimeout(
   options: QortalRequestOptions,
   time: number

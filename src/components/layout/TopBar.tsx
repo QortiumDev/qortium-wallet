@@ -31,6 +31,7 @@ import {
 import { useColors } from '../../theme/ColorTokensContext';
 import { tokens } from '../../theme/tokens';
 import { useSupportedChains } from '../../hooks/useSupportedChains';
+import { RatingControl } from './RatingControl';
 
 const APP_QDN_NAME = 'Wallet';
 
@@ -406,7 +407,9 @@ export function TopBar() {
           </>
         )}
 
-        <Tooltip title={isFollowed ? 'Unfollow' : 'Follow'} placement="bottom">
+        <RatingControl qdnName={APP_QDN_NAME} />
+
+        <Tooltip title={isFollowed ? 'Stop following this app' : 'Follow this app'} placement="bottom">
           <IconButton
             size="small"
             onClick={() => void handleToggleFollow()}
@@ -415,7 +418,7 @@ export function TopBar() {
               ...buttonSx,
               color: isFollowed ? c.accent : c.textSecondary,
             }}
-            aria-label={isFollowed ? 'unfollow' : 'follow'}
+            aria-label={isFollowed ? 'stop following this app' : 'follow this app'}
           >
             {isFollowed ? (
               <PersonRemoveAlt1Icon fontSize="small" />
