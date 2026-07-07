@@ -114,7 +114,7 @@ export function createAppTheme({
           },
         },
       },
-      MuiTooltip: { defaultProps: { PopperProps: { disablePortal: true } } },
+      MuiTooltip: { defaultProps: { placement: 'bottom' as const } },
       MuiButton: {
         styleOverrides: {
           root: {
