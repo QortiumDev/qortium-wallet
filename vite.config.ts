@@ -280,6 +280,45 @@ const MOCK_SCRIPT = `
   };
 
   window.qortalRequest = function (opts) {
+    function decimalToAtomic(value, places) {
+      var raw = String(value || '0');
+      var parts = raw.split('.');
+      var whole = parts[0] || '0';
+      var fraction = (parts[1] || '').padEnd(places, '0').slice(0, places);
+      return String(BigInt(whole + fraction));
+    }
+
+    function preparedSend(opts) {
+      var coin = opts.coin || 'QORT';
+      var meta = BLOCKCHAINS.find(function (b) { return b.currencyCode === coin; }) || { activeNetwork: 'MAIN', decimalPlaces: 8 };
+      var amount = opts.sendMax ? '123456789' : decimalToAtomic(opts.amount, meta.decimalPlaces);
+      var fee = '10000';
+      return {
+        action: 'SEND_COIN',
+        amount: amount,
+        prepared: {
+          activeNetwork: meta.activeNetwork,
+          amount: amount,
+          fee: fee,
+          feePerByte: decimalToAtomic(String(opts.feePerByte || opts.fee || '0.0001'), meta.decimalPlaces),
+          inputAmount: String(BigInt(amount) + BigInt(fee)),
+          inputCount: 2,
+          outputAmount: amount,
+          outputCount: opts.sendMax ? 1 : 2,
+          receivingAddress: opts.recipient,
+          transactionSize: 225,
+          txHash: 'dev-prepared-tx-hash-' + coin.toLowerCase(),
+          sendMax: !!opts.sendMax,
+          blockchain: coin,
+          currencyCode: coin
+        },
+        recipient: opts.recipient,
+        txHash: 'dev-prepared-tx-hash-' + coin.toLowerCase(),
+        result: { success: true },
+        sendMax: !!opts.sendMax
+      };
+    }
+
     return new Promise(function (resolve) {
       setTimeout(function () {
         var a = opts.action, c = opts.coin || '';
@@ -290,7 +329,7 @@ const MOCK_SCRIPT = `
         else if (a === 'GET_ARRR_SYNC_STATUS')           resolve('Synchronized');
         else if (a === 'GET_CROSSCHAIN_SERVER_INFO')     resolve([{ hostName: 'lightwalletd.pirate.black', port: 443, connectionType: 'SSL' }]);
         else if (a === 'SET_CURRENT_FOREIGN_SERVER')     resolve({ success: true });
-        else if (a === 'SEND_COIN')                      resolve({ success: true });
+        else if (a === 'SEND_COIN')                      resolve(preparedSend(opts));
         else resolve(null);
       }, 350);
     });

@@ -7,11 +7,13 @@ All notable changes to Qortium Wallet will be documented in this file.
 ### Added
 
 - Apply Qortium Home text-size settings on app launch and when Home sends text-size changes, matching the existing theme and language bridge behavior.
+- Added foreign-coin send-max support and prepared-transaction previews using Qortium Home's send result metadata.
 
 ### Changed
 
 - Migrated Home bridge calls from legacy `qortalRequest` globals to `qdnRequest`.
 - Limited visible wallet chains to Qortium Home-supported wallets: QORT, BTC, LTC, DOGE, DGB, RVN, DASH, NMC, and FIRO.
+- Foreign sends now pass fee overrides as `feePerByte` strings and omit `amount` when send-max is enabled.
 
 ### Fixed
 

@@ -3,7 +3,7 @@
 interface QdnRequestOptions {
   action: string;
   address?: string;
-  amount?: number;
+  amount?: number | string;
   assetId?: number;
   base64?: string;
   blockchain?: string;
@@ -24,6 +24,7 @@ interface QdnRequestOptions {
   exactMatchNames?: boolean;
   excludeBlocked?: boolean;
   fee?: number | string;
+  feePerByte?: string;
   file?: File;
   filename?: string;
   host?: string;
@@ -48,6 +49,7 @@ interface QdnRequestOptions {
   resources?: any[];
   reverse?: boolean;
   service?: string;
+  sendMax?: boolean;
   startBlock?: number;
   tag1?: string;
   tag2?: string;
