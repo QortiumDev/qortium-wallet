@@ -561,17 +561,24 @@ export function CoinDetail({ chain }: Props) {
       setCopiedHash(i);
       setTimeout(() => setCopiedHash(null), 2000);
     };
-    navigator.clipboard.writeText(hash).then(finish).catch(() => {
-      const el = document.createElement('textarea');
-      el.value = hash;
-      el.style.cssText = 'position:fixed;top:-9999px';
-      document.body.appendChild(el);
-      el.focus();
-      el.select();
-      try { document.execCommand('copy'); } catch { /* */ }
-      document.body.removeChild(el);
-      finish();
-    });
+    navigator.clipboard
+      .writeText(hash)
+      .then(finish)
+      .catch(() => {
+        const el = document.createElement('textarea');
+        el.value = hash;
+        el.style.cssText = 'position:fixed;top:-9999px';
+        document.body.appendChild(el);
+        el.focus();
+        el.select();
+        try {
+          document.execCommand('copy');
+        } catch {
+          /* */
+        }
+        document.body.removeChild(el);
+        finish();
+      });
   };
 
   return (
@@ -886,7 +893,15 @@ export function CoinDetail({ chain }: Props) {
                       </Box>
                     </Typography>
                     {pricePerUnit != null && (
-                      <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                      <Box
+                        sx={{
+                          mt: 1.5,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 0.5,
+                        }}
+                      >
                         {balance != null && parseFloat(balance) > 0 && (
                           <Box
                             sx={{
@@ -895,7 +910,10 @@ export function CoinDetail({ chain }: Props) {
                               color: c.textPrimary,
                             }}
                           >
-                            {formatFiat(parseFloat(balance) * pricePerUnit, currency)}
+                            {formatFiat(
+                              parseFloat(balance) * pricePerUnit,
+                              currency
+                            )}
                           </Box>
                         )}
                         <Box
@@ -905,7 +923,8 @@ export function CoinDetail({ chain }: Props) {
                             letterSpacing: '0.02em',
                           }}
                         >
-                          1 {chain.ticker} = {formatFiat(pricePerUnit, currency)}
+                          1 {chain.ticker} ={' '}
+                          {formatFiat(pricePerUnit, currency)}
                         </Box>
                       </Box>
                     )}

@@ -3,12 +3,23 @@ import type { ChainConfig } from '../config/chains';
 
 // Coin tickers supported by GET_MARKET_PRICES / CoinGecko via Home
 const PRICE_SUPPORTED = new Set([
-  'ARRR', 'BTC', 'DASH', 'DGB', 'DOGE', 'FIRO', 'LTC', 'NMC', 'RVN',
+  'ARRR',
+  'BTC',
+  'DASH',
+  'DGB',
+  'DOGE',
+  'FIRO',
+  'LTC',
+  'NMC',
+  'RVN',
 ]);
 
 export type PriceMap = Record<string, number | undefined>;
 
-export function useMarketPrices(chains: ChainConfig[], currency: string): PriceMap {
+export function useMarketPrices(
+  chains: ChainConfig[],
+  currency: string
+): PriceMap {
   const [prices, setPrices] = useState<PriceMap>({});
 
   const coinKey = useMemo(
@@ -18,7 +29,7 @@ export function useMarketPrices(chains: ChainConfig[], currency: string): PriceM
         .map((c) => c.coinEnum)
         .sort()
         .join(','),
-    [chains],
+    [chains]
   );
 
   useEffect(() => {
