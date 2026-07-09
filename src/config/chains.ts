@@ -122,8 +122,24 @@ export const DEFAULT_CHAINS: ChainConfig[] = [
   },
 ];
 
-// Full metadata for all Home-supported chains.
-export const KNOWN_CHAINS: ChainConfig[] = [...DEFAULT_CHAINS];
+// Full registry of chains the wallet can handle, including ones excluded from
+// the fallback (e.g. ARRR requires a sync phase that makes no sense offline).
+export const KNOWN_CHAINS: ChainConfig[] = [
+  ...DEFAULT_CHAINS,
+  {
+    key: 'ARRR',
+    name: 'Pirate Chain',
+    ticker: 'ARRR',
+    coinEnum: 'ARRR',
+    route: 'pirate-chain',
+    defaultFee: 0.0001,
+    isNative: false,
+    decimalPlaces: 8,
+    activeNetwork: 'MAIN',
+    supportsHtlc: false,
+    supportsLocalChainTrades: false,
+  },
+];
 
 export const DEFAULT_CHAIN_KEYS = new Set(DEFAULT_CHAINS.map((c) => c.key));
 export const KNOWN_CHAIN_MAP = new Map(KNOWN_CHAINS.map((c) => [c.key, c]));
