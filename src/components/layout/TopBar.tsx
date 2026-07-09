@@ -58,7 +58,9 @@ export function TopBar() {
   const portfolioFiat = useAtomValue(portfolioFiatAtom);
   const headerRef = useRef<HTMLElement | null>(null);
   const [sortAnchor, setSortAnchor] = useState<null | HTMLElement>(null);
-  const [currencyAnchor, setCurrencyAnchor] = useState<null | HTMLElement>(null);
+  const [currencyAnchor, setCurrencyAnchor] = useState<null | HTMLElement>(
+    null
+  );
   const [copyState, setCopyState] = useState<'idle' | 'loading' | 'done'>(
     'idle'
   );
@@ -169,7 +171,11 @@ export function TopBar() {
         document.body.appendChild(el);
         el.focus();
         el.select();
-        try { document.execCommand('copy'); } catch { /* */ }
+        try {
+          document.execCommand('copy');
+        } catch {
+          /* */
+        }
         document.body.removeChild(el);
       }
       setCopyState('done');
@@ -496,7 +502,9 @@ export function TopBar() {
                     letterSpacing: '0.04em',
                     color: currency === opt.code ? c.accent : c.textPrimary,
                     fontWeight:
-                      currency === opt.code ? tokens.typography.weightBold : 400,
+                      currency === opt.code
+                        ? tokens.typography.weightBold
+                        : 400,
                     '&.Mui-selected': { bgcolor: c.accentSoft },
                     '&.Mui-selected:hover': { bgcolor: c.accentRing },
                     '&:hover': {

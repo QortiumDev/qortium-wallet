@@ -85,7 +85,8 @@ export function useSupportedChains(): {
             return {
               ...known,
               decimalPlaces: info.decimalPlaces,
-              activeNetwork: (info.activeNetwork as ChainConfig['activeNetwork']) ?? 'MAIN',
+              activeNetwork:
+                (info.activeNetwork as ChainConfig['activeNetwork']) ?? 'MAIN',
               supportsHtlc: info.supportsHtlc,
               supportsLocalChainTrades: info.supportsLocalChainTrades,
             };

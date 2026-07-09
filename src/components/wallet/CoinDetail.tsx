@@ -5,8 +5,10 @@ import {
   CircularProgress,
   Dialog,
   DialogContent,
+  FormControlLabel,
   IconButton,
   Skeleton,
+  Switch,
   TextField,
   Tooltip,
   Typography,
@@ -18,6 +20,7 @@ import DnsIcon from '@mui/icons-material/Dns';
 import SendIcon from '@mui/icons-material/Send';
 import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import _QRCodeDefault from 'react-qr-code';
 // CJS interop guard: Vite/Rollup may resolve the default import to the module
 // namespace object rather than exports.default when __esModule is set via
@@ -35,6 +38,15 @@ import { tokens } from '../../theme/tokens';
 import { useColors } from '../../theme/ColorTokensContext';
 import { uiStyleAtom, currencyAtom } from '../../state/global/system';
 import type { ChainConfig } from '../../config/chains';
+import {
+  PreparedTransactionPreview,
+  type PreparedTransaction,
+} from './PreparedTransactionPreview';
+import {
+  isOptionalPositiveDecimal,
+  isPositiveDecimal,
+  isValidRecipient,
+} from '../../utils/walletSend';
 import { epochToAgo, requestWithTimeout } from '../../common/functions';
 import {
   EMPTY_STRING,
@@ -73,6 +85,10 @@ interface TxRow {
   outputs?: { address: string; amount: number; addressInWallet?: boolean }[];
 }
 
+interface SendCoinResult {
+  prepared?: PreparedTransaction;
+}
+
 // ARRR sync loop limits: 36 × 5 s = 3 min for "not initialized", 60 × 5 s = 5 min for "initializing"
 const ARRR_OUTER_MAX = 36;
 const ARRR_INNER_MAX = 60;
@@ -93,6 +109,7 @@ function walletRequestForChain(chain: ChainConfig): QdnRequestOptions {
 
 export function CoinDetail({ chain }: Props) {
   const c = useColors();
+  const { t } = useTranslation('core');
   const uiStyle = useAtomValue(uiStyleAtom);
   const currency = useAtomValue(currencyAtom);
   const prices = useMarketPrices([chain], currency);
@@ -115,7 +132,8 @@ export function CoinDetail({ chain }: Props) {
   const [sendOpen, setSendOpen] = useState(
     () => searchParams.get('send') === 'true'
   );
-  const [amount, setAmount] = useState<number>(0);
+  const [amount, setAmount] = useState<string>('');
+  const [sendMax, setSendMax] = useState(false);
   const [recipient, setRecipient] = useState(
     () => searchParams.get('to') ?? EMPTY_STRING
   );
@@ -126,6 +144,7 @@ export function CoinDetail({ chain }: Props) {
   const [sendResult, setSendResult] = useState<'success' | 'error' | null>(
     null
   );
+  const [sendResponse, setSendResponse] = useState<SendCoinResult | null>(null);
 
   // SHOW_ACTIONS capability flags (updated on mount)
   const [canSend, setCanSend] = useState(true);
@@ -390,9 +409,11 @@ export function CoinDetail({ chain }: Props) {
   }, [fetchBalance, fetchTransactions, arrrSynced]);
 
   const openSend = useCallback(async () => {
-    setAmount(0);
+    setAmount('');
+    setSendMax(false);
     setRecipient(EMPTY_STRING);
     setSendResult(null);
+    setSendResponse(null);
     setNativeFee(chain.isNative ? String(chain.defaultFee) : '');
     setForeignFeePerByte('');
     setSendOpen(true);
@@ -423,31 +444,41 @@ export function CoinDetail({ chain }: Props) {
   };
 
   const handleSend = async () => {
+    if (!canConfirmSend) return;
+
     setSending(true);
     try {
       if (!(await ensureAccountUnlocked())) return;
       const payload: Record<string, unknown> = {
         action: 'SEND_COIN',
         recipient,
-        amount,
       };
       if (chain.isNative) {
+        payload.amount = parseFloat(amount);
         payload.assetId = 0;
         if (nativeFee !== '') payload.fee = parseFloat(nativeFee);
       } else {
         payload.coin = chain.coinEnum;
+        if (canUseForeignSendMax && sendMax) {
+          payload.sendMax = true;
+        } else {
+          payload.amount = amount;
+        }
         if (chain.coinEnum !== 'ARRR' && foreignFeePerByte !== '') {
-          payload.fee = parseFloat(foreignFeePerByte);
+          payload.feePerByte = foreignFeePerByte.trim();
         }
       }
-      await qdnRequest(payload as any);
+      const result = (await qdnRequest(
+        payload as any
+      )) as SendCoinResult | null;
+      setSendResponse(result);
       setSendResult('success');
-      setAmount(0);
-      setRecipient(EMPTY_STRING);
-      await new Promise((r) => setTimeout(r, TIME_SECONDS_3));
-      fetchBalance();
-      fetchTransactions();
+      window.setTimeout(() => {
+        fetchBalance();
+        fetchTransactions();
+      }, TIME_SECONDS_3);
     } catch {
+      setSendResponse(null);
       setSendResult('error');
     } finally {
       setSending(false);
@@ -457,7 +488,9 @@ export function CoinDetail({ chain }: Props) {
   const closeSend = () => {
     setSendOpen(false);
     setSendResult(null);
-    setAmount(0);
+    setSendResponse(null);
+    setAmount('');
+    setSendMax(false);
     setRecipient(EMPTY_STRING);
     setNativeFee('');
     setForeignFeePerByte('');
@@ -467,11 +500,30 @@ export function CoinDetail({ chain }: Props) {
   const divisor = Math.pow(10, chain.decimalPlaces);
   const sendFeeInputValue = chain.isNative ? nativeFee : foreignFeePerByte;
   const sendFeeLabel = chain.isNative
-    ? `Optional custom fee (${chain.ticker})`
-    : `Optional fee per byte (${chain.ticker})`;
+    ? t('send_dialog.optional_custom_fee', { coin: chain.ticker })
+    : t('send_dialog.optional_fee_per_byte', { coin: chain.ticker });
   const setSendFeeInputValue = chain.isNative
     ? setNativeFee
     : setForeignFeePerByte;
+  const canUseForeignSendMax = !chain.isNative && chain.coinEnum !== 'ARRR';
+  const amountIsValid =
+    canUseForeignSendMax && sendMax
+      ? true
+      : isPositiveDecimal(amount, chain.decimalPlaces);
+  const recipientIsValid = isValidRecipient(recipient);
+  const foreignFeeIsValid =
+    chain.isNative ||
+    chain.coinEnum === 'ARRR' ||
+    isOptionalPositiveDecimal(foreignFeePerByte, 8);
+  const canConfirmSend =
+    !sending && amountIsValid && recipientIsValid && foreignFeeIsValid;
+  const showAmountError = amount !== '' && !amountIsValid;
+  const showRecipientError = recipient !== '' && !recipientIsValid;
+  const showFeeError =
+    !chain.isNative &&
+    chain.coinEnum !== 'ARRR' &&
+    foreignFeePerByte !== '' &&
+    !foreignFeeIsValid;
 
   const txAmount = (row: TxRow) => {
     const raw = Number(row.totalAmount ?? 0) / divisor;
@@ -509,17 +561,24 @@ export function CoinDetail({ chain }: Props) {
       setCopiedHash(i);
       setTimeout(() => setCopiedHash(null), 2000);
     };
-    navigator.clipboard.writeText(hash).then(finish).catch(() => {
-      const el = document.createElement('textarea');
-      el.value = hash;
-      el.style.cssText = 'position:fixed;top:-9999px';
-      document.body.appendChild(el);
-      el.focus();
-      el.select();
-      try { document.execCommand('copy'); } catch { /* */ }
-      document.body.removeChild(el);
-      finish();
-    });
+    navigator.clipboard
+      .writeText(hash)
+      .then(finish)
+      .catch(() => {
+        const el = document.createElement('textarea');
+        el.value = hash;
+        el.style.cssText = 'position:fixed;top:-9999px';
+        document.body.appendChild(el);
+        el.focus();
+        el.select();
+        try {
+          document.execCommand('copy');
+        } catch {
+          /* */
+        }
+        document.body.removeChild(el);
+        finish();
+      });
   };
 
   return (
@@ -834,7 +893,15 @@ export function CoinDetail({ chain }: Props) {
                       </Box>
                     </Typography>
                     {pricePerUnit != null && (
-                      <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                      <Box
+                        sx={{
+                          mt: 1.5,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 0.5,
+                        }}
+                      >
                         {balance != null && parseFloat(balance) > 0 && (
                           <Box
                             sx={{
@@ -843,7 +910,10 @@ export function CoinDetail({ chain }: Props) {
                               color: c.textPrimary,
                             }}
                           >
-                            {formatFiat(parseFloat(balance) * pricePerUnit, currency)}
+                            {formatFiat(
+                              parseFloat(balance) * pricePerUnit,
+                              currency
+                            )}
                           </Box>
                         )}
                         <Box
@@ -853,7 +923,8 @@ export function CoinDetail({ chain }: Props) {
                             letterSpacing: '0.02em',
                           }}
                         >
-                          1 {chain.ticker} = {formatFiat(pricePerUnit, currency)}
+                          1 {chain.ticker} ={' '}
+                          {formatFiat(pricePerUnit, currency)}
                         </Box>
                       </Box>
                     )}
@@ -1333,13 +1404,19 @@ export function CoinDetail({ chain }: Props) {
                     letterSpacing: '0.06em',
                   }}
                 >
-                  Transaction sent
+                  {t('send_dialog.transaction_sent')}
                 </Typography>
+                {sendResponse?.prepared && (
+                  <PreparedTransactionPreview
+                    chain={chain}
+                    prepared={sendResponse.prepared}
+                  />
+                )}
               </Box>
             ) : sendResult === 'error' ? (
               <Box sx={{ textAlign: 'center', py: 3, color: c.error }}>
                 <Typography sx={{ fontWeight: tokens.typography.weightBold }}>
-                  Something went wrong. Please try again.
+                  {t('send_dialog.send_failed')}
                 </Typography>
               </Box>
             ) : (
@@ -1351,7 +1428,7 @@ export function CoinDetail({ chain }: Props) {
                     letterSpacing: '0.06em',
                   }}
                 >
-                  Balance:{' '}
+                  {t('send_dialog.balance')}{' '}
                   <Box
                     component="span"
                     sx={{
@@ -1365,59 +1442,115 @@ export function CoinDetail({ chain }: Props) {
 
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
                   <NumericFormat
-                    decimalScale={8}
+                    decimalScale={chain.decimalPlaces}
                     value={amount}
                     allowNegative={false}
                     customInput={TextField as React.ComponentType<any>}
                     valueIsNumericString
-                    label={`Amount (${chain.ticker})`}
+                    label={t('send_dialog.amount_label', {
+                      coin: chain.ticker,
+                    })}
                     fullWidth
-                    onValueChange={(v) => setAmount(v.floatValue ?? 0)}
-                    disabled={sending}
+                    onValueChange={(v) => setAmount(v.value)}
+                    disabled={sending || (canUseForeignSendMax && sendMax)}
+                    error={showAmountError}
+                    helperText={
+                      showAmountError
+                        ? t('send_dialog.amount_invalid', {
+                            decimals: chain.decimalPlaces,
+                          })
+                        : undefined
+                    }
                   />
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    disabled={sending || !balance}
-                    onClick={() => {
-                      const bal = parseFloat(balance ?? '0');
-                      const feeVal = chain.isNative
-                        ? parseFloat(nativeFee || '0')
-                        : 0;
-                      const factor = Math.pow(10, chain.decimalPlaces);
-                      setAmount(
-                        Math.max(
-                          0,
-                          Math.floor((bal - feeVal) * factor) / factor
-                        )
-                      );
-                    }}
-                    sx={{
-                      mt: '8px',
-                      flexShrink: 0,
-                      borderRadius: isClassic
-                        ? `${tokens.shape.radiusMd}px`
-                        : '50px',
-                      borderColor: c.accent,
-                      color: c.accent,
-                      fontSize: '0.7rem',
-                      whiteSpace: 'nowrap',
-                      '&:hover': {
-                        borderColor: c.accentHover,
-                        color: c.accentHover,
-                      },
-                    }}
-                  >
-                    Max
-                  </Button>
+                  {chain.isNative && (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      disabled={sending || !balance}
+                      onClick={() => {
+                        const bal = parseFloat(balance ?? '0');
+                        const feeVal = parseFloat(nativeFee || '0');
+                        const factor = Math.pow(10, chain.decimalPlaces);
+                        setAmount(
+                          String(
+                            Math.max(
+                              0,
+                              Math.floor((bal - feeVal) * factor) / factor
+                            )
+                          )
+                        );
+                      }}
+                      sx={{
+                        mt: '8px',
+                        flexShrink: 0,
+                        borderRadius: isClassic
+                          ? `${tokens.shape.radiusMd}px`
+                          : '50px',
+                        borderColor: c.accent,
+                        color: c.accent,
+                        fontSize: '0.7rem',
+                        whiteSpace: 'nowrap',
+                        '&:hover': {
+                          borderColor: c.accentHover,
+                          color: c.accentHover,
+                        },
+                      }}
+                    >
+                      Max
+                    </Button>
+                  )}
                 </Box>
 
+                {canUseForeignSendMax && (
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={sendMax}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setSendMax(checked);
+                          if (checked) setAmount('');
+                        }}
+                        disabled={sending}
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Box
+                          sx={{
+                            fontSize: '0.85rem',
+                            fontWeight: tokens.typography.weightBold,
+                            color: c.textPrimary,
+                          }}
+                        >
+                          {t('action.send_max')}
+                        </Box>
+                        <Box
+                          sx={{
+                            fontSize: '0.72rem',
+                            color: c.textSecondary,
+                          }}
+                        >
+                          {t('max_sendable')} {balance ?? '—'} {chain.ticker}
+                        </Box>
+                      </Box>
+                    }
+                    sx={{ alignItems: 'center', m: 0 }}
+                  />
+                )}
+
                 <TextField
-                  label="Recipient address"
+                  label={t('send_dialog.recipient_address')}
                   value={recipient}
                   onChange={(e) => setRecipient(e.target.value.trim())}
                   fullWidth
                   disabled={sending}
+                  error={showRecipientError}
+                  helperText={
+                    showRecipientError
+                      ? t('send_dialog.recipient_invalid')
+                      : undefined
+                  }
                 />
 
                 <TextField
@@ -1428,12 +1561,15 @@ export function CoinDetail({ chain }: Props) {
                   disabled={sending || feeLoading}
                   type={feeLoading ? 'text' : 'number'}
                   inputProps={{ step: 'any', min: 0 }}
+                  error={showFeeError}
                   helperText={
-                    chain.coinEnum === 'ARRR'
-                      ? 'ARRR network fee is fixed — this value is for display only'
-                      : !chain.isNative && !feeLoading && !foreignFeePerByte
-                        ? 'Fee lookup unavailable — Home/Core default will be used'
-                        : undefined
+                    showFeeError
+                      ? t('send_dialog.fee_per_byte_invalid')
+                      : chain.coinEnum === 'ARRR'
+                        ? t('send_dialog.arrr_fixed_fee')
+                        : !chain.isNative && !feeLoading && !foreignFeePerByte
+                          ? t('send_dialog.fee_lookup_unavailable')
+                          : undefined
                   }
                 />
 
@@ -1442,7 +1578,7 @@ export function CoinDetail({ chain }: Props) {
                   fullWidth
                   size="large"
                   onClick={handleSend}
-                  disabled={sending || amount <= 0 || !recipient}
+                  disabled={!canConfirmSend}
                   disableElevation
                   sx={{
                     bgcolor: c.accent,
@@ -1456,7 +1592,7 @@ export function CoinDetail({ chain }: Props) {
                   {sending ? (
                     <CircularProgress size={20} sx={{ color: 'white' }} />
                   ) : (
-                    'Confirm Send'
+                    t('send_dialog.confirm_send')
                   )}
                 </Button>
               </>

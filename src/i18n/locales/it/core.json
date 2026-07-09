@@ -71,6 +71,38 @@
   "identifier": "identificatore",
   "info": "informazioni",
   "max_sendable": "massimo inviabile:",
+  "send_dialog": {
+    "balance": "Balance:",
+    "amount_label": "Amount ({{ coin }})",
+    "recipient_address": "Recipient address",
+    "optional_custom_fee": "Optional custom fee ({{ coin }})",
+    "optional_fee_per_byte": "Optional fee per byte ({{ coin }})",
+    "arrr_fixed_fee": "ARRR network fee is fixed - this value is for display only",
+    "fee_lookup_unavailable": "Fee lookup unavailable - Home/Core default will be used",
+    "confirm_send": "Confirm Send",
+    "transaction_sent": "Transaction sent",
+    "send_failed": "Something went wrong. Please try again.",
+    "amount_invalid": "Enter a positive amount with up to {{ decimals }} decimals.",
+    "recipient_invalid": "Recipient address is required and must be 256 characters or less.",
+    "fee_per_byte_invalid": "Enter a positive fee per byte with up to 8 decimals."
+  },
+  "prepared_transaction": {
+    "title": "Prepared transaction",
+    "mode": "mode",
+    "mode_fixed": "fixed amount",
+    "mode_max": "send max",
+    "network": "network",
+    "send_amount": "send amount",
+    "fee": "fee",
+    "fee_per_byte": "fee per byte",
+    "input_amount": "input amount",
+    "input_count": "inputs",
+    "output_amount": "output amount",
+    "output_count": "outputs",
+    "transaction_size": "size",
+    "tx_hash": "TX hash",
+    "bytes": "bytes"
+  },
   "memo": "nota",
   "message": {
     "generic": {
