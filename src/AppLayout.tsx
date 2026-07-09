@@ -1,6 +1,7 @@
 import { Box } from '@mui/material';
 import { useEffect, useContext } from 'react';
 import { Outlet } from 'react-router-dom';
+import { useSetAtom } from 'jotai';
 import walletContext, { IContextProps } from './contexts/walletContext';
 import { useAuth } from 'qapp-core';
 import { useIframe } from './hooks/useIframeListener';
@@ -9,6 +10,7 @@ import { tokens } from './theme/tokens';
 import { useColors } from './theme/ColorTokensContext';
 import { EMPTY_STRING, TIME_MINUTES_1 } from './common/constants';
 import { syncAllAddressBooksOnStartup } from './utils/addressBookQDN';
+import { walletReadyAtom } from './state/global/system';
 
 export default function AppLayout() {
   useIframe();
@@ -16,6 +18,29 @@ export default function AppLayout() {
 
   const { setWalletState } = useContext(walletContext);
   const { address, avatarUrl, name } = useAuth();
+  const setWalletReady = useSetAtom(walletReadyAtom);
+
+  // On mount, check if the account is locked and prompt to unlock before balances load
+  useEffect(() => {
+    let cancelled = false;
+    async function checkAndUnlock() {
+      try {
+        const account = (await qdnRequest({ action: 'GET_SELECTED_ACCOUNT' })) as {
+          isUnlocked?: boolean;
+        } | null;
+        if (!cancelled && !account?.isUnlocked) {
+          await qdnRequest({ action: 'UNLOCK_SELECTED_ACCOUNT' });
+        }
+      } catch {
+        /* proceed regardless */
+      }
+      if (!cancelled) setWalletReady(true);
+    }
+    checkAndUnlock();
+    return () => {
+      cancelled = true;
+    };
+  }, [setWalletReady]);
 
   useEffect(() => {
     const session: IContextProps = {

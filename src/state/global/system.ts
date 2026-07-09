@@ -74,3 +74,6 @@ export const currencyAtom = atomWithStorage<string>('qw-currency', 'usd');
 
 // Total fiat value of all coin balances - written by CoinGrid, read by TopBar
 export const portfolioFiatAtom = atom<number | null>(null);
+
+// Set to true after the lock check + optional unlock prompt completes on mount
+export const walletReadyAtom = atom<boolean>(false);

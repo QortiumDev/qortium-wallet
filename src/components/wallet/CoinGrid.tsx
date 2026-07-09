@@ -35,6 +35,7 @@ import {
   uiStyleAtom,
   currencyAtom,
   portfolioFiatAtom,
+  walletReadyAtom,
 } from '../../state/global/system';
 
 // Min tile width in px per zoom level — CSS auto-fill guarantees each level is visually distinct
@@ -406,6 +407,7 @@ export function CoinGrid() {
   const [balances, setBalances] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [canSend, setCanSend] = useState(true);
+  const walletReady = useAtomValue(walletReadyAtom);
 
   useEffect(() => {
     qdnRequest({ action: 'SHOW_ACTIONS' })
@@ -454,7 +456,11 @@ export function CoinGrid() {
         if (ba === null && bb === null) return 0;
         if (ba === null) return 1;
         if (bb === null) return -1;
-        return dir * (parseFloat(ba) - parseFloat(bb));
+        const priceA = prices[a.coinEnum] ?? 0;
+        const priceB = prices[b.coinEnum] ?? 0;
+        const fiatA = parseFloat(ba) * priceA;
+        const fiatB = parseFloat(bb) * priceB;
+        return dir * (fiatA - fiatB);
       });
     }
     // custom: respect persisted order
@@ -466,7 +472,7 @@ export function CoinGrid() {
       if (bi === -1) return -1;
       return ai - bi;
     });
-  }, [sortMode, customOrder, chains, balances, loading]);
+  }, [sortMode, customOrder, chains, balances, loading, prices]);
 
   const { fiatDisplays, portfolioTotal } = useMemo(() => {
     const displays: Record<string, string | undefined> = {};
@@ -514,6 +520,8 @@ export function CoinGrid() {
 
   // Balance loading with concurrency limit
   useEffect(() => {
+    if (!walletReady) return;
+
     const init: Record<string, boolean> = {};
     chains.forEach((c) => {
       init[c.key] = true;
@@ -574,7 +582,7 @@ export function CoinGrid() {
         release();
       }
     });
-  }, [chains]);
+  }, [chains, walletReady]);
 
   const isCustom = sortMode === 'custom';
   const isClassic = uiStyle === 'classic';

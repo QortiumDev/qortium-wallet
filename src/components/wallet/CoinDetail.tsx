@@ -36,7 +36,7 @@ const NumericFormat = _NumericFormat as React.FC<
 >;
 import { tokens } from '../../theme/tokens';
 import { useColors } from '../../theme/ColorTokensContext';
-import { uiStyleAtom, currencyAtom } from '../../state/global/system';
+import { uiStyleAtom, currencyAtom, walletReadyAtom } from '../../state/global/system';
 import type { ChainConfig } from '../../config/chains';
 import {
   PreparedTransactionPreview,
@@ -112,6 +112,7 @@ export function CoinDetail({ chain }: Props) {
   const { t } = useTranslation('core');
   const uiStyle = useAtomValue(uiStyleAtom);
   const currency = useAtomValue(currencyAtom);
+  const walletReady = useAtomValue(walletReadyAtom);
   const prices = useMarketPrices([chain], currency);
   const pricePerUnit = prices[chain.coinEnum];
   const navigate = useNavigate();
@@ -396,9 +397,9 @@ export function CoinDetail({ chain }: Props) {
     fetchAddress();
   }, [fetchAddress]);
 
-  // Fetch balance + tx only after ARRR has synced (for other chains arrrSynced starts true)
+  // Fetch balance + tx only after lock check resolves and ARRR has synced (for other chains arrrSynced starts true)
   useEffect(() => {
-    if (!arrrSynced) return;
+    if (!walletReady || !arrrSynced) return;
     fetchBalance();
     fetchTransactions();
     const id = setInterval(() => {
@@ -406,7 +407,7 @@ export function CoinDetail({ chain }: Props) {
       fetchTransactions();
     }, TIME_MINUTES_3);
     return () => clearInterval(id);
-  }, [fetchBalance, fetchTransactions, arrrSynced]);
+  }, [fetchBalance, fetchTransactions, arrrSynced, walletReady]);
 
   const openSend = useCallback(async () => {
     setAmount('');
