@@ -24,6 +24,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useSupportedChains } from '../../hooks/useSupportedChains';
 import { useMarketPrices } from '../../hooks/useMarketPrices';
+import { useCoinImageUrl } from '../../hooks/useCoinImageUrl';
 import { requestWithTimeout, formatFiat } from '../../common/functions';
 import { tokens } from '../../theme/tokens';
 import { useColors } from '../../theme/ColorTokensContext';
@@ -49,24 +50,6 @@ const TILE_MIN_PX: Record<number, number> = {
   7: 38,
 };
 
-const COIN_ICONS: Record<string, string> = {};
-
-function loadIcons() {
-  const modules = import.meta.glob('../../assets/*.{svg,png}', {
-    eager: true,
-    query: '?url',
-    import: 'default',
-  });
-  for (const [path, url] of Object.entries(modules)) {
-    const name = path
-      .split('/')
-      .pop()
-      ?.replace(/\.(svg|png)$/, '')
-      .toUpperCase();
-    if (name) COIN_ICONS[name] = url as string;
-  }
-}
-loadIcons();
 
 function walletRequestForChain(chain: ChainConfig): QdnRequestOptions {
   return chain.isNative
@@ -102,7 +85,7 @@ function CoinBlock({
   const [address, setAddress] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const fetchedRef = useRef(false);
-  const iconSrc = COIN_ICONS[chain.key];
+  const coinImageUrl = useCoinImageUrl(chain.ticker);
   const isClassic = uiStyle === 'classic';
 
   const handleMouseEnter = () => {
@@ -198,10 +181,10 @@ function CoinBlock({
           justifyContent: 'center',
         }}
       >
-        {iconSrc && (
+        {coinImageUrl ? (
           <Box
             component="img"
-            src={iconSrc}
+            src={coinImageUrl}
             alt={chain.ticker}
             sx={{
               position: 'absolute',
@@ -212,6 +195,36 @@ function CoinBlock({
               transition: 'opacity 0.15s ease',
             }}
           />
+        ) : (
+          <Box
+            sx={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: hovered ? 0 : 1,
+              transition: 'opacity 0.15s ease',
+            }}
+          >
+            <Box
+              sx={{
+                width: '60%',
+                aspectRatio: '1/1',
+                borderRadius: '50%',
+                bgcolor: 'rgba(128,128,128,0.18)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.75rem',
+                fontWeight: tokens.typography.weightBold,
+                color: 'rgba(128,128,128,0.55)',
+              }}
+            >
+              {chain.ticker[0]}
+            </Box>
+          </Box>
         )}
         <Box
           sx={{

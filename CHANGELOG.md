@@ -4,6 +4,15 @@ All notable changes to Qortium Wallet will be documented in this file.
 
 ## Unreleased
 
+## [1.7.3] - 2026-07-09
+
+### Added
+
+- Coin icons loaded from QDN (THUMBNAIL service, `wallet-coin-{ticker}` identifiers) rather than bundled as static assets, allowing new icons to be published without a full app update.
+- Placeholder icon (initial letter in a circle) shown for any coin without a published QDN image.
+
+## Previously unreleased
+
 ### Added
 
 - Apply Qortium Home text-size settings on app launch and when Home sends text-size changes, matching the existing theme and language bridge behavior.

@@ -37,6 +37,7 @@ const NumericFormat = _NumericFormat as React.FC<
 import { tokens } from '../../theme/tokens';
 import { useColors } from '../../theme/ColorTokensContext';
 import { uiStyleAtom, currencyAtom, walletReadyAtom } from '../../state/global/system';
+import { useCoinImageUrl } from '../../hooks/useCoinImageUrl';
 import type { ChainConfig } from '../../config/chains';
 import {
   PreparedTransactionPreview,
@@ -55,20 +56,6 @@ import {
   TIME_SECONDS_3,
 } from '../../common/constants';
 
-const COIN_ICONS: Record<string, string> = {};
-const modules = import.meta.glob('../../assets/*.{svg,png}', {
-  eager: true,
-  query: '?url',
-  import: 'default',
-});
-for (const [path, url] of Object.entries(modules)) {
-  const name = path
-    .split('/')
-    .pop()
-    ?.replace(/\.(svg|png)$/, '')
-    .toUpperCase();
-  if (name) COIN_ICONS[name] = url as string;
-}
 
 interface Props {
   chain: ChainConfig;
@@ -117,7 +104,7 @@ export function CoinDetail({ chain }: Props) {
   const pricePerUnit = prices[chain.coinEnum];
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const iconSrc = COIN_ICONS[chain.key];
+  const coinImageUrl = useCoinImageUrl(chain.ticker);
   const isARRR = chain.coinEnum === 'ARRR';
   const isClassic = uiStyle === 'classic';
 
@@ -613,10 +600,10 @@ export function CoinDetail({ chain }: Props) {
         >
           <ArrowBackIcon fontSize="small" />
         </IconButton>
-        {iconSrc && (
+        {coinImageUrl && (
           <Box
             component="img"
-            src={iconSrc}
+            src={coinImageUrl}
             alt={chain.ticker}
             sx={{ height: 24, width: 24, objectFit: 'contain' }}
           />
@@ -738,10 +725,10 @@ export function CoinDetail({ chain }: Props) {
               gap: 3,
             }}
           >
-            {iconSrc && (
+            {coinImageUrl ? (
               <Box
                 component="img"
-                src={iconSrc}
+                src={coinImageUrl}
                 alt="ARRR"
                 sx={{
                   height: 56,
@@ -750,6 +737,24 @@ export function CoinDetail({ chain }: Props) {
                   opacity: arrrSyncFailed ? 0.35 : 0.75,
                 }}
               />
+            ) : (
+              <Box
+                sx={{
+                  height: 56,
+                  width: 56,
+                  borderRadius: '50%',
+                  bgcolor: 'rgba(128,128,128,0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.2rem',
+                  fontWeight: tokens.typography.weightBold,
+                  color: 'rgba(128,128,128,0.5)',
+                  opacity: arrrSyncFailed ? 0.35 : 0.75,
+                }}
+              >
+                A
+              </Box>
             )}
             {arrrSyncing && (
               <CircularProgress size={36} sx={{ color: c.accent }} />
@@ -858,13 +863,31 @@ export function CoinDetail({ chain }: Props) {
                   width: '100%',
                 }}
               >
-                {iconSrc && (
+                {coinImageUrl ? (
                   <Box
                     component="img"
-                    src={iconSrc}
+                    src={coinImageUrl}
                     alt={chain.ticker}
                     sx={{ height: 56, width: 56, objectFit: 'contain', mb: 2 }}
                   />
+                ) : (
+                  <Box
+                    sx={{
+                      height: 56,
+                      width: 56,
+                      borderRadius: '50%',
+                      bgcolor: 'rgba(128,128,128,0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.2rem',
+                      fontWeight: tokens.typography.weightBold,
+                      color: 'rgba(128,128,128,0.5)',
+                      mb: 2,
+                    }}
+                  >
+                    {chain.ticker[0]}
+                  </Box>
                 )}
                 {loadingBalance ? (
                   <Skeleton width={220} height={64} sx={{ mx: 'auto' }} />
