@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   DEFAULT_CHAINS,
   KNOWN_CHAIN_MAP,
+  QORT_CHAIN,
   type ChainConfig,
 } from '../config/chains';
 
@@ -45,13 +46,13 @@ export function useSupportedChains(): {
             };
           })
           .filter((chain): chain is ChainConfig => chain !== undefined);
-        if (supported.length > 0) return supported;
+        if (supported.length > 0) return [QORT_CHAIN, ...supported];
       } catch {
         sessionStorage.removeItem(SESSION_KEY);
         sessionStorage.removeItem(SESSION_STATUS_KEY);
       }
     }
-    return [];
+    return [QORT_CHAIN];
   });
   const [status, setStatus] = useState<ChainDiscoveryStatus>(() => {
     const s = sessionStorage.getItem(SESSION_STATUS_KEY);
@@ -93,11 +94,11 @@ export function useSupportedChains(): {
           .filter((c): c is ChainConfig => c !== undefined);
         sessionStorage.setItem(SESSION_KEY, JSON.stringify(merged));
         sessionStorage.setItem(SESSION_STATUS_KEY, 'live');
-        setChains(merged);
+        setChains([QORT_CHAIN, ...merged]);
         setStatus('live');
       } catch (err) {
         console.warn('[Walletium] GET_CROSSCHAIN_BLOCKCHAINS unavailable:', err);
-        setChains(DEFAULT_CHAINS);
+        setChains([QORT_CHAIN, ...DEFAULT_CHAINS]);
         setStatus('fallback');
       }
     }

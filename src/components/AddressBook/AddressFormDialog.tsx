@@ -94,37 +94,27 @@ export const AddressFormDialog: React.FC<AddressFormDialogProps> = ({
     }
 
     setAddressValidating(true);
-    const controller = new AbortController();
+    let cancelled = false;
 
     const timeout = setTimeout(async () => {
       try {
-        const nameRes = await fetch(`/names/${encodeURIComponent(name)}`, {
-          signal: controller.signal,
-        }).then(async (r) => {
-          if (!r.ok) {
-            console.warn(`No name found: ${name}`);
-            return { error: 'Name not found' };
-          }
-          return r.json();
-        });
+        const nameRes = await qdnRequest({ action: 'GET_NAME_DATA', name });
 
-        // If name was found, update address field with the owner address
-        if (!nameRes?.error && nameRes?.owner) {
+        if (!cancelled && nameRes?.owner) {
           console.log(`QORT name resolved: ${name} -> ${nameRes.owner}`);
           setAddress(nameRes.owner);
           setAddressError(EMPTY_STRING);
         }
       } catch (err: any) {
-        if (err.name === 'AbortError') return;
-        console.error('Name lookup failed:', err.message);
+        if (!cancelled) console.error('Name lookup failed:', err);
       } finally {
-        setAddressValidating(false);
+        if (!cancelled) setAddressValidating(false);
       }
     }, ADDRESS_LOOKUP_DEBOUNCE_MS);
 
     return () => {
       clearTimeout(timeout);
-      controller.abort();
+      cancelled = true;
     };
   }, [name, coinType, t]);
 

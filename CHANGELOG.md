@@ -4,6 +4,19 @@ All notable changes to Qortium Wallet will be documented in this file.
 
 ## Unreleased
 
+## [1.7.9] - 2026-07-10
+
+### Added
+
+- QORT (Qortal native coin) is now fully supported: balance via `GET_QORT_BALANCE`, send via `SEND_QORT`, address via `GET_USER_WALLET` with native asset (`assetId: 0`). QORT is always shown first in the coin list regardless of chain discovery state.
+
+### Fixed
+
+- Send button availability now checks `SEND_QORT` for QORT and `SEND_COIN` for all foreign coins, so QORT send is correctly gated on Qortal bridge availability rather than Qortium bridge availability.
+- QORT wallet detail no longer shows "wallet unavailable" on public nodes - the foreign-wallet guard (`GET_WALLET_BALANCE`) is bypassed for native QORT since it does not apply.
+- Fee input is hidden in the QORT send dialog since `SEND_QORT` computes the fee automatically.
+- QORT name resolution in the address book now uses `GET_NAME_DATA` bridge action instead of a direct API fetch, which was broken inside the Q-App sandbox.
+
 ## [1.7.3] - 2026-07-09
 
 ### Added

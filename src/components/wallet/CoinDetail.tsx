@@ -264,11 +264,7 @@ export function CoinDetail({ chain }: Props) {
       try {
         let result: string;
         if (chain.isNative) {
-          const res = await qdnRequest({
-            action: 'GET_BALANCE',
-            assetId: 0,
-          });
-          // GET_BALANCE returns decimal QORT; parseFloat normalises Java BigDecimal strings (e.g. "0E-8")
+          const res = await qdnRequest({ action: 'GET_QORT_BALANCE' });
           result = String(parseFloat(String(res ?? 0)));
         } else {
           const res = await requestWithTimeout(
@@ -296,8 +292,8 @@ export function CoinDetail({ chain }: Props) {
     qdnRequest({ action: 'SHOW_ACTIONS' })
       .then((actions: unknown) => {
         if (Array.isArray(actions)) {
-          setCanSend(actions.includes('SEND_COIN'));
-          setWalletAvailable(actions.includes('GET_WALLET_BALANCE'));
+          setCanSend(chain.isNative ? actions.includes('SEND_QORT') : actions.includes('SEND_COIN'));
+          setWalletAvailable(chain.isNative || actions.includes('GET_WALLET_BALANCE'));
         }
       })
       .catch(() => {
@@ -437,16 +433,20 @@ export function CoinDetail({ chain }: Props) {
     setSending(true);
     try {
       if (!(await ensureAccountUnlocked())) return;
-      const payload: Record<string, unknown> = {
-        action: 'SEND_COIN',
-        recipient,
-      };
+      let result: SendCoinResult | null = null;
       if (chain.isNative) {
-        payload.amount = parseFloat(amount);
-        payload.assetId = 0;
-        if (nativeFee !== '') payload.fee = parseFloat(nativeFee);
+        const res = await qdnRequest({
+          action: 'SEND_QORT',
+          recipient,
+          amount: parseFloat(amount),
+        } as any);
+        if (res?.accepted === false) throw new Error(res.error ?? 'SEND_QORT failed');
       } else {
-        payload.coin = chain.coinEnum;
+        const payload: Record<string, unknown> = {
+          action: 'SEND_COIN',
+          recipient,
+          coin: chain.coinEnum,
+        };
         if (canUseForeignSendMax && sendMax) {
           payload.sendMax = true;
         } else {
@@ -455,10 +455,8 @@ export function CoinDetail({ chain }: Props) {
         if (chain.coinEnum !== 'ARRR' && foreignFeePerByte !== '') {
           payload.feePerByte = foreignFeePerByte.trim();
         }
+        result = (await qdnRequest(payload as any)) as SendCoinResult | null;
       }
-      const result = (await qdnRequest(
-        payload as any
-      )) as SendCoinResult | null;
       setSendResponse(result);
       setSendResult('success');
       window.setTimeout(() => {
@@ -1577,25 +1575,27 @@ export function CoinDetail({ chain }: Props) {
                   }
                 />
 
-                <TextField
-                  label={sendFeeLabel}
-                  value={feeLoading ? 'Loading…' : sendFeeInputValue}
-                  onChange={(e) => setSendFeeInputValue(e.target.value)}
-                  fullWidth
-                  disabled={sending || feeLoading}
-                  type={feeLoading ? 'text' : 'number'}
-                  inputProps={{ step: 'any', min: 0 }}
-                  error={showFeeError}
-                  helperText={
-                    showFeeError
-                      ? t('send_dialog.fee_per_byte_invalid')
-                      : chain.coinEnum === 'ARRR'
-                        ? t('send_dialog.arrr_fixed_fee')
-                        : !chain.isNative && !feeLoading && !foreignFeePerByte
-                          ? t('send_dialog.fee_lookup_unavailable')
-                          : undefined
-                  }
-                />
+                {!chain.isNative && (
+                  <TextField
+                    label={sendFeeLabel}
+                    value={feeLoading ? 'Loading…' : sendFeeInputValue}
+                    onChange={(e) => setSendFeeInputValue(e.target.value)}
+                    fullWidth
+                    disabled={sending || feeLoading}
+                    type={feeLoading ? 'text' : 'number'}
+                    inputProps={{ step: 'any', min: 0 }}
+                    error={showFeeError}
+                    helperText={
+                      showFeeError
+                        ? t('send_dialog.fee_per_byte_invalid')
+                        : chain.coinEnum === 'ARRR'
+                          ? t('send_dialog.arrr_fixed_fee')
+                          : !feeLoading && !foreignFeePerByte
+                            ? t('send_dialog.fee_lookup_unavailable')
+                            : undefined
+                    }
+                  />
+                )}
 
                 <Button
                   variant="contained"

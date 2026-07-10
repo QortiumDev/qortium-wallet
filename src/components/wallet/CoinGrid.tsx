@@ -419,13 +419,17 @@ export function CoinGrid() {
   const prices = useMarketPrices(chains, currency);
   const [balances, setBalances] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
-  const [canSend, setCanSend] = useState(true);
+  const [canSendNative, setCanSendNative] = useState(true);
+  const [canSendForeign, setCanSendForeign] = useState(true);
   const walletReady = useAtomValue(walletReadyAtom);
 
   useEffect(() => {
     qdnRequest({ action: 'SHOW_ACTIONS' })
       .then((actions: unknown) => {
-        if (Array.isArray(actions)) setCanSend(actions.includes('SEND_COIN'));
+        if (Array.isArray(actions)) {
+          setCanSendNative(actions.includes('SEND_QORT'));
+          setCanSendForeign(actions.includes('SEND_COIN'));
+        }
       })
       .catch(() => {
         /* assume full access */
@@ -566,11 +570,7 @@ export function CoinGrid() {
           try {
             let balance: string;
             if (chain.isNative) {
-              const res = await qdnRequest({
-                action: 'GET_BALANCE',
-                assetId: 0,
-              });
-              // GET_BALANCE returns decimal QORT; parseFloat normalises Java BigDecimal strings (e.g. "0E-8")
+              const res = await qdnRequest({ action: 'GET_QORT_BALANCE' });
               balance = String(parseFloat(String(res ?? 0)));
             } else {
               const res = await requestWithTimeout(
@@ -629,7 +629,7 @@ export function CoinGrid() {
                 key={chain.key}
                 chain={chain}
                 balance={balances[chain.key] ?? null}
-                canSend={canSend}
+                canSend={chain.isNative ? canSendNative : canSendForeign}
                 loading={loading[chain.key] ?? true}
                 tileSize={tileSize}
                 fiatDisplay={fiatDisplays[chain.key]}

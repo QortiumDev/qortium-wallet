@@ -12,6 +12,20 @@ export interface ChainConfig {
   supportsLocalChainTrades: boolean;
 }
 
+export const QORT_CHAIN: ChainConfig = {
+  key: 'QORT',
+  name: 'Qortal',
+  ticker: 'QORT',
+  coinEnum: 'QORT',
+  route: 'qortal',
+  defaultFee: 0.001,
+  isNative: true,
+  decimalPlaces: 8,
+  activeNetwork: 'MAIN',
+  supportsHtlc: false,
+  supportsLocalChainTrades: false,
+};
+
 // Shown when /crosschain/blockchains is unavailable (fallback for non-Qortium nodes)
 // defaultFee: display/native-send fallback in whole coin units. Foreign sends
 // only pass fee-per-byte values returned by GET_FOREIGN_FEE.
