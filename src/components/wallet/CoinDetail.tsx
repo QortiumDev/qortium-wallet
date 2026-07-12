@@ -421,6 +421,7 @@ export function CoinDetail({ chain }: Props) {
     const entry = book.find((e) => e.address === recipient.trim());
     if (entry?.qortAddress) {
       setRecipientQort(entry.qortAddress);
+      setRecipientQortAddress(entry.qortAddress);
     }
   }, [recipient, paymentMessage, chain.coinEnum]);
 
