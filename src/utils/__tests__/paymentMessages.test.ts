@@ -23,8 +23,11 @@ describe('paymentMessages', () => {
   });
 
   it('buildMessagePayload includes all required fields with a numeric timestamp', () => {
+    const before = Date.now();
     const p = buildMessagePayload('thanks', 'sig123', 'LTC', '0.5');
+    const after = Date.now();
     expect(p).toMatchObject({ message: 'thanks', txHash: 'sig123', coin: 'LTC', amount: '0.5' });
-    expect(typeof p.timestamp).toBe('number');
+    expect(p.timestamp).toBeGreaterThanOrEqual(before);
+    expect(p.timestamp).toBeLessThanOrEqual(after);
   });
 });

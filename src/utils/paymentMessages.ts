@@ -16,7 +16,7 @@ export function cacheMessage(txHash: string, message: string): void {
   try {
     localStorage.setItem(`${CACHE_PREFIX}${txHash}`, message);
   } catch {
-    /* quota exceeded - silently drop */
+    /* localStorage write failed - silently drop */
   }
 }
 
@@ -67,6 +67,11 @@ export async function fetchNameForAddress(qortAddress: string): Promise<string |
   }
 }
 
+/**
+ * Encrypts payload for both recipient and sender (so sender can re-read),
+ * then publishes as a QDN ARBITRARY resource under the sender's name.
+ * Throws on failure - caller is responsible for fire-and-forget wrapping.
+ */
 export async function publishPaymentMessage(
   payload: MessagePayload,
   senderPublicKey: string,
