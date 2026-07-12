@@ -31,11 +31,19 @@ Object.defineProperty(window, 'localStorage', {
 });
 
 // Mock clipboard API
-Object.assign(navigator, {
-  clipboard: {
-    writeText: vi.fn(),
-  },
-});
+try {
+  Object.assign(navigator, {
+    clipboard: {
+      writeText: vi.fn(),
+    },
+  });
+} catch {
+  Object.defineProperty(navigator, 'clipboard', {
+    value: { writeText: vi.fn() },
+    configurable: true,
+    writable: true,
+  });
+}
 
 // Mock qapp-core module
 vi.mock('qapp-core', () => ({
