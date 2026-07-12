@@ -231,5 +231,12 @@
   "nav_history": "history",
   "nav_share_contact": "share contact",
   "share_contact_copied": "contact link copied",
-  "share_contact_publishing": "publishing..."
+  "share_contact_publishing": "publishing...",
+  "contact_card_title": "contact card",
+  "contact_card_qort_name": "QORT name",
+  "contact_card_qort_address": "QORT address",
+  "contact_card_addresses": "wallet addresses",
+  "contact_card_add_all": "add to address book",
+  "contact_card_not_found": "contact card not found",
+  "contact_card_import_success": "addresses imported"
 }
