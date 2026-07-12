@@ -138,7 +138,15 @@ export function CoinDetail({ chain }: Props) {
 
   // ARRR initialization state
   const cancelSyncRef = useRef(false);
+  const isMountedRef = useRef(true);
   const [arrrSynced, setArrrSynced] = useState(!isARRR);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   const [arrrSyncing, setArrrSyncing] = useState(isARRR);
   const [arrrSyncStatus, setArrrSyncStatus] = useState(
     'Connecting to Pirate Chain…'
@@ -563,10 +571,14 @@ export function CoinDetail({ chain }: Props) {
             return fetchPaymentMessage(senderName, txHash);
           })
           .then((msg) => {
-            setQdnMessages((prev) => ({ ...prev, [txHash]: msg }));
+            if (isMountedRef.current) {
+              setQdnMessages((prev) => ({ ...prev, [txHash]: msg }));
+            }
           })
           .finally(() => {
-            setQdnMessagesLoading((prev) => ({ ...prev, [txHash]: false }));
+            if (isMountedRef.current) {
+              setQdnMessagesLoading((prev) => ({ ...prev, [txHash]: false }));
+            }
           });
       }
     },

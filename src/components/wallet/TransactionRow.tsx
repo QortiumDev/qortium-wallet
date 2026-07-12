@@ -88,7 +88,7 @@ export function TransactionRow({
   const cp = counterparty();
   const cachedMsg = row.txHash ? getCachedMessage(row.txHash) : null;
   const displayMessage = cachedMsg ?? qdnMessage;
-  const hasMessage = cachedMsg !== null;
+  const hasMessage = displayMessage != null;
 
   return (
     <Box
