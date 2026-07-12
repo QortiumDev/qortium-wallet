@@ -36,6 +36,11 @@ for (const path in modules) {
   resources[lang][ns] = modules[path].default;
 }
 
+// Qortium Home passes the resolved language as a `lang` URL param; the
+// browser locale is only a fallback for standalone/dev use.
+const initialLanguage =
+  new URLSearchParams(window.location.search).get('lang') ?? navigator.language;
+
 i18n
   .use(initReactI18next)
   .use(capitalizeAll as any)
@@ -44,7 +49,7 @@ i18n
   .init({
     resources,
     fallbackLng: 'en',
-    lng: navigator.language,
+    lng: initialLanguage,
     supportedLngs: supportedLanguages,
     ns: ['core'],
     defaultNS: 'core',

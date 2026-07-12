@@ -11,19 +11,6 @@ import { useSetAtom } from 'jotai';
 import { useTranslation } from 'react-i18next';
 import { supportedLanguages } from '../i18n/i18n';
 
-type Language =
-  | 'ar'
-  | 'de'
-  | 'en'
-  | 'es'
-  | 'et'
-  | 'fr'
-  | 'it'
-  | 'pt'
-  | 'ru'
-  | 'ja'
-  | 'zh';
-
 type Theme = 'dark' | 'light';
 
 export type TextSize =
@@ -145,10 +132,14 @@ export const useIframe = () => {
       ) {
         setAccent(data.accent);
         document.documentElement.dataset.accent = data.accent;
-      } else if (data.action === 'LANGUAGE_CHANGED' && data.language) {
-        if (!supportedLanguages?.includes(data.language as Language)) return;
-        i18n.changeLanguage(data.language as Language);
-        document.documentElement.lang = data.language as string;
+      } else if (
+        data.action === 'LANGUAGE_CHANGED' &&
+        typeof data.language === 'string'
+      ) {
+        if (supportedLanguages?.includes(data.language)) {
+          i18n.changeLanguage(data.language);
+        }
+        document.documentElement.lang = data.language;
         document.documentElement.dir =
           data.language === 'ar' || data.language === 'he' ? 'rtl' : 'ltr';
       } else if (data.action === 'TEXT_SIZE_CHANGED' && data.textSize) {
