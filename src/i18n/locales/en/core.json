@@ -27,6 +27,7 @@
   "address_book_name": "name",
   "address_book_address": "address",
   "address_book_note": "note",
+  "address_book_qort_address": "QORT address or name (optional)",
   "address_book_actions": "actions",
   "address_book_edit": "edit",
   "address_book_delete": "delete",

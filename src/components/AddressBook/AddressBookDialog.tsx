@@ -170,6 +170,7 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
           name: entry.name,
           address: entry.address,
           note: entry.note,
+          qortAddress: entry.qortAddress,
         });
       } else {
         // Add new entry

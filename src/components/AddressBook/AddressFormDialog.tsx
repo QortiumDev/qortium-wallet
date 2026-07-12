@@ -56,6 +56,7 @@ export const AddressFormDialog: React.FC<AddressFormDialogProps> = ({
   const [name, setName] = useState(EMPTY_STRING);
   const [address, setAddress] = useState(EMPTY_STRING);
   const [note, setNote] = useState(EMPTY_STRING);
+  const [qortAddress, setQortAddress] = useState(EMPTY_STRING);
 
   const [nameError, setNameError] = useState(EMPTY_STRING);
   const [addressError, setAddressError] = useState(EMPTY_STRING);
@@ -73,11 +74,13 @@ export const AddressFormDialog: React.FC<AddressFormDialogProps> = ({
         setName(entry.name);
         setAddress(entry.address);
         setNote(entry.note);
+        setQortAddress(entry.qortAddress ?? EMPTY_STRING);
       } else {
         // Reset form for new entry or use prefill data
         setName(prefillName || EMPTY_STRING);
         setAddress(prefillAddress || EMPTY_STRING);
         setNote(EMPTY_STRING);
+        setQortAddress(EMPTY_STRING);
       }
       // Clear errors when dialog opens
       setNameError(EMPTY_STRING);
@@ -204,6 +207,7 @@ export const AddressFormDialog: React.FC<AddressFormDialogProps> = ({
         name: name.trim(),
         address: address.trim(),
         note: note.trim(),
+        qortAddress: qortAddress.trim() || undefined,
         coinType,
       });
     }
@@ -326,6 +330,16 @@ export const AddressFormDialog: React.FC<AddressFormDialogProps> = ({
                 maxLength: ADDRESSBOOK_NOTE_LENGTH,
               },
             }}
+          />
+
+          {/* QORT Address Field */}
+          <TextField
+            fullWidth
+            label={t('core:address_book_qort_address', {
+              postProcess: 'capitalizeFirstChar',
+            })}
+            value={qortAddress}
+            onChange={(e) => setQortAddress(e.target.value.trim())}
           />
         </Box>
       </DialogContent>

@@ -65,6 +65,7 @@ export interface AddressBookEntry {
   name: string; // Max 50 chars
   address: string; // Coin-specific length
   note: string; // Max 200 chars
+  qortAddress?: string;
   coinType: Coin; // e.g., 'BTC', 'DOGE', 'LTC'
   createdAt: number; // Unix timestamp
   updatedAt?: number; // Unix timestamp (optional)
