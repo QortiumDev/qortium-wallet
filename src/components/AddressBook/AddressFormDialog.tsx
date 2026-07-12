@@ -119,7 +119,7 @@ export const AddressFormDialog: React.FC<AddressFormDialogProps> = ({
       clearTimeout(timeout);
       cancelled = true;
     };
-  }, [name, coinType, t]);
+  }, [name, coinType]);
 
   const validateName = (value: string): boolean => {
     if (!value.trim()) {

@@ -178,6 +178,11 @@ export const updateAddress = (
       updatedAt: Date.now(),
     };
 
+    // Explicitly remove qortAddress if it was set to undefined
+    if (updates.qortAddress === undefined) {
+      delete (updatedEntry as any).qortAddress;
+    }
+
     addresses[index] = updatedEntry;
 
     // Save to localStorage with metadata

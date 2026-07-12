@@ -166,12 +166,17 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
     try {
       if (editingEntry) {
         // Update existing entry
-        updateAddress(editingEntry.id, coinType, {
+        const updates: Partial<Omit<AddressBookEntry, 'id' | 'createdAt' | 'coinType'>> = {
           name: entry.name,
           address: entry.address,
           note: entry.note,
-          qortAddress: entry.qortAddress,
-        });
+        };
+        if (entry.qortAddress !== undefined && entry.qortAddress !== '') {
+          updates.qortAddress = entry.qortAddress;
+        } else {
+          updates.qortAddress = undefined;
+        }
+        updateAddress(editingEntry.id, coinType, updates);
       } else {
         // Add new entry
         addAddress(entry);
