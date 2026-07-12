@@ -21,18 +21,11 @@ export function UnifiedHistory() {
   const { rows, loadingChains, errorChains } = useUnifiedHistory(chains);
 
   const [filter, setFilter] = useState<Filter>('all');
-  const [expandedTx, setExpandedTx] = useState<number | null>(null);
-  const [copiedHash, setCopiedHash] = useState<number | null>(null);
+  const [expandedTxKey, setExpandedTxKey] = useState<string | null>(null);
+  const [copiedHashKey, setCopiedHashKey] = useState<string | null>(null);
 
-  const handleCopyHash = useCallback((i: number, hash: string) => {
-    navigator.clipboard.writeText(hash).then(() => {
-      setCopiedHash(i);
-      setTimeout(() => setCopiedHash(null), 2000);
-    });
-  }, []);
-
-  const hasArrr = chains.some((c) => c.coinEnum === 'ARRR');
-  const totalNonArrr = chains.filter((c) => c.coinEnum !== 'ARRR').length;
+  const hasArrr = chains.some((ch) => ch.coinEnum === 'ARRR');
+  const totalNonArrr = chains.filter((ch) => ch.coinEnum !== 'ARRR').length;
   const loadedCount = totalNonArrr - loadingChains.length;
   const stillLoading = loadingChains.length > 0;
 
@@ -134,21 +127,29 @@ export function UnifiedHistory() {
               No transactions found
             </Box>
           ) : (
-            filteredRows.map((row, i) => (
-              <TransactionRow
-                key={`${row.chain.ticker}-${row.txHash ?? i}`}
-                row={row}
-                index={i}
-                isLastRow={i === filteredRows.length - 1}
-                chain={row.chain}
-                userAddress=""
-                expanded={expandedTx === i}
-                onToggleExpand={() => setExpandedTx(expandedTx === i ? null : i)}
-                copiedHash={copiedHash}
-                onCopyHash={handleCopyHash}
-                showCoinBadge
-              />
-            ))
+            filteredRows.map((row, i) => {
+              const rowKey = `${row.chain.ticker}-${row.txHash ?? i}`;
+              return (
+                <TransactionRow
+                  key={rowKey}
+                  row={row}
+                  index={i}
+                  isLastRow={i === filteredRows.length - 1}
+                  chain={row.chain}
+                  userAddress={(row.totalAmount ?? 0) > 0 ? (row.recipient ?? '') : (row.sender ?? '')}
+                  expanded={expandedTxKey === rowKey}
+                  onToggleExpand={() => setExpandedTxKey(expandedTxKey === rowKey ? null : rowKey)}
+                  copiedHash={copiedHashKey === rowKey ? 0 : null}
+                  onCopyHash={(_i: number, hash: string) => {
+                    navigator.clipboard.writeText(hash).then(() => {
+                      setCopiedHashKey(rowKey);
+                      setTimeout(() => setCopiedHashKey(null), 2000);
+                    });
+                  }}
+                  showCoinBadge
+                />
+              );
+            })
           )}
         </Box>
       </Box>
