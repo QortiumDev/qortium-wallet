@@ -60,8 +60,14 @@ import {
   getCachedMessage,
   fetchPaymentMessage,
   fetchNameForAddress,
+  resolveQortName,
+  fetchPublicKey,
+  publishPaymentMessage,
+  buildMessagePayload,
+  cacheMessage,
 } from '../../utils/paymentMessages';
 import { getAddressBook } from '../../utils/addressBookStorage';
+import { useAuth } from 'qapp-core';
 
 
 interface Props {
@@ -93,6 +99,7 @@ function walletRequestForChain(chain: ChainConfig): QdnRequestOptions {
 export function CoinDetail({ chain }: Props) {
   const c = useColors();
   const { t } = useTranslation('core');
+  const { address: userQortAddress, name: userQortName } = useAuth();
   const uiStyle = useAtomValue(uiStyleAtom);
   const currency = useAtomValue(currencyAtom);
   const walletReady = useAtomValue(walletReadyAtom);
@@ -125,6 +132,11 @@ export function CoinDetail({ chain }: Props) {
   );
   const [nativeFee, setNativeFee] = useState<string>('');
   const [foreignFeePerByte, setForeignFeePerByte] = useState<string>('');
+  const [paymentMessage, setPaymentMessage] = useState('');
+  const [recipientQort, setRecipientQort] = useState('');
+  const [recipientQortAddress, setRecipientQortAddress] = useState<string | null>(null);
+  const [qortResolving, setQortResolving] = useState(false);
+  const [qortResolveFailed, setQortResolveFailed] = useState(false);
   const [feeLoading, setFeeLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState<'success' | 'error' | null>(
@@ -398,6 +410,20 @@ export function CoinDetail({ chain }: Props) {
     return () => clearInterval(id);
   }, [fetchBalance, fetchTransactions, arrrSynced, walletReady]);
 
+  useEffect(() => {
+    if (!paymentMessage || !recipient) {
+      setRecipientQort('');
+      setRecipientQortAddress(null);
+      setQortResolveFailed(false);
+      return;
+    }
+    const book = getAddressBook(chain.coinEnum as any);
+    const entry = book.find((e) => e.address === recipient.trim());
+    if (entry?.qortAddress) {
+      setRecipientQort(entry.qortAddress);
+    }
+  }, [recipient, paymentMessage, chain.coinEnum]);
+
   const openSend = useCallback(async () => {
     setAmount('');
     setSendMax(false);
@@ -406,6 +432,10 @@ export function CoinDetail({ chain }: Props) {
     setSendResponse(null);
     setNativeFee(chain.isNative ? String(chain.defaultFee) : '');
     setForeignFeePerByte('');
+    setPaymentMessage('');
+    setRecipientQort('');
+    setRecipientQortAddress(null);
+    setQortResolveFailed(false);
     setSendOpen(true);
     if (chain.isNative || chain.coinEnum === 'ARRR') return;
     setFeeLoading(true);
@@ -433,6 +463,28 @@ export function CoinDetail({ chain }: Props) {
     });
   };
 
+  const resolveQortField = useCallback(async () => {
+    const val = recipientQort.trim();
+    if (!val) { setRecipientQortAddress(null); return; }
+
+    if (val.startsWith('Q') && val.length > 20) {
+      setRecipientQortAddress(val);
+      setQortResolveFailed(false);
+      return;
+    }
+
+    setQortResolving(true);
+    setQortResolveFailed(false);
+    const addr = await resolveQortName(val);
+    setQortResolving(false);
+    if (addr) {
+      setRecipientQortAddress(addr);
+    } else {
+      setRecipientQortAddress(null);
+      setQortResolveFailed(true);
+    }
+  }, [recipientQort]);
+
   const handleSend = async () => {
     if (!canConfirmSend) return;
 
@@ -447,6 +499,7 @@ export function CoinDetail({ chain }: Props) {
           amount: parseFloat(amount),
         } as any);
         if (res?.accepted === false) throw new Error(res.error ?? 'SEND_QORT failed');
+        result = res as any;
       } else {
         const payload: Record<string, unknown> = {
           action: 'SEND_COIN',
@@ -465,6 +518,25 @@ export function CoinDetail({ chain }: Props) {
       }
       setSendResponse(result);
       setSendResult('success');
+
+      const msgToCopy = paymentMessage.trim();
+      const txHashForMsg =
+        result?.prepared?.txHash ??
+        (chain.isNative ? (result as any)?.signature : undefined);
+
+      if (msgToCopy && txHashForMsg && recipientQortAddress && userQortName) {
+        const payload = buildMessagePayload(msgToCopy, txHashForMsg, chain.ticker, amount);
+        cacheMessage(txHashForMsg, msgToCopy);
+        Promise.all([
+          fetchPublicKey(recipientQortAddress),
+          fetchPublicKey(userQortAddress ?? ''),
+        ]).then(([recipPk, senderPk]) => {
+          if (recipPk && senderPk) {
+            publishPaymentMessage(payload, senderPk, recipPk).catch(() => {});
+          }
+        }).catch(() => {});
+      }
+
       window.setTimeout(() => {
         fetchBalance();
         fetchTransactions();
@@ -486,6 +558,10 @@ export function CoinDetail({ chain }: Props) {
     setRecipient(EMPTY_STRING);
     setNativeFee('');
     setForeignFeePerByte('');
+    setPaymentMessage('');
+    setRecipientQort('');
+    setRecipientQortAddress(null);
+    setQortResolveFailed(false);
     setSearchParams({});
   };
 
@@ -1330,6 +1406,47 @@ export function CoinDetail({ chain }: Props) {
                       : undefined
                   }
                 />
+
+                <TextField
+                  label={t('send_dialog.message_label')}
+                  value={paymentMessage}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 280) setPaymentMessage(e.target.value);
+                  }}
+                  fullWidth
+                  multiline
+                  rows={2}
+                  disabled={sending}
+                  helperText={paymentMessage ? `${paymentMessage.length}/280` : undefined}
+                />
+
+                {paymentMessage && (
+                  <TextField
+                    label={t('send_dialog.recipient_qort_label')}
+                    value={recipientQort}
+                    onChange={(e) => {
+                      setRecipientQort(e.target.value);
+                      setRecipientQortAddress(null);
+                      setQortResolveFailed(false);
+                    }}
+                    onBlur={resolveQortField}
+                    fullWidth
+                    disabled={sending || qortResolving}
+                    error={qortResolveFailed}
+                    helperText={
+                      qortResolveFailed
+                        ? t('send_dialog.qort_resolve_failed')
+                        : recipientQortAddress
+                          ? '✓'
+                          : undefined
+                    }
+                    InputProps={{
+                      endAdornment: qortResolving ? (
+                        <CircularProgress size={16} sx={{ color: c.accent }} />
+                      ) : undefined,
+                    }}
+                  />
+                )}
 
                 {!chain.isNative && (
                   <TextField

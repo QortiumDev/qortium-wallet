@@ -12,6 +12,10 @@ vi.mock('react-qr-code', () => ({
   default: () => null,
 }));
 
+vi.mock('qapp-core', () => ({
+  useAuth: () => ({ address: 'qort-user-address', name: 'testuser' }),
+}));
+
 vi.mock('../../../hooks/useMarketPrices', () => ({
   useMarketPrices: () => ({}),
 }));
