@@ -48,28 +48,24 @@ import {
   isPositiveDecimal,
   isValidRecipient,
 } from '../../utils/walletSend';
-import { epochToAgo, requestWithTimeout } from '../../common/functions';
+import { requestWithTimeout } from '../../common/functions';
 import {
   EMPTY_STRING,
   TIME_MINUTES_3,
   TIME_MINUTES_5,
   TIME_SECONDS_3,
 } from '../../common/constants';
+import { TransactionRow, type TxRow } from './TransactionRow';
+import {
+  getCachedMessage,
+  fetchPaymentMessage,
+  fetchNameForAddress,
+} from '../../utils/paymentMessages';
+import { getAddressBook } from '../../utils/addressBookStorage';
 
 
 interface Props {
   chain: ChainConfig;
-}
-
-interface TxRow {
-  txHash?: string;
-  totalAmount?: number;
-  feeAmount?: number;
-  timestamp?: number;
-  sender?: string;
-  recipient?: string;
-  inputs?: { address: string; amount: number; addressInWallet?: boolean }[];
-  outputs?: { address: string; amount: number; addressInWallet?: boolean }[];
 }
 
 interface SendCoinResult {
@@ -116,6 +112,8 @@ export function CoinDetail({ chain }: Props) {
   const [expandedTx, setExpandedTx] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedHash, setCopiedHash] = useState<number | null>(null);
+  const [qdnMessages, setQdnMessages] = useState<Record<string, string | null>>({});
+  const [qdnMessagesLoading, setQdnMessagesLoading] = useState<Record<string, boolean>>({});
 
   const [sendOpen, setSendOpen] = useState(
     () => searchParams.get('send') === 'true'
@@ -483,7 +481,6 @@ export function CoinDetail({ chain }: Props) {
     setSearchParams({});
   };
 
-  const divisor = Math.pow(10, chain.decimalPlaces);
   const sendFeeInputValue = chain.isNative ? nativeFee : foreignFeePerByte;
   const sendFeeLabel = chain.isNative
     ? t('send_dialog.optional_custom_fee', { coin: chain.ticker })
@@ -511,37 +508,6 @@ export function CoinDetail({ chain }: Props) {
     foreignFeePerByte !== '' &&
     !foreignFeeIsValid;
 
-  const txAmount = (row: TxRow) => {
-    const raw = Number(row.totalAmount ?? 0) / divisor;
-    return raw.toFixed(chain.decimalPlaces);
-  };
-
-  const txFee = (row: TxRow) =>
-    (Number(row.feeAmount ?? 0) / divisor).toFixed(chain.decimalPlaces);
-
-  const isPositive = (row: TxRow) => (row.totalAmount ?? 0) > 0;
-
-  const fmtAddr = (addr?: string) => {
-    if (!addr) return '—';
-    if (addr.length <= 16) return addr;
-    return `${addr.slice(0, 8)}…${addr.slice(-6)}`;
-  };
-
-  const str = (v: unknown): string | undefined =>
-    typeof v === 'string' && v ? v : undefined;
-
-  const counterparty = (row: TxRow): string | undefined => {
-    if (isPositive(row)) {
-      if (str(row.sender)) return str(row.sender);
-      const ext = row.inputs?.find((inp) => !inp.addressInWallet);
-      return str(ext?.address);
-    } else {
-      if (str(row.recipient)) return str(row.recipient);
-      const ext = row.outputs?.find((out) => !out.addressInWallet);
-      return str(ext?.address);
-    }
-  };
-
   const handleCopyHash = (i: number, hash: string) => {
     const finish = () => {
       setCopiedHash(i);
@@ -566,6 +532,46 @@ export function CoinDetail({ chain }: Props) {
         finish();
       });
   };
+
+  const handleToggleExpand = useCallback(
+    (i: number) => {
+      const wasExpanded = expandedTx === i;
+      setExpandedTx(wasExpanded ? null : i);
+
+      if (!wasExpanded) {
+        const row = transactions[i];
+        if (!row.txHash) return;
+        const txHash = row.txHash;
+
+        if (qdnMessages[txHash] !== undefined || getCachedMessage(txHash) !== null) return;
+
+        let senderQortAddress: string | undefined;
+        if (chain.isNative && row.sender) {
+          senderQortAddress = row.sender;
+        } else if (!chain.isNative && row.sender) {
+          const book = getAddressBook(chain.coinEnum as any);
+          const entry = book.find((e) => e.address === row.sender);
+          senderQortAddress = entry?.qortAddress;
+        }
+
+        if (!senderQortAddress) return;
+
+        setQdnMessagesLoading((prev) => ({ ...prev, [txHash]: true }));
+        fetchNameForAddress(senderQortAddress)
+          .then((senderName) => {
+            if (!senderName) return Promise.resolve(null);
+            return fetchPaymentMessage(senderName, txHash);
+          })
+          .then((msg) => {
+            setQdnMessages((prev) => ({ ...prev, [txHash]: msg }));
+          })
+          .finally(() => {
+            setQdnMessagesLoading((prev) => ({ ...prev, [txHash]: false }));
+          });
+      }
+    },
+    [expandedTx, transactions, qdnMessages, chain]
+  );
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: isClassic ? c.frameBg : c.bg }}>
@@ -1076,284 +1082,22 @@ export function CoinDetail({ chain }: Props) {
                   No transactions yet
                 </Box>
               ) : (
-                transactions.map((row, i) => {
-                  const expanded = expandedTx === i;
-                  const cp = counterparty(row);
-                  return (
-                    <Box
-                      key={i}
-                      sx={{
-                        borderBottom:
-                          i < transactions.length - 1
-                            ? `1px solid ${isClassic ? c.border : c.borderLight}`
-                            : 'none',
-                      }}
-                    >
-                      <Box
-                        onClick={() => setExpandedTx(expanded ? null : i)}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          px: 2.5,
-                          py: 1.75,
-                          gap: 2,
-                          cursor: 'pointer',
-                          bgcolor: expanded
-                            ? isClassic
-                              ? c.controlSelected
-                              : c.borderLight
-                            : 'transparent',
-                          '&:hover': {
-                            bgcolor: isClassic ? c.controlHover : c.borderLight,
-                          },
-                          transition: 'background-color 0.12s ease',
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            flexShrink: 0,
-                            bgcolor: isPositive(row) ? c.success : c.error,
-                          }}
-                        />
-
-                        <Box
-                          sx={{
-                            fontWeight: tokens.typography.weightBold,
-                            fontSize: '0.9rem',
-                            color: isPositive(row) ? c.success : c.error,
-                            minWidth: { xs: 90, sm: 140 },
-                            flexShrink: 0,
-                          }}
-                        >
-                          {isPositive(row) ? '+' : ''}
-                          {txAmount(row)} {chain.ticker}
-                        </Box>
-
-                        <Box
-                          sx={{
-                            flex: 1,
-                            fontFamily: c.monoFontFamily,
-                            fontSize: '0.72rem',
-                            color: c.textSecondary,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {cp
-                            ? isPositive(row)
-                              ? `from ${fmtAddr(cp)}`
-                              : `to ${fmtAddr(cp)}`
-                            : '—'}
-                        </Box>
-
-                        <Box
-                          sx={{
-                            fontSize: '0.7rem',
-                            color: c.textSecondary,
-                            whiteSpace: 'nowrap',
-                            letterSpacing: '0.04em',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {row.timestamp
-                            ? epochToAgo(row.timestamp)
-                            : 'Unconfirmed'}
-                        </Box>
-                      </Box>
-
-                      {expanded && (
-                        <Box
-                          sx={{
-                            px: 3,
-                            py: 2,
-                            bgcolor: isClassic ? c.surfaceAlt : c.bg,
-                            borderTop: `1px solid ${isClassic ? c.border : c.borderLight}`,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 1.25,
-                          }}
-                        >
-                          {[
-                            {
-                              label: 'Hash',
-                              value: str(row.txHash),
-                              mono: true,
-                              copyIdx: i,
-                            },
-                            {
-                              label: isPositive(row) ? 'From' : 'To',
-                              value: cp,
-                              mono: true,
-                            },
-                            {
-                              label: isPositive(row) ? 'To' : 'From',
-                              value: isPositive(row)
-                                ? address
-                                : (str(row.sender) ?? address),
-                              mono: true,
-                            },
-                            {
-                              label: 'Fee',
-                              value:
-                                row.feeAmount != null
-                                  ? `${txFee(row)} ${chain.ticker}`
-                                  : undefined,
-                            },
-                            {
-                              label: 'Date',
-                              value: row.timestamp
-                                ? new Date(row.timestamp).toLocaleString()
-                                : undefined,
-                            },
-                          ].map(({ label, value, mono, copyIdx }) =>
-                            value ? (
-                              <Box
-                                key={label}
-                                sx={{
-                                  display: 'flex',
-                                  gap: 2,
-                                  alignItems: 'center',
-                                }}
-                              >
-                                <Box
-                                  sx={{
-                                    fontSize: '0.65rem',
-                                    fontWeight: tokens.typography.weightBold,
-                                    letterSpacing: '0.1em',
-                                    textTransform: 'uppercase',
-                                    color: c.textSecondary,
-                                    minWidth: 44,
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  {label}
-                                </Box>
-                                <Box
-                                  sx={{
-                                    fontFamily: mono
-                                      ? c.monoFontFamily
-                                      : undefined,
-                                    fontSize: '0.75rem',
-                                    color: c.textPrimary,
-                                    wordBreak: 'break-all',
-                                    flex: 1,
-                                  }}
-                                >
-                                  {String(value)}
-                                </Box>
-                                {copyIdx != null && (
-                                  <IconButton
-                                    size="small"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleCopyHash(copyIdx, value!);
-                                    }}
-                                    sx={{ flexShrink: 0, p: 0.5 }}
-                                  >
-                                    {copiedHash === copyIdx ? (
-                                      <CheckIcon
-                                        sx={{ fontSize: 14, color: c.success }}
-                                      />
-                                    ) : (
-                                      <ContentCopyIcon
-                                        sx={{
-                                          fontSize: 14,
-                                          color: c.textSecondary,
-                                        }}
-                                      />
-                                    )}
-                                  </IconButton>
-                                )}
-                              </Box>
-                            ) : null
-                          )}
-
-                          {row.inputs?.length || row.outputs?.length ? (
-                            <Box
-                              sx={{
-                                mt: 0.5,
-                                display: 'flex',
-                                gap: 3,
-                                flexWrap: 'wrap',
-                              }}
-                            >
-                              {row.inputs?.length ? (
-                                <Box>
-                                  <Box
-                                    sx={{
-                                      fontSize: '0.65rem',
-                                      fontWeight: tokens.typography.weightBold,
-                                      letterSpacing: '0.1em',
-                                      textTransform: 'uppercase',
-                                      color: c.textSecondary,
-                                      mb: 0.5,
-                                    }}
-                                  >
-                                    Inputs
-                                  </Box>
-                                  {row.inputs.map((inp, j) => (
-                                    <Box
-                                      key={j}
-                                      sx={{
-                                        fontFamily: c.monoFontFamily,
-                                        fontSize: '0.7rem',
-                                        color: inp.addressInWallet
-                                          ? c.accent
-                                          : c.textSecondary,
-                                      }}
-                                    >
-                                      {fmtAddr(inp.address)} ·{' '}
-                                      {(inp.amount / divisor).toFixed(
-                                        chain.decimalPlaces
-                                      )}
-                                    </Box>
-                                  ))}
-                                </Box>
-                              ) : null}
-                              {row.outputs?.length ? (
-                                <Box>
-                                  <Box
-                                    sx={{
-                                      fontSize: '0.65rem',
-                                      fontWeight: tokens.typography.weightBold,
-                                      letterSpacing: '0.1em',
-                                      textTransform: 'uppercase',
-                                      color: c.textSecondary,
-                                      mb: 0.5,
-                                    }}
-                                  >
-                                    Outputs
-                                  </Box>
-                                  {row.outputs.map((out, j) => (
-                                    <Box
-                                      key={j}
-                                      sx={{
-                                        fontFamily: c.monoFontFamily,
-                                        fontSize: '0.7rem',
-                                        color: out.addressInWallet
-                                          ? c.accent
-                                          : c.textSecondary,
-                                      }}
-                                    >
-                                      {fmtAddr(out.address)} ·{' '}
-                                      {(out.amount / divisor).toFixed(
-                                        chain.decimalPlaces
-                                      )}
-                                    </Box>
-                                  ))}
-                                </Box>
-                              ) : null}
-                            </Box>
-                          ) : null}
-                        </Box>
-                      )}
-                    </Box>
-                  );
-                })
+                transactions.map((row, i) => (
+                  <TransactionRow
+                    key={i}
+                    row={row}
+                    index={i}
+                    isLastRow={i === transactions.length - 1}
+                    chain={chain}
+                    userAddress={address}
+                    expanded={expandedTx === i}
+                    onToggleExpand={() => handleToggleExpand(i)}
+                    copiedHash={copiedHash}
+                    onCopyHash={handleCopyHash}
+                    qdnMessage={row.txHash ? qdnMessages[row.txHash] : undefined}
+                    qdnMessageLoading={row.txHash ? qdnMessagesLoading[row.txHash] : false}
+                  />
+                ))
               )}
             </Box>
           </>
