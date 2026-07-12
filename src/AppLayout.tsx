@@ -17,8 +17,24 @@ export default function AppLayout() {
   const c = useColors();
 
   const { setWalletState } = useContext(walletContext);
-  const { address, avatarUrl, name } = useAuth();
+  const { address, avatarUrl, name, authenticateUser } = useAuth();
   const setWalletReady = useSetAtom(walletReadyAtom);
+
+  // Home fires SELECTED_ACCOUNT_CHANGED when the user switches accounts or
+  // locks/unlocks one; re-authenticate so balances and names follow suit.
+  useEffect(() => {
+    function onMessage(e: MessageEvent<unknown>) {
+      if (
+        (e.source === window.parent || e.source === window) &&
+        typeof e.data === 'object' && e.data !== null &&
+        (e.data as { action?: unknown }).action === 'SELECTED_ACCOUNT_CHANGED'
+      ) {
+        authenticateUser().catch(() => {});
+      }
+    }
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [authenticateUser]);
 
   // On mount, check if the account is locked and prompt to unlock before balances load
   useEffect(() => {

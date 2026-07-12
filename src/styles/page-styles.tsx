@@ -32,7 +32,7 @@ export const DialogGeneral = styled(Dialog)(({ theme }: { theme: Theme }) => ({
     padding: theme.spacing(1),
   },
   '& .MuiDialog-paper': {
-    borderRadius: '15px',
+    borderRadius: theme.shape.borderRadius,
   },
 }));
 
@@ -45,7 +45,7 @@ export const LightwalletDialog = styled(Dialog)(
       padding: theme.spacing(1),
     },
     '& .MuiDialog-paper': {
-      borderRadius: '15px',
+      borderRadius: theme.shape.borderRadius,
     },
   })
 );
@@ -58,7 +58,7 @@ export const SubmitDialog = styled(Dialog)(({ theme }: { theme: Theme }) => ({
     padding: theme.spacing(1),
   },
   '& .MuiDialog-paper': {
-    borderRadius: '15px',
+    borderRadius: theme.shape.borderRadius,
   },
 }));
 

@@ -23,6 +23,18 @@
   font-weight: 400;
   font-display: swap;
 }
+@font-face {
+  font-family: 'Inter';
+  src: url('./styles/fonts/Inter-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('./styles/fonts/Inter-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-display: swap;
+}
 
 @font-face {
   font-family: 'Lexend';

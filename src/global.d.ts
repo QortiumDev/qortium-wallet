@@ -33,7 +33,7 @@ interface QdnRequestOptions {
   item?: string;
   items?: string[];
   limit?: number;
-  list_name?: string;
+  listName?: string;
   maxBytes?: number;
   memo?: string;
   metaData?: string;
@@ -45,6 +45,7 @@ interface QdnRequestOptions {
   path?: string;
   port?: number;
   query?: string;
+  rating?: number;
   recipient?: string;
   resources?: any[];
   reverse?: boolean;

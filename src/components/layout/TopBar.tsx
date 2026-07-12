@@ -7,7 +7,6 @@ import {
   MenuItem,
   Tooltip,
 } from '@mui/material';
-import SettingsIcon from '@mui/icons-material/Settings';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import SortIcon from '@mui/icons-material/Sort';
@@ -76,9 +75,9 @@ export function TopBar() {
       try {
         const list = await qdnRequest({
           action: 'GET_LIST',
-          list_name: 'followedNames',
-        } as any);
-        setIsFollowed(Array.isArray(list) && list.includes(APP_QDN_NAME));
+          listName: 'followedNames',
+        });
+        setIsFollowed(Array.isArray(list) && (list as string[]).includes(APP_QDN_NAME));
       } catch {
         // Follow-list state is optional chrome; ignore unavailable list APIs.
       }
@@ -114,16 +113,16 @@ export function TopBar() {
       if (isFollowed) {
         await qdnRequest({
           action: 'REMOVE_FROM_LIST',
-          list_name: 'followedNames',
+          listName: 'followedNames',
           items: [APP_QDN_NAME],
-        } as any);
+        });
         setIsFollowed(false);
       } else {
         await qdnRequest({
           action: 'ADD_TO_LIST',
-          list_name: 'followedNames',
+          listName: 'followedNames',
           items: [APP_QDN_NAME],
-        } as any);
+        });
         setIsFollowed(true);
       }
     } catch {
@@ -197,13 +196,16 @@ export function TopBar() {
   const buttonSx = {
     color: c.textSecondary,
     borderRadius: `${isClassic ? tokens.shape.radiusMd : tokens.shape.radius}px`,
-    minWidth: 36,
-    minHeight: 36,
+    minWidth: 44,
+    minHeight: 44,
+    width: 44,
+    height: 44,
+    p: 0,
     flexShrink: 0,
     transition: c.transitionControl,
     '&:hover': {
       color: c.accent,
-      bgcolor: isClassic ? c.controlHover : 'transparent',
+      bgcolor: isClassic ? c.controlHover : c.borderLight,
     },
     '&.Mui-disabled': { opacity: 0.3 },
   };
@@ -560,14 +562,7 @@ export function TopBar() {
           <IconButton
             size="small"
             onClick={handleToggleTheme}
-            sx={{
-              ...buttonSx,
-              color: c.textSecondary,
-              '&:hover': {
-                color: c.textPrimary,
-                bgcolor: isClassic ? c.controlHover : 'transparent',
-              },
-            }}
+            sx={buttonSx}
             aria-label="toggle dark mode"
           >
             {isDark ? (
@@ -575,22 +570,6 @@ export function TopBar() {
             ) : (
               <DarkModeIcon fontSize="small" />
             )}
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title="Settings" placement="bottom">
-          <IconButton
-            size="small"
-            sx={{
-              ...buttonSx,
-              color: c.textSecondary,
-              opacity: 0.4,
-              cursor: 'default',
-            }}
-            aria-label="settings"
-            disableRipple
-          >
-            <SettingsIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       </Box>
