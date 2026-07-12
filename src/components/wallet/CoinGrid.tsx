@@ -622,6 +622,7 @@ export function CoinGrid() {
   const [shareToast, setShareToast] = useState('');
 
   const handleShareContact = useCallback(async () => {
+    if (!userName) return;
     setShareToast(t('share_contact_publishing'));
     try {
       const addressResults = await Promise.all(
@@ -631,7 +632,7 @@ export function CoinGrid() {
               chain.isNative
                 ? { action: 'GET_USER_WALLET', assetId: 0 }
                 : { action: 'GET_USER_WALLET', coin: chain.coinEnum }
-            );
+            ) as any;
             return { ticker: chain.ticker, address: res?.address };
           } catch {
             return { ticker: chain.ticker, address: undefined };
@@ -687,6 +688,7 @@ export function CoinGrid() {
           size="small"
           startIcon={<ShareIcon sx={{ fontSize: '0.9rem !important' }} />}
           onClick={handleShareContact}
+          disabled={shareToast === t('share_contact_publishing')}
           sx={{ color: c.textSecondary, fontSize: '0.72rem', textTransform: 'none' }}
         >
           {t('nav_share_contact')}
