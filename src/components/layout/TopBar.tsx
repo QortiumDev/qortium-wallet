@@ -10,6 +10,7 @@ import {
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import SortIcon from '@mui/icons-material/Sort';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
@@ -27,6 +28,7 @@ import {
   tileSizeAtom,
   currencyAtom,
   portfolioFiatAtom,
+  hideZeroAtom,
   FIAT_CURRENCIES,
   type SortMode,
 } from '../../state/global/system';
@@ -37,6 +39,7 @@ import { useSupportedChains } from '../../hooks/useSupportedChains';
 import { RatingControl } from './RatingControl';
 
 const APP_QDN_NAME = 'Wallet';
+const APP_QDN_IDENTIFIER = 'Wallet';
 
 const SORT_OPTIONS: { value: SortMode; label: string }[] = [
   { value: 'custom', label: 'Custom order' },
@@ -55,6 +58,7 @@ export function TopBar() {
   const [tileSize, setTileSize] = useAtom(tileSizeAtom);
   const [currency, setCurrency] = useAtom(currencyAtom);
   const portfolioFiat = useAtomValue(portfolioFiatAtom);
+  const [hideZero, setHideZero] = useAtom(hideZeroAtom);
   const headerRef = useRef<HTMLElement | null>(null);
   const [sortAnchor, setSortAnchor] = useState<null | HTMLElement>(null);
   const [currencyAnchor, setCurrencyAnchor] = useState<null | HTMLElement>(
@@ -450,6 +454,23 @@ export function TopBar() {
               ))}
             </Menu>
 
+            <Tooltip
+              title={hideZero ? 'Show all coins' : 'Hide zero balances'}
+              placement="bottom"
+            >
+              <IconButton
+                size="small"
+                onClick={() => setHideZero((h) => !h)}
+                sx={{
+                  ...buttonSx,
+                  color: hideZero ? c.accent : c.textSecondary,
+                }}
+                aria-label="hide zero balances"
+              >
+                <FilterAltIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+
             <Tooltip title="Fiat currency" placement="bottom">
               <IconButton
                 size="small"
@@ -521,7 +542,7 @@ export function TopBar() {
           </>
         )}
 
-        <RatingControl qdnName={APP_QDN_NAME} />
+        <RatingControl qdnName={APP_QDN_NAME} identifier={APP_QDN_IDENTIFIER} />
 
         <Tooltip
           title={isFollowed ? 'Stop following this app' : 'Follow this app'}

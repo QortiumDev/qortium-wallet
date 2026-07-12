@@ -71,6 +71,7 @@ export const FIAT_CURRENCIES: { code: string; label: string }[] = [
 ];
 
 export const currencyAtom = atomWithStorage<string>('qw-currency', 'usd');
+export const hideZeroAtom = atomWithStorage<boolean>('qw-hide-zero', false);
 
 // Total fiat value of all coin balances - written by CoinGrid, read by TopBar
 export const portfolioFiatAtom = atom<number | null>(null);

@@ -27,7 +27,7 @@ function isBridgeMessage(e: MessageEvent<unknown>, action: string): boolean {
   );
 }
 
-export function RatingControl({ qdnName, service = 'APP' }: { qdnName: string; service?: string }) {
+export function RatingControl({ qdnName, service = 'APP', identifier = 'default' }: { qdnName: string; service?: string; identifier?: string }) {
   const c = useColors();
   const [summary, setSummary] = useState<RatingSummary>({ ratingCount: 0, weightedAverageRating: null });
   const [myRating, setMyRating] = useState<number | null>(null);
@@ -40,23 +40,40 @@ export function RatingControl({ qdnName, service = 'APP' }: { qdnName: string; s
   useEffect(() => {
     let cancelled = false;
 
+    function applySummary(s: { ratingCount?: number; weightedAverageRating?: number | null } | null | undefined) {
+      if (!s) return;
+      setSummary({
+        ratingCount: typeof s.ratingCount === 'number' ? s.ratingCount : 0,
+        weightedAverageRating: s.weightedAverageRating ?? null,
+      });
+    }
+
     function fetchRating() {
-      requestQdn({ action: 'GET_RESOURCE_RATING', service, name: qdnName, identifier: 'default' })
+      requestQdn({ action: 'GET_RESOURCE_RATING', service, name: qdnName, identifier })
         .then((res) => {
           if (cancelled) return;
           const data = res as {
             summary?: { ratingCount?: number; weightedAverageRating?: number | null } | null;
             rating?: { rating?: number } | null;
           } | null;
-          const s = data?.summary;
-          setSummary({
-            ratingCount: typeof s?.ratingCount === 'number' ? s.ratingCount : 0,
-            weightedAverageRating: s?.weightedAverageRating ?? null,
-          });
+          applySummary(data?.summary);
           const r = data?.rating?.rating;
           setMyRating(typeof r === 'number' && r >= 1 && r <= 10 ? r : null);
         })
-        .catch(() => {});
+        .catch(() => {
+          // GET_RESOURCE_RATING requires a selected account; fall back to the
+          // public summary endpoint so ratings always render when visible.
+          if (cancelled) return;
+          requestQdn({
+            action: 'FETCH_NODE_API',
+            path: `/resource-ratings/summary?service=${encodeURIComponent(service)}&name=${encodeURIComponent(qdnName)}&identifier=${encodeURIComponent(identifier)}`,
+          })
+            .then((res) => {
+              if (cancelled) return;
+              applySummary(res as { ratingCount?: number; weightedAverageRating?: number | null } | null);
+            })
+            .catch(() => {});
+        });
     }
 
     fetchRating();
@@ -81,7 +98,7 @@ export function RatingControl({ qdnName, service = 'APP' }: { qdnName: string; s
       cancelled = true;
       window.removeEventListener('message', onMessage);
     };
-  }, [qdnName, service]);
+  }, [qdnName, service, identifier]);
 
   async function submitRating(value: number) {
     if (busy) return;
@@ -91,7 +108,7 @@ export function RatingControl({ qdnName, service = 'APP' }: { qdnName: string; s
     try {
       const account = await requestQdn({ action: 'UNLOCK_SELECTED_ACCOUNT' });
       if (!(account as { isUnlocked?: boolean } | null)?.isUnlocked) throw new Error('Account is locked.');
-      await requestQdn({ action: 'RATE_RESOURCE', service, name: qdnName, identifier: 'default', rating: value });
+      await requestQdn({ action: 'RATE_RESOURCE', service, name: qdnName, identifier, rating: value });
     } catch {
       setMyRating(previous);
     }

@@ -36,6 +36,7 @@ import {
   uiStyleAtom,
   currencyAtom,
   portfolioFiatAtom,
+  hideZeroAtom,
   walletReadyAtom,
 } from '../../state/global/system';
 
@@ -416,6 +417,7 @@ export function CoinGrid() {
   const c = useColors();
   const uiStyle = useAtomValue(uiStyleAtom);
   const currency = useAtomValue(currencyAtom);
+  const hideZero = useAtomValue(hideZeroAtom);
   const prices = useMarketPrices(chains, currency);
   const [balances, setBalances] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
@@ -491,6 +493,16 @@ export function CoinGrid() {
     });
   }, [sortMode, customOrder, chains, balances, loading, prices]);
 
+  const visibleChains = useMemo(() => {
+    if (!hideZero) return sortedChains;
+    return sortedChains.filter((chain) => {
+      if (loading[chain.key] !== false) return false;
+      const bal = balances[chain.key];
+      if (bal === null) return false;
+      return parseFloat(bal) > 0;
+    });
+  }, [hideZero, sortedChains, loading, balances]);
+
   const { fiatDisplays, portfolioTotal } = useMemo(() => {
     const displays: Record<string, string | undefined> = {};
     let total = 0;
@@ -523,12 +535,12 @@ export function CoinGrid() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const oldIndex = sortedChains.findIndex((c) => c.key === active.id);
-    const newIndex = sortedChains.findIndex((c) => c.key === over.id);
+    const oldIndex = visibleChains.findIndex((c) => c.key === active.id);
+    const newIndex = visibleChains.findIndex((c) => c.key === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
     setCustomOrder(
       arrayMove(
-        sortedChains.map((c) => c.key),
+        visibleChains.map((c) => c.key),
         oldIndex,
         newIndex
       )
@@ -614,7 +626,7 @@ export function CoinGrid() {
         onDragEnd={handleDragEnd}
       >
         <SortableContext
-          items={sortedChains.map((c) => c.key)}
+          items={visibleChains.map((c) => c.key)}
           strategy={rectSortingStrategy}
         >
           <Box
@@ -624,7 +636,7 @@ export function CoinGrid() {
               gap: 1.5,
             }}
           >
-            {sortedChains.map((chain) => (
+            {visibleChains.map((chain) => (
               <SortableCoinBlock
                 key={chain.key}
                 chain={chain}
