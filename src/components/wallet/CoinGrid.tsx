@@ -1,9 +1,13 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
-import { Box, IconButton, Skeleton, Tooltip } from '@mui/material';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { Box, Button, IconButton, Skeleton, Tooltip } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SendIcon from '@mui/icons-material/Send';
 import CheckIcon from '@mui/icons-material/Check';
+import HistoryIcon from '@mui/icons-material/History';
+import ShareIcon from '@mui/icons-material/Share';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from 'qapp-core';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import {
   DndContext,
@@ -612,6 +616,59 @@ export function CoinGrid() {
   const isCustom = sortMode === 'custom';
   const isClassic = uiStyle === 'classic';
 
+  const navigate = useNavigate();
+  const { t } = useTranslation('core');
+  const { name: userName } = useAuth();
+  const [shareToast, setShareToast] = useState('');
+
+  const handleShareContact = useCallback(async () => {
+    setShareToast(t('share_contact_publishing'));
+    try {
+      const addressResults = await Promise.all(
+        chains.map(async (chain) => {
+          try {
+            const res = await qdnRequest(
+              chain.isNative
+                ? { action: 'GET_USER_WALLET', assetId: 0 }
+                : { action: 'GET_USER_WALLET', coin: chain.coinEnum }
+            );
+            return { ticker: chain.ticker, address: res?.address };
+          } catch {
+            return { ticker: chain.ticker, address: undefined };
+          }
+        })
+      );
+
+      const addresses: Record<string, string> = {};
+      addressResults.forEach(({ ticker, address }) => {
+        if (address) addresses[ticker] = address;
+      });
+
+      const qortAddr = addresses['QORT'] ?? '';
+
+      const card = {
+        qortName: userName,
+        qortAddress: qortAddr,
+        addresses,
+        updatedAt: Date.now(),
+      };
+
+      await qdnRequest({
+        action: 'PUBLISH_QDN_RESOURCE',
+        service: 'ARBITRARY',
+        identifier: 'wallet-contact-card',
+        data64: btoa(JSON.stringify(card)),
+      } as any);
+
+      const link = `#/contact/${userName}`;
+      await navigator.clipboard.writeText(link);
+      setShareToast(t('share_contact_copied'));
+      setTimeout(() => setShareToast(''), 2500);
+    } catch {
+      setShareToast('');
+    }
+  }, [chains, t, userName]);
+
   return (
     <Box
       sx={{
@@ -620,6 +677,29 @@ export function CoinGrid() {
         p: { xs: isClassic ? 1.5 : 2, md: isClassic ? 3 : 4 },
       }}
     >
+      <Box sx={{ display: 'flex', gap: 1, mb: 1.5, justifyContent: 'flex-end' }}>
+        {shareToast && (
+          <Box sx={{ fontSize: '0.75rem', color: c.textSecondary, display: 'flex', alignItems: 'center', mr: 1 }}>
+            {shareToast}
+          </Box>
+        )}
+        <Button
+          size="small"
+          startIcon={<ShareIcon sx={{ fontSize: '0.9rem !important' }} />}
+          onClick={handleShareContact}
+          sx={{ color: c.textSecondary, fontSize: '0.72rem', textTransform: 'none' }}
+        >
+          {t('nav_share_contact')}
+        </Button>
+        <Button
+          size="small"
+          startIcon={<HistoryIcon sx={{ fontSize: '0.9rem !important' }} />}
+          onClick={() => navigate('/history')}
+          sx={{ color: c.textSecondary, fontSize: '0.72rem', textTransform: 'none' }}
+        >
+          {t('nav_history')}
+        </Button>
+      </Box>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}

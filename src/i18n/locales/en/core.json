@@ -227,5 +227,9 @@
   "total_amount": "total amount",
   "transactions": "list of transactions",
   "transaction_hash": "TX Hash",
-  "wallets": "wallets"
+  "wallets": "wallets",
+  "nav_history": "history",
+  "nav_share_contact": "share contact",
+  "share_contact_copied": "contact link copied",
+  "share_contact_publishing": "publishing..."
 }
