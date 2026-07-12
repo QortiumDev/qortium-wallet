@@ -72,16 +72,22 @@ export function useUnifiedHistory(chains: ChainConfig[]): UseUnifiedHistoryResul
     setRows([]);
     setErrorChains([]);
 
+    let cancelled = false;
+
     nonArrR.forEach(async (chain) => {
       try {
         const txs = await fetchChainTxs(chain);
-        addRows(txs.map((row) => ({ ...row, chain })));
+        if (!cancelled) addRows(txs.map((row) => ({ ...row, chain })));
       } catch {
-        setErrorChains((prev) => [...prev, chain.ticker]);
+        if (!cancelled) setErrorChains((prev) => [...prev, chain.ticker]);
       } finally {
-        setLoadingChains((prev) => prev.filter((t) => t !== chain.ticker));
+        if (!cancelled) setLoadingChains((prev) => prev.filter((t) => t !== chain.ticker));
       }
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [chainKeys]);
 
   return { rows, loadingChains, errorChains };

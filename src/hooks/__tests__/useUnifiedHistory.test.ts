@@ -64,4 +64,18 @@ describe('useUnifiedHistory', () => {
     await waitFor(() => expect(result.current.loadingChains).toHaveLength(0));
     expect(result.current.errorChains).toContain('LTC');
   });
+
+  it('excludes ARRR from loadingChains', () => {
+    (globalThis as any).qdnRequest.mockResolvedValue([]);
+    const ARRR_CHAIN: ChainConfig = {
+      key: 'ARRR', name: 'Pirate Chain', ticker: 'ARRR', coinEnum: 'ARRR' as any,
+      route: 'arrr', decimalPlaces: 8, isNative: false, defaultFee: 0,
+      activeNetwork: 'MAIN', supportsHtlc: false, supportsLocalChainTrades: false,
+    };
+    const { result } = renderHook(() =>
+      useUnifiedHistory([QORT_CHAIN, ARRR_CHAIN])
+    );
+    expect(result.current.loadingChains).toContain('QORT');
+    expect(result.current.loadingChains).not.toContain('ARRR');
+  });
 });
