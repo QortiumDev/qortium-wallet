@@ -232,6 +232,8 @@
   "nav_share_contact": "share contact",
   "share_contact_copied": "contact link copied",
   "share_contact_publishing": "publishing...",
+  "share_contact_no_name": "a registered name is required to share contact",
+  "share_contact_error": "failed to publish contact card",
   "contact_card_title": "contact card",
   "contact_card_qort_name": "QORT name",
   "contact_card_qort_address": "QORT address",

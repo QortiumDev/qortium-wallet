@@ -622,7 +622,11 @@ export function CoinGrid() {
   const [shareToast, setShareToast] = useState('');
 
   const handleShareContact = useCallback(async () => {
-    if (!userName) return;
+    if (!userName) {
+      setShareToast(t('share_contact_no_name'));
+      setTimeout(() => setShareToast(''), 3000);
+      return;
+    }
     setShareToast(t('share_contact_publishing'));
     try {
       const addressResults = await Promise.all(
@@ -662,11 +666,16 @@ export function CoinGrid() {
       } as any);
 
       const link = `#/contact/${userName}`;
-      await navigator.clipboard.writeText(link);
+      try {
+        await navigator.clipboard.writeText(link);
+      } catch {
+        // clipboard not available; still show success since publish succeeded
+      }
       setShareToast(t('share_contact_copied'));
       setTimeout(() => setShareToast(''), 2500);
     } catch {
-      setShareToast('');
+      setShareToast(t('share_contact_error'));
+      setTimeout(() => setShareToast(''), 3000);
     }
   }, [chains, t, userName]);
 
