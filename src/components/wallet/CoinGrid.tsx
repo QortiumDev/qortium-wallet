@@ -7,7 +7,6 @@ import HistoryIcon from '@mui/icons-material/History';
 import ShareIcon from '@mui/icons-material/Share';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from 'qapp-core';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import {
   DndContext,
@@ -618,17 +617,19 @@ export function CoinGrid() {
 
   const navigate = useNavigate();
   const { t } = useTranslation('core');
-  const { name: userName } = useAuth();
   const [shareToast, setShareToast] = useState('');
 
   const handleShareContact = useCallback(async () => {
-    if (!userName) {
-      setShareToast(t('share_contact_no_name'));
-      setTimeout(() => setShareToast(''), 3000);
-      return;
-    }
     setShareToast(t('share_contact_publishing'));
     try {
+      const account = await qdnRequest({ action: 'GET_SELECTED_ACCOUNT' }) as any;
+      const userName: string = account?.name ?? '';
+      if (!userName) {
+        setShareToast(t('share_contact_no_name'));
+        setTimeout(() => setShareToast(''), 3000);
+        return;
+      }
+
       const addressResults = await Promise.all(
         chains.map(async (chain) => {
           try {
@@ -677,7 +678,7 @@ export function CoinGrid() {
       setShareToast(t('share_contact_error'));
       setTimeout(() => setShareToast(''), 3000);
     }
-  }, [chains, t, userName]);
+  }, [chains, t]);
 
   return (
     <Box
