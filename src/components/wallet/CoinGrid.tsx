@@ -661,6 +661,7 @@ export function CoinGrid() {
 
       await qdnRequest({
         action: 'PUBLISH_QDN_RESOURCE',
+        name: userName,
         service: 'ARBITRARY',
         identifier: 'wallet-contact-card',
         data64: btoa(JSON.stringify(card)),
