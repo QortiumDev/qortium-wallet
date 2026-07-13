@@ -622,8 +622,13 @@ export function CoinGrid() {
   const handleShareContact = useCallback(async () => {
     setShareToast(t('share_contact_publishing'));
     try {
-      const account = await qdnRequest({ action: 'GET_SELECTED_ACCOUNT' }) as any;
-      const userName: string = account?.name ?? '';
+      const unlockResult = await qdnRequest({ action: 'UNLOCK_SELECTED_ACCOUNT' }) as any;
+      if (!unlockResult?.isUnlocked) {
+        setShareToast('');
+        return;
+      }
+
+      const userName: string = unlockResult?.name ?? '';
       if (!userName) {
         setShareToast(t('share_contact_no_name'));
         setTimeout(() => setShareToast(''), 3000);
