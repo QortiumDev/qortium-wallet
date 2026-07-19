@@ -97,10 +97,9 @@ describe('usePaymentNotifications', () => {
     );
   });
 
-  it('removes persisted rules when disabled before fresh-mount registration finishes', async () => {
+  it('removes persisted rules when disabled from a fresh locked mount', async () => {
     mocks.registerPaymentNotifications.mockReturnValue(new Promise(() => {}));
     const store = createStore();
-    store.set(walletReadyAtom, true);
     store.set(notificationsEnabledAtom, true);
 
     render(
@@ -109,15 +108,12 @@ describe('usePaymentNotifications', () => {
       </Provider>
     );
 
-    await waitFor(() =>
-      expect(mocks.registerPaymentNotifications).toHaveBeenCalledWith(['BTC'])
-    );
-
     act(() => store.set(notificationsEnabledAtom, false));
 
     await waitFor(() =>
       expect(mocks.removeNotificationRules).toHaveBeenCalledTimes(1)
     );
+    expect(mocks.registerPaymentNotifications).not.toHaveBeenCalled();
     expect(store.get(paymentNotificationRegistrationStatusAtom)).toBe('idle');
   });
 });

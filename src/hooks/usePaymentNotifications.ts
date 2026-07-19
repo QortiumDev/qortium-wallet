@@ -63,7 +63,7 @@ export function usePaymentNotifications() {
   }, []);
 
   useEffect(() => {
-    if (!supported || !walletReady) return;
+    if (!supported) return;
 
     let cancelled = false;
 
@@ -93,6 +93,8 @@ export function usePaymentNotifications() {
         cancelled = true;
       };
     }
+
+    if (!walletReady) return;
 
     disabledCleanupAttempted.current = false;
     const foreignCoins = chains
