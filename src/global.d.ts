@@ -41,6 +41,7 @@ interface QdnRequestOptions {
   mimeType?: string;
   mode?: string;
   name?: string;
+  notificationIds?: string[];
   offset?: number;
   path?: string;
   port?: number;
@@ -52,6 +53,7 @@ interface QdnRequestOptions {
   service?: string;
   sendMax?: boolean;
   startBlock?: number;
+  subscriptions?: unknown[];
   tag1?: string;
   tag2?: string;
   tag3?: string;

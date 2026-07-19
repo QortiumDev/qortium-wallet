@@ -3,7 +3,6 @@ import { Box, Button, IconButton, Skeleton, Tooltip } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SendIcon from '@mui/icons-material/Send';
 import CheckIcon from '@mui/icons-material/Check';
-import HistoryIcon from '@mui/icons-material/History';
 import ShareIcon from '@mui/icons-material/Share';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -45,13 +44,15 @@ import {
 
 // Min tile width in px per zoom level — CSS auto-fill guarantees each level is visually distinct
 const TILE_MIN_PX: Record<number, number> = {
-  1: 220,
-  2: 170,
-  3: 130,
-  4: 95,
-  5: 65,
-  6: 50,
-  7: 38,
+  1: 320,
+  2: 260,
+  3: 220,
+  4: 170,
+  5: 130,
+  6: 95,
+  7: 65,
+  8: 50,
+  9: 38,
 };
 
 
@@ -107,9 +108,20 @@ function CoinBlock({
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!address) return;
-    navigator.clipboard.writeText(address).then(() => {
+    const finish = () => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    };
+    navigator.clipboard.writeText(address).then(finish).catch(() => {
+      const el = document.createElement('textarea');
+      el.value = address;
+      el.style.cssText = 'position:fixed;top:-9999px';
+      document.body.appendChild(el);
+      el.focus();
+      el.select();
+      try { document.execCommand('copy'); } catch { /* */ }
+      document.body.removeChild(el);
+      finish();
     });
   };
 
@@ -335,11 +347,11 @@ function CoinBlock({
             {fiatDisplay}
           </Box>
         )}
-        {tileSize <= 4 && (
+        {tileSize <= 6 && (
           <Box
             sx={{
               fontFamily: c.monoFontFamily,
-              fontSize: tileSize <= 2 ? '0.55rem' : '0.6rem',
+              fontSize: tileSize <= 4 ? '0.55rem' : '0.6rem',
               color: 'rgba(255,255,255,0.75)',
               mt: 0.5,
               overflow: 'hidden',
@@ -421,7 +433,7 @@ export function CoinGrid() {
   const uiStyle = useAtomValue(uiStyleAtom);
   const currency = useAtomValue(currencyAtom);
   const hideZero = useAtomValue(hideZeroAtom);
-  const prices = useMarketPrices(chains, currency);
+  const prices = useMarketPrices();
   const [balances, setBalances] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [canSendNative, setCanSendNative] = useState(true);
@@ -615,7 +627,6 @@ export function CoinGrid() {
   const isCustom = sortMode === 'custom';
   const isClassic = uiStyle === 'classic';
 
-  const navigate = useNavigate();
   const { t } = useTranslation('core');
   const [shareToast, setShareToast] = useState('');
 
@@ -708,14 +719,6 @@ export function CoinGrid() {
           sx={{ color: c.textSecondary, fontSize: '0.72rem', textTransform: 'none' }}
         >
           {t('nav_share_contact')}
-        </Button>
-        <Button
-          size="small"
-          startIcon={<HistoryIcon sx={{ fontSize: '0.9rem !important' }} />}
-          onClick={() => navigate('/history')}
-          sx={{ color: c.textSecondary, fontSize: '0.72rem', textTransform: 'none' }}
-        >
-          {t('nav_history')}
         </Button>
       </Box>
       <DndContext

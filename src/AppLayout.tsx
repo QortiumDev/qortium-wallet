@@ -11,9 +11,13 @@ import { useColors } from './theme/ColorTokensContext';
 import { EMPTY_STRING, TIME_MINUTES_1 } from './common/constants';
 import { syncAllAddressBooksOnStartup } from './utils/addressBookQDN';
 import { walletReadyAtom } from './state/global/system';
+import { useMarketPricesPoller } from './hooks/useMarketPricesPoller';
+import { usePaymentNotifications } from './hooks/usePaymentNotifications';
 
 export default function AppLayout() {
   useIframe();
+  useMarketPricesPoller();
+  usePaymentNotifications();
   const c = useColors();
 
   const { setWalletState } = useContext(walletContext);

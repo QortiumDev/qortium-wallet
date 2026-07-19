@@ -139,11 +139,22 @@ export function UnifiedHistory() {
                   userAddress={(row.totalAmount ?? 0) > 0 ? (row.recipient ?? '') : (row.sender ?? '')}
                   expanded={expandedTxKey === rowKey}
                   onToggleExpand={() => setExpandedTxKey(expandedTxKey === rowKey ? null : rowKey)}
-                  copiedHash={copiedHashKey === rowKey ? 0 : null}
+                  copiedHash={copiedHashKey === rowKey ? i : null}
                   onCopyHash={(_i: number, hash: string) => {
-                    navigator.clipboard.writeText(hash).then(() => {
+                    const finish = () => {
                       setCopiedHashKey(rowKey);
                       setTimeout(() => setCopiedHashKey(null), 2000);
+                    };
+                    navigator.clipboard.writeText(hash).then(finish).catch(() => {
+                      const el = document.createElement('textarea');
+                      el.value = hash;
+                      el.style.cssText = 'position:fixed;top:-9999px';
+                      document.body.appendChild(el);
+                      el.focus();
+                      el.select();
+                      try { document.execCommand('copy'); } catch { /* */ }
+                      document.body.removeChild(el);
+                      finish();
                     });
                   }}
                   showCoinBadge

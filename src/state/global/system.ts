@@ -48,8 +48,8 @@ export type SortMode =
 export const sortModeAtom = atomWithStorage<SortMode>('qw-sort-mode', 'custom');
 export const customOrderAtom = atomWithStorage<string[]>('qw-custom-order', []);
 
-// 1 = biggest tiles, 7 = smallest tiles
-export const tileSizeAtom = atomWithStorage<number>('qw-tile-zoom', 1);
+// 1 = biggest tiles, 9 = smallest tiles
+export const tileSizeAtom = atomWithStorage<number>('qw-tile-zoom-v2', 3);
 
 export const FIAT_CURRENCIES: { code: string; label: string }[] = [
   { code: 'usd', label: 'USD - US Dollar' },
@@ -76,5 +76,16 @@ export const hideZeroAtom = atomWithStorage<boolean>('qw-hide-zero', false);
 // Total fiat value of all coin balances - written by CoinGrid, read by TopBar
 export const portfolioFiatAtom = atom<number | null>(null);
 
+// Per-coin fiat unit prices - written by the single app-wide poller (useMarketPricesPoller,
+// mounted once in AppLayout), read by CoinGrid/CoinDetail/TopBar. Keeping one poller avoids
+// each consumer opening its own GET_MARKET_PRICES interval and multiplying requests.
+export const marketPricesAtom = atom<Record<string, number | undefined>>({});
+
 // Set to true after the lock check + optional unlock prompt completes on mount
 export const walletReadyAtom = atom<boolean>(false);
+
+// Background payment notifications (own QORT address + foreign coin xpubs).
+// notificationsSupportedAtom is set once after a SHOW_ACTIONS feature check;
+// notificationsEnabledAtom is the user's local on/off preference, off by default.
+export const notificationsSupportedAtom = atom<boolean>(false);
+export const notificationsEnabledAtom = atomWithStorage<boolean>('qw-notifications-enabled', false);

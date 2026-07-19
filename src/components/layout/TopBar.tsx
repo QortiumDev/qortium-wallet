@@ -7,28 +7,28 @@ import {
   MenuItem,
   Tooltip,
 } from '@mui/material';
-import LightModeIcon from '@mui/icons-material/LightMode';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
 import SortIcon from '@mui/icons-material/Sort';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
-import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import PersonRemoveAlt1Icon from '@mui/icons-material/PersonRemoveAlt1';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import { useAtom, useAtomValue } from 'jotai';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  EnumTheme,
-  themeAtom,
   uiStyleAtom,
   sortModeAtom,
   tileSizeAtom,
   currencyAtom,
   portfolioFiatAtom,
   hideZeroAtom,
+  notificationsEnabledAtom,
+  notificationsSupportedAtom,
   FIAT_CURRENCIES,
   type SortMode,
 } from '../../state/global/system';
@@ -36,9 +36,12 @@ import { formatFiat } from '../../common/functions';
 import { useColors } from '../../theme/ColorTokensContext';
 import { tokens } from '../../theme/tokens';
 import { useSupportedChains } from '../../hooks/useSupportedChains';
+import { useMarketPrices } from '../../hooks/useMarketPrices';
 import { RatingControl } from './RatingControl';
+import { AppIcon, getOwnQdnName } from './AppIdentity';
+import { PriceTicker } from './PriceTicker';
 
-const APP_QDN_NAME = 'Wallet';
+const APP_QDN_NAME = getOwnQdnName('Wallet');
 const APP_QDN_IDENTIFIER = 'Wallet';
 
 const SORT_OPTIONS: { value: SortMode; label: string }[] = [
@@ -49,18 +52,33 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
   { value: 'balance-asc', label: 'Balance low → high' },
 ];
 
+const ZOOM_LEVELS: { value: number; label: string }[] = [
+  { value: 1, label: 'Largest' },
+  { value: 2, label: 'Larger' },
+  { value: 3, label: 'Large' },
+  { value: 4, label: 'Medium' },
+  { value: 5, label: 'Small' },
+  { value: 6, label: 'Smaller' },
+  { value: 7, label: 'Compact' },
+  { value: 8, label: 'Tiny' },
+  { value: 9, label: 'Smallest' },
+];
+
 export function TopBar() {
   const c = useColors();
   const { chains, status } = useSupportedChains();
-  const [theme, setTheme] = useAtom(themeAtom);
   const uiStyle = useAtomValue(uiStyleAtom);
   const [sortMode, setSortMode] = useAtom(sortModeAtom);
   const [tileSize, setTileSize] = useAtom(tileSizeAtom);
   const [currency, setCurrency] = useAtom(currencyAtom);
   const portfolioFiat = useAtomValue(portfolioFiatAtom);
+  const prices = useMarketPrices();
   const [hideZero, setHideZero] = useAtom(hideZeroAtom);
+  const [notificationsEnabled, setNotificationsEnabled] = useAtom(notificationsEnabledAtom);
+  const notificationsSupported = useAtomValue(notificationsSupportedAtom);
   const headerRef = useRef<HTMLElement | null>(null);
   const [sortAnchor, setSortAnchor] = useState<null | HTMLElement>(null);
+  const [zoomAnchor, setZoomAnchor] = useState<null | HTMLElement>(null);
   const [currencyAnchor, setCurrencyAnchor] = useState<null | HTMLElement>(
     null
   );
@@ -68,7 +86,7 @@ export function TopBar() {
     'idle'
   );
   const { pathname } = useLocation();
-  const isDark = theme === EnumTheme.DARK;
+  const navigate = useNavigate();
   const isClassic = uiStyle === 'classic';
   const isGrid = pathname === '/';
   const [isFollowed, setIsFollowed] = useState(false);
@@ -188,15 +206,6 @@ export function TopBar() {
     }
   };
 
-  function handleToggleTheme() {
-    const next = isDark ? EnumTheme.LIGHT : EnumTheme.DARK;
-    setTheme(next);
-    document.documentElement.dataset.theme =
-      next === EnumTheme.DARK ? 'dark' : 'light';
-    document.documentElement.style.colorScheme =
-      next === EnumTheme.DARK ? 'dark' : 'light';
-  }
-
   const buttonSx = {
     color: c.textSecondary,
     borderRadius: `${isClassic ? tokens.shape.radiusMd : tokens.shape.radius}px`,
@@ -246,21 +255,37 @@ export function TopBar() {
           display: 'flex',
           alignItems: 'center',
           gap: 1.5,
+          flexWrap: 'wrap',
           minWidth: 0,
         }}
       >
         <Box
+          onClick={() => navigate('/')}
           sx={{
-            fontWeight: tokens.typography.weightBlack,
-            fontSize: '1rem',
-            letterSpacing: { xs: '0.08em', sm: '0.18em' },
-            textTransform: 'uppercase',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.75,
             color: c.textPrimary,
+            cursor: 'pointer',
+            '&:hover': { color: c.accent },
+            transition: c.transitionControl,
             userSelect: 'none',
+            minWidth: 0,
             flexShrink: 0,
           }}
         >
-          Wallet
+          <AppIcon qdnName={APP_QDN_NAME} />
+          <Box
+            sx={{
+              fontWeight: tokens.typography.weightBlack,
+              fontSize: '1rem',
+              letterSpacing: { xs: '0.08em', sm: '0.18em' },
+              textTransform: 'uppercase',
+              color: 'inherit',
+            }}
+          >
+            {APP_QDN_NAME}
+          </Box>
         </Box>
 
         {status !== 'pending' && (
@@ -304,35 +329,75 @@ export function TopBar() {
           </Tooltip>
         )}
 
-        {portfolioFiat != null && (
-          <Tooltip title="Total portfolio value" placement="bottom">
-            <Box
-              sx={{
-                fontSize: '0.85rem',
-                fontWeight: tokens.typography.weightBold,
-                color: c.textPrimary,
-                letterSpacing: '0.02em',
-                userSelect: 'none',
-                cursor: 'default',
-                pl: 0.5,
+        {/* Zoom (grid page only) */}
+        {isGrid && (
+          <>
+            <Tooltip title="Zoom" placement="bottom">
+              <IconButton
+                size="small"
+                onClick={(e) => setZoomAnchor(e.currentTarget)}
+                sx={{
+                  ...buttonSx,
+                  color: zoomAnchor ? c.accent : c.textSecondary,
+                }}
+                aria-label="select zoom level"
+              >
+                <ZoomInIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+
+            <Menu
+              anchorEl={zoomAnchor}
+              open={Boolean(zoomAnchor)}
+              onClose={() => setZoomAnchor(null)}
+              slotProps={{
+                paper: {
+                  sx: {
+                    bgcolor: c.surface,
+                    border: `${
+                      isClassic
+                        ? tokens.shape.classicBorderWidth
+                        : tokens.shape.borderWidth
+                    } solid ${isClassic ? c.border : c.borderLight}`,
+                    borderRadius: `${isClassic ? tokens.shape.radiusMd : tokens.shape.radius}px`,
+                    boxShadow: isClassic
+                      ? c.shadowPop
+                      : '0 4px 20px rgba(0,0,0,0.14)',
+                    minWidth: 190,
+                  },
+                },
               }}
             >
-              {formatFiat(portfolioFiat, currency)}
-            </Box>
-          </Tooltip>
+              {ZOOM_LEVELS.map((opt) => (
+                <MenuItem
+                  key={opt.value}
+                  selected={tileSize === opt.value}
+                  onClick={() => {
+                    setTileSize(opt.value);
+                    setZoomAnchor(null);
+                  }}
+                  sx={{
+                    fontSize: '0.8rem',
+                    letterSpacing: '0.04em',
+                    color: tileSize === opt.value ? c.accent : c.textPrimary,
+                    fontWeight:
+                      tileSize === opt.value
+                        ? tokens.typography.weightBold
+                        : 400,
+                    '&.Mui-selected': { bgcolor: c.accentSoft },
+                    '&.Mui-selected:hover': { bgcolor: c.accentRing },
+                    '&:hover': {
+                      bgcolor: isClassic ? c.controlHover : `${c.accent}0c`,
+                    },
+                  }}
+                >
+                  {opt.label}
+                </MenuItem>
+              ))}
+            </Menu>
+          </>
         )}
-      </Box>
 
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: { xs: 'flex-start', sm: 'flex-end' },
-          gap: isClassic ? 0.5 : 0.25,
-          flexWrap: 'wrap',
-          minWidth: 0,
-        }}
-      >
         {/* Copy all addresses */}
         <Tooltip
           title={copyState === 'done' ? 'Copied!' : 'Copy all addresses'}
@@ -358,35 +423,24 @@ export function TopBar() {
           </IconButton>
         </Tooltip>
 
-        {/* Zoom + Sort (grid page only) */}
+        {/* Transaction history */}
+        <Tooltip title="All transactions" placement="bottom">
+          <IconButton
+            size="small"
+            onClick={() => navigate(pathname === '/history' ? '/' : '/history')}
+            sx={{
+              ...buttonSx,
+              color: pathname === '/history' ? c.accent : c.textSecondary,
+            }}
+            aria-label="all transactions"
+          >
+            <ReceiptLongIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
+        {/* Sort (grid page only) */}
         {isGrid && (
           <>
-            <Tooltip title="Zoom out" placement="bottom">
-              <span>
-                <IconButton
-                  size="small"
-                  onClick={() => setTileSize((s) => Math.min(s + 1, 7))}
-                  disabled={tileSize >= 7}
-                  sx={buttonSx}
-                >
-                  <ZoomOutIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-
-            <Tooltip title="Zoom in" placement="bottom">
-              <span>
-                <IconButton
-                  size="small"
-                  onClick={() => setTileSize((s) => Math.max(s - 1, 1))}
-                  disabled={tileSize <= 1}
-                  sx={buttonSx}
-                >
-                  <ZoomInIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-
             <Tooltip title="Sort" placement="bottom">
               <IconButton
                 size="small"
@@ -539,7 +593,65 @@ export function TopBar() {
                 </MenuItem>
               ))}
             </Menu>
+
+            {portfolioFiat != null && (
+              <Tooltip title="Total portfolio value" placement="bottom">
+                <Box
+                  sx={{
+                    fontSize: '0.85rem',
+                    fontWeight: tokens.typography.weightBold,
+                    color: c.textPrimary,
+                    letterSpacing: '0.02em',
+                    userSelect: 'none',
+                    cursor: 'default',
+                    flexShrink: 0,
+                  }}
+                >
+                  {formatFiat(portfolioFiat, currency)}
+                </Box>
+              </Tooltip>
+            )}
+
+            <Box
+              sx={{
+                display: { xs: 'none', md: 'flex' },
+                flex: '1 1 160px',
+                minWidth: 0,
+              }}
+            >
+              <PriceTicker chains={chains} prices={prices} currency={currency} />
+            </Box>
           </>
+        )}
+      </Box>
+
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+          gap: isClassic ? 0.5 : 0.25,
+          minWidth: 0,
+        }}
+      >
+        {notificationsSupported && (
+          <Tooltip
+            title={notificationsEnabled ? 'Notify me of incoming payments' : 'Notifications off'}
+            placement="bottom"
+          >
+            <IconButton
+              size="small"
+              onClick={() => setNotificationsEnabled((v) => !v)}
+              sx={{ ...buttonSx, color: notificationsEnabled ? c.accent : c.textSecondary }}
+              aria-label={notificationsEnabled ? 'disable payment notifications' : 'enable payment notifications'}
+            >
+              {notificationsEnabled ? (
+                <NotificationsActiveIcon fontSize="small" />
+              ) : (
+                <NotificationsOffIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
         )}
 
         <RatingControl qdnName={APP_QDN_NAME} identifier={APP_QDN_IDENTIFIER} />
@@ -576,21 +688,6 @@ export function TopBar() {
             aria-label="help and feedback"
           >
             <HelpOutlineIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title={isDark ? 'Light mode' : 'Dark mode'} placement="bottom">
-          <IconButton
-            size="small"
-            onClick={handleToggleTheme}
-            sx={buttonSx}
-            aria-label="toggle dark mode"
-          >
-            {isDark ? (
-              <LightModeIcon fontSize="small" />
-            ) : (
-              <DarkModeIcon fontSize="small" />
-            )}
           </IconButton>
         </Tooltip>
       </Box>

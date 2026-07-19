@@ -103,7 +103,7 @@ export function CoinDetail({ chain }: Props) {
   const uiStyle = useAtomValue(uiStyleAtom);
   const currency = useAtomValue(currencyAtom);
   const walletReady = useAtomValue(walletReadyAtom);
-  const prices = useMarketPrices([chain], currency);
+  const prices = useMarketPrices();
   const pricePerUnit = prices[chain.coinEnum];
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
