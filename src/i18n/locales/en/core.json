@@ -76,9 +76,6 @@
     "balance": "balance:",
     "amount_label": "amount ({{ coin }})",
     "recipient_address": "recipient address",
-    "message_label": "payment message (optional)",
-    "recipient_qort_label": "recipient's QORT address or name",
-    "qort_resolve_failed": "QORT address could not be resolved",
     "optional_custom_fee": "optional custom fee ({{ coin }})",
     "optional_fee_per_byte": "optional fee per byte ({{ coin }})",
     "arrr_fixed_fee": "ARRR network fee is fixed - this value is for display only",
@@ -228,17 +225,5 @@
   "transactions": "list of transactions",
   "transaction_hash": "TX Hash",
   "wallets": "wallets",
-  "nav_history": "history",
-  "nav_share_contact": "share contact",
-  "share_contact_copied": "contact link copied",
-  "share_contact_publishing": "publishing...",
-  "share_contact_no_name": "a registered name is required to share contact",
-  "share_contact_error": "failed to publish contact card",
-  "contact_card_title": "contact card",
-  "contact_card_qort_name": "QORT name",
-  "contact_card_qort_address": "QORT address",
-  "contact_card_addresses": "wallet addresses",
-  "contact_card_add_all": "add to address book",
-  "contact_card_not_found": "contact card not found",
-  "contact_card_import_success": "addresses imported"
+  "nav_history": "history"
 }

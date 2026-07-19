@@ -1,7 +1,6 @@
-import { Box, IconButton, CircularProgress } from '@mui/material';
+import { Box, IconButton } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
-import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import { useAtomValue } from 'jotai';
 import { uiStyleAtom } from '../../state/global/system';
 import { useColors } from '../../theme/ColorTokensContext';
@@ -9,7 +8,6 @@ import { tokens } from '../../theme/tokens';
 import { useCoinImageUrl } from '../../hooks/useCoinImageUrl';
 import type { ChainConfig } from '../../config/chains';
 import { epochToAgo } from '../../common/functions';
-import { getCachedMessage } from '../../utils/paymentMessages';
 
 export interface TxRow {
   txHash?: string;
@@ -32,9 +30,6 @@ interface TransactionRowProps {
   onToggleExpand: () => void;
   copiedHash: number | null;
   onCopyHash: (index: number, hash: string) => void;
-  /** Fetched QDN message for received txs; undefined = not yet attempted, null = not found */
-  qdnMessage?: string | null;
-  qdnMessageLoading?: boolean;
   /** When true, renders a coin icon + ticker badge before the dot (used in UnifiedHistory) */
   showCoinBadge?: boolean;
 }
@@ -49,8 +44,6 @@ export function TransactionRow({
   onToggleExpand,
   copiedHash,
   onCopyHash,
-  qdnMessage,
-  qdnMessageLoading,
   showCoinBadge,
 }: TransactionRowProps) {
   const c = useColors();
@@ -86,9 +79,6 @@ export function TransactionRow({
   };
 
   const cp = counterparty();
-  const cachedMsg = row.txHash ? getCachedMessage(row.txHash) : null;
-  const displayMessage = cachedMsg ?? qdnMessage;
-  const hasMessage = displayMessage != null;
 
   return (
     <Box
@@ -177,12 +167,6 @@ export function TransactionRow({
           {cp ? (isPositive ? `from ${fmtAddr(cp)}` : `to ${fmtAddr(cp)}`) : '—'}
         </Box>
 
-        {hasMessage && (
-          <MailOutlineIcon
-            sx={{ fontSize: 14, color: c.textSecondary, flexShrink: 0 }}
-          />
-        )}
-
         <Box
           sx={{
             fontSize: '0.7rem',
@@ -209,35 +193,6 @@ export function TransactionRow({
             gap: 1.25,
           }}
         >
-          {/* Message row - shown when there is a message or it's loading */}
-          {(displayMessage != null || qdnMessageLoading) && (
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-              <Box
-                sx={{
-                  fontSize: '0.65rem',
-                  fontWeight: tokens.typography.weightBold,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  color: c.textSecondary,
-                  minWidth: 44,
-                  flexShrink: 0,
-                  pt: 0.25,
-                }}
-              >
-                Message
-              </Box>
-              {qdnMessageLoading ? (
-                <CircularProgress size={12} sx={{ color: c.accent, mt: 0.5 }} />
-              ) : (
-                <Box
-                  sx={{ fontSize: '0.78rem', color: c.textPrimary, flex: 1, wordBreak: 'break-word' }}
-                >
-                  {displayMessage}
-                </Box>
-              )}
-            </Box>
-          )}
-
           {/* Standard detail rows */}
           {[
             { label: 'Hash', value: str(row.txHash), mono: true, copyIdx: index },
