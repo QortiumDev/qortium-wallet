@@ -56,18 +56,6 @@ import {
   TIME_SECONDS_3,
 } from '../../common/constants';
 import { TransactionRow, type TxRow } from './TransactionRow';
-import {
-  getCachedMessage,
-  fetchPaymentMessage,
-  fetchNameForAddress,
-  resolveQortName,
-  fetchPublicKey,
-  publishPaymentMessage,
-  buildMessagePayload,
-  cacheMessage,
-} from '../../utils/paymentMessages';
-import { getAddressBook } from '../../utils/addressBookStorage';
-import { useAuth } from 'qapp-core';
 
 
 interface Props {
@@ -99,7 +87,6 @@ function walletRequestForChain(chain: ChainConfig): QdnRequestOptions {
 export function CoinDetail({ chain }: Props) {
   const c = useColors();
   const { t } = useTranslation('core');
-  const { address: userQortAddress, name: userQortName } = useAuth();
   const uiStyle = useAtomValue(uiStyleAtom);
   const currency = useAtomValue(currencyAtom);
   const walletReady = useAtomValue(walletReadyAtom);
@@ -119,8 +106,6 @@ export function CoinDetail({ chain }: Props) {
   const [expandedTx, setExpandedTx] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedHash, setCopiedHash] = useState<number | null>(null);
-  const [qdnMessages, setQdnMessages] = useState<Record<string, string | null>>({});
-  const [qdnMessagesLoading, setQdnMessagesLoading] = useState<Record<string, boolean>>({});
 
   const [sendOpen, setSendOpen] = useState(
     () => searchParams.get('send') === 'true'
@@ -132,11 +117,6 @@ export function CoinDetail({ chain }: Props) {
   );
   const [nativeFee, setNativeFee] = useState<string>('');
   const [foreignFeePerByte, setForeignFeePerByte] = useState<string>('');
-  const [paymentMessage, setPaymentMessage] = useState('');
-  const [recipientQort, setRecipientQort] = useState('');
-  const [recipientQortAddress, setRecipientQortAddress] = useState<string | null>(null);
-  const [qortResolving, setQortResolving] = useState(false);
-  const [qortResolveFailed, setQortResolveFailed] = useState(false);
   const [feeLoading, setFeeLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState<'success' | 'error' | null>(
@@ -410,21 +390,6 @@ export function CoinDetail({ chain }: Props) {
     return () => clearInterval(id);
   }, [fetchBalance, fetchTransactions, arrrSynced, walletReady]);
 
-  useEffect(() => {
-    if (!paymentMessage || !recipient) {
-      setRecipientQort('');
-      setRecipientQortAddress(null);
-      setQortResolveFailed(false);
-      return;
-    }
-    const book = getAddressBook(chain.coinEnum as any);
-    const entry = book.find((e) => e.address === recipient.trim());
-    if (entry?.qortAddress) {
-      setRecipientQort(entry.qortAddress);
-      setRecipientQortAddress(entry.qortAddress);
-    }
-  }, [recipient, paymentMessage, chain.coinEnum]);
-
   const openSend = useCallback(async () => {
     setAmount('');
     setSendMax(false);
@@ -433,10 +398,6 @@ export function CoinDetail({ chain }: Props) {
     setSendResponse(null);
     setNativeFee(chain.isNative ? String(chain.defaultFee) : '');
     setForeignFeePerByte('');
-    setPaymentMessage('');
-    setRecipientQort('');
-    setRecipientQortAddress(null);
-    setQortResolveFailed(false);
     setSendOpen(true);
     if (chain.isNative || chain.coinEnum === 'ARRR') return;
     setFeeLoading(true);
@@ -463,28 +424,6 @@ export function CoinDetail({ chain }: Props) {
       setTimeout(() => setCopied(false), 2000);
     });
   };
-
-  const resolveQortField = useCallback(async () => {
-    const val = recipientQort.trim();
-    if (!val) { setRecipientQortAddress(null); return; }
-
-    if (val.startsWith('Q') && val.length > 20) {
-      setRecipientQortAddress(val);
-      setQortResolveFailed(false);
-      return;
-    }
-
-    setQortResolving(true);
-    setQortResolveFailed(false);
-    const addr = await resolveQortName(val);
-    setQortResolving(false);
-    if (addr) {
-      setRecipientQortAddress(addr);
-    } else {
-      setRecipientQortAddress(null);
-      setQortResolveFailed(true);
-    }
-  }, [recipientQort]);
 
   const handleSend = async () => {
     if (!canConfirmSend) return;
@@ -520,24 +459,6 @@ export function CoinDetail({ chain }: Props) {
       setSendResponse(result);
       setSendResult('success');
 
-      const msgToCopy = paymentMessage.trim();
-      const txHashForMsg =
-        result?.prepared?.txHash ??
-        (chain.isNative ? (result as any)?.signature : undefined);
-
-      if (msgToCopy && txHashForMsg && recipientQortAddress && userQortName) {
-        const payload = buildMessagePayload(msgToCopy, txHashForMsg, chain.ticker, amount);
-        cacheMessage(txHashForMsg, msgToCopy);
-        Promise.all([
-          fetchPublicKey(recipientQortAddress),
-          fetchPublicKey(userQortAddress ?? ''),
-        ]).then(([recipPk, senderPk]) => {
-          if (recipPk && senderPk) {
-            publishPaymentMessage(payload, senderPk, recipPk).catch(() => {});
-          }
-        }).catch(() => {});
-      }
-
       window.setTimeout(() => {
         fetchBalance();
         fetchTransactions();
@@ -559,10 +480,6 @@ export function CoinDetail({ chain }: Props) {
     setRecipient(EMPTY_STRING);
     setNativeFee('');
     setForeignFeePerByte('');
-    setPaymentMessage('');
-    setRecipientQort('');
-    setRecipientQortAddress(null);
-    setQortResolveFailed(false);
     setSearchParams({});
   };
 
@@ -620,46 +537,9 @@ export function CoinDetail({ chain }: Props) {
 
   const handleToggleExpand = useCallback(
     (i: number) => {
-      const wasExpanded = expandedTx === i;
-      setExpandedTx(wasExpanded ? null : i);
-
-      if (!wasExpanded) {
-        const row = transactions[i];
-        if (!row.txHash) return;
-        const txHash = row.txHash;
-
-        if (qdnMessages[txHash] !== undefined || getCachedMessage(txHash) !== null) return;
-
-        let senderQortAddress: string | undefined;
-        if (chain.isNative && row.sender) {
-          senderQortAddress = row.sender;
-        } else if (!chain.isNative && row.sender) {
-          const book = getAddressBook(chain.coinEnum as any);
-          const entry = book.find((e) => e.address === row.sender);
-          senderQortAddress = entry?.qortAddress;
-        }
-
-        if (!senderQortAddress) return;
-
-        setQdnMessagesLoading((prev) => ({ ...prev, [txHash]: true }));
-        fetchNameForAddress(senderQortAddress)
-          .then((senderName) => {
-            if (!senderName) return Promise.resolve(null);
-            return fetchPaymentMessage(senderName, txHash);
-          })
-          .then((msg) => {
-            if (isMountedRef.current) {
-              setQdnMessages((prev) => ({ ...prev, [txHash]: msg }));
-            }
-          })
-          .finally(() => {
-            if (isMountedRef.current) {
-              setQdnMessagesLoading((prev) => ({ ...prev, [txHash]: false }));
-            }
-          });
-      }
+      setExpandedTx((prev) => (prev === i ? null : i));
     },
-    [expandedTx, transactions, qdnMessages, chain]
+    []
   );
 
   return (
@@ -1183,8 +1063,6 @@ export function CoinDetail({ chain }: Props) {
                     onToggleExpand={() => handleToggleExpand(i)}
                     copiedHash={copiedHash}
                     onCopyHash={handleCopyHash}
-                    qdnMessage={row.txHash ? qdnMessages[row.txHash] : undefined}
-                    qdnMessageLoading={row.txHash ? qdnMessagesLoading[row.txHash] : false}
                   />
                 ))
               )}
@@ -1407,47 +1285,6 @@ export function CoinDetail({ chain }: Props) {
                       : undefined
                   }
                 />
-
-                <TextField
-                  label={t('send_dialog.message_label')}
-                  value={paymentMessage}
-                  onChange={(e) => {
-                    if (e.target.value.length <= 280) setPaymentMessage(e.target.value);
-                  }}
-                  fullWidth
-                  multiline
-                  rows={2}
-                  disabled={sending}
-                  helperText={paymentMessage ? `${paymentMessage.length}/280` : undefined}
-                />
-
-                {paymentMessage && (
-                  <TextField
-                    label={t('send_dialog.recipient_qort_label')}
-                    value={recipientQort}
-                    onChange={(e) => {
-                      setRecipientQort(e.target.value);
-                      setRecipientQortAddress(null);
-                      setQortResolveFailed(false);
-                    }}
-                    onBlur={resolveQortField}
-                    fullWidth
-                    disabled={sending || qortResolving}
-                    error={qortResolveFailed}
-                    helperText={
-                      qortResolveFailed
-                        ? t('send_dialog.qort_resolve_failed')
-                        : recipientQortAddress
-                          ? '✓'
-                          : undefined
-                    }
-                    InputProps={{
-                      endAdornment: qortResolving ? (
-                        <CircularProgress size={16} sx={{ color: c.accent }} />
-                      ) : undefined,
-                    }}
-                  />
-                )}
 
                 {!chain.isNative && (
                   <TextField
