@@ -34,7 +34,7 @@ export function usePaymentNotifications() {
     paymentNotificationRegistrationStatusAtom
   );
   const { chains } = useSupportedChains();
-  const lastSyncedSignature = useRef<string | null>(null);
+  const disabledCleanupAttempted = useRef(false);
   const [accountRevision, setAccountRevision] = useState(0);
 
   useEffect(() => {
@@ -53,7 +53,7 @@ export function usePaymentNotifications() {
         (event.data as { action?: unknown }).action ===
           'SELECTED_ACCOUNT_CHANGED'
       ) {
-        lastSyncedSignature.current = null;
+        disabledCleanupAttempted.current = false;
         setAccountRevision((value) => value + 1);
       }
     };
@@ -68,27 +68,33 @@ export function usePaymentNotifications() {
     let cancelled = false;
 
     if (!enabled) {
-      if (lastSyncedSignature.current !== null) {
-        setRegistrationStatus('registering');
-        removeNotificationRules()
-          .then(() => {
-            if (cancelled) return;
-            lastSyncedSignature.current = null;
-            setRegistrationStatus('idle');
-          })
-          .catch((error) => {
-            if (cancelled) return;
-            setRegistrationError(paymentNotificationErrorMessage(error));
-            setRegistrationStatus('error');
-          });
-      } else if (!registrationError) {
-        setRegistrationStatus('idle');
+      if (disabledCleanupAttempted.current) {
+        if (!registrationError) setRegistrationStatus('idle');
+        return;
       }
+
+      // Rules are durable in Home, while this hook's refs are not. Always make
+      // one app-scoped removal attempt from a disabled mount so turning the bell
+      // off after a restart also clears rules registered by the previous mount.
+      disabledCleanupAttempted.current = true;
+      setRegistrationStatus('registering');
+      removeNotificationRules()
+        .then(() => {
+          if (cancelled) return;
+          setRegistrationStatus(registrationError ? 'error' : 'idle');
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          setRegistrationError(paymentNotificationErrorMessage(error));
+          setRegistrationStatus('error');
+        });
+
       return () => {
         cancelled = true;
       };
     }
 
+    disabledCleanupAttempted.current = false;
     const foreignCoins = chains
       .filter((chain) => !chain.isNative && chain.key !== 'ARRR')
       .map((chain) => chain.coinEnum);
@@ -96,9 +102,8 @@ export function usePaymentNotifications() {
     setRegistrationError(null);
     setRegistrationStatus('registering');
     registerPaymentNotifications(foreignCoins)
-      .then(({ signature }) => {
+      .then(() => {
         if (cancelled) return;
-        lastSyncedSignature.current = signature;
         setRegistrationStatus('registered');
       })
       .catch((error) => {
