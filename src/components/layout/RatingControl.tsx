@@ -5,7 +5,10 @@ import StarBorderIcon from '@mui/icons-material/StarBorder';
 import { useColors } from '../../theme/ColorTokensContext';
 import { tokens } from '../../theme/tokens';
 
-function requestQdn(options: { action: string; [key: string]: unknown }): Promise<unknown> {
+function requestQdn(options: {
+  action: string;
+  [key: string]: unknown;
+}): Promise<unknown> {
   if (typeof qdnRequest !== 'function') {
     return Promise.reject(new Error('qdnRequest unavailable'));
   }
@@ -22,17 +25,31 @@ const STAR_VALUES = Array.from({ length: 10 }, (_, i) => i + 1);
 function isBridgeMessage(e: MessageEvent<unknown>, action: string): boolean {
   return (
     (e.source === window.parent || e.source === window) &&
-    typeof e.data === 'object' && e.data !== null &&
+    typeof e.data === 'object' &&
+    e.data !== null &&
     (e.data as { action?: unknown }).action === action
   );
 }
 
-export function RatingControl({ qdnName, service = 'APP', identifier = 'default' }: { qdnName: string; service?: string; identifier?: string }) {
+export function RatingControl({
+  qdnName,
+  service = 'APP',
+  identifier = 'default',
+}: {
+  qdnName: string;
+  service?: string;
+  identifier?: string;
+}) {
   const c = useColors();
-  const [summary, setSummary] = useState<RatingSummary>({ ratingCount: 0, weightedAverageRating: null });
+  const [summary, setSummary] = useState<RatingSummary>({
+    ratingCount: 0,
+    weightedAverageRating: null,
+  });
   const [myRating, setMyRating] = useState<number | null>(null);
   const [canRate, setCanRate] = useState(false);
-  const [isClassic, setIsClassic] = useState(document.documentElement.dataset.ui === 'classic');
+  const [isClassic, setIsClassic] = useState(
+    document.documentElement.dataset.ui === 'classic'
+  );
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [hovered, setHovered] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -40,7 +57,12 @@ export function RatingControl({ qdnName, service = 'APP', identifier = 'default'
   useEffect(() => {
     let cancelled = false;
 
-    function applySummary(s: { ratingCount?: number; weightedAverageRating?: number | null } | null | undefined) {
+    function applySummary(
+      s:
+        | { ratingCount?: number; weightedAverageRating?: number | null }
+        | null
+        | undefined
+    ) {
       if (!s) return;
       setSummary({
         ratingCount: typeof s.ratingCount === 'number' ? s.ratingCount : 0,
@@ -49,11 +71,19 @@ export function RatingControl({ qdnName, service = 'APP', identifier = 'default'
     }
 
     function fetchRating() {
-      requestQdn({ action: 'GET_RESOURCE_RATING', service, name: qdnName, identifier })
+      requestQdn({
+        action: 'GET_RESOURCE_RATING',
+        service,
+        name: qdnName,
+        identifier,
+      })
         .then((res) => {
           if (cancelled) return;
           const data = res as {
-            summary?: { ratingCount?: number; weightedAverageRating?: number | null } | null;
+            summary?: {
+              ratingCount?: number;
+              weightedAverageRating?: number | null;
+            } | null;
             rating?: { rating?: number } | null;
           } | null;
           applySummary(data?.summary);
@@ -70,7 +100,12 @@ export function RatingControl({ qdnName, service = 'APP', identifier = 'default'
           })
             .then((res) => {
               if (cancelled) return;
-              applySummary(res as { ratingCount?: number; weightedAverageRating?: number | null } | null);
+              applySummary(
+                res as {
+                  ratingCount?: number;
+                  weightedAverageRating?: number | null;
+                } | null
+              );
             })
             .catch(() => {});
         });
@@ -80,7 +115,8 @@ export function RatingControl({ qdnName, service = 'APP', identifier = 'default'
 
     requestQdn({ action: 'SHOW_ACTIONS' })
       .then((actions) => {
-        if (!cancelled && Array.isArray(actions)) setCanRate(actions.includes('RATE_RESOURCE'));
+        if (!cancelled && Array.isArray(actions))
+          setCanRate(actions.includes('RATE_RESOURCE'));
       })
       .catch(() => {});
 
@@ -107,15 +143,23 @@ export function RatingControl({ qdnName, service = 'APP', identifier = 'default'
     setMyRating(value === 0 ? null : value);
     try {
       const account = await requestQdn({ action: 'UNLOCK_SELECTED_ACCOUNT' });
-      if (!(account as { isUnlocked?: boolean } | null)?.isUnlocked) throw new Error('Account is locked.');
-      await requestQdn({ action: 'RATE_RESOURCE', service, name: qdnName, identifier, rating: value });
+      if (!(account as { isUnlocked?: boolean } | null)?.isUnlocked)
+        throw new Error('Account is locked.');
+      await requestQdn({
+        action: 'RATE_RESOURCE',
+        service,
+        name: qdnName,
+        identifier,
+        rating: value,
+      });
     } catch {
       setMyRating(previous);
     }
     setBusy(false);
   }
 
-  const average = summary.ratingCount > 0 ? summary.weightedAverageRating : null;
+  const average =
+    summary.ratingCount > 0 ? summary.weightedAverageRating : null;
   const hasMyRating = myRating !== null;
 
   return (
@@ -129,14 +173,28 @@ export function RatingControl({ qdnName, service = 'APP', identifier = 'default'
             color: hasMyRating ? c.accent : c.textSecondary,
             gap: 0.5,
             px: average !== null ? 1 : undefined,
-            '&:hover': { color: c.accent, bgcolor: isClassic ? c.controlHover : c.borderLight },
+            '&:hover': {
+              color: c.accent,
+              bgcolor: isClassic ? c.controlHover : c.borderLight,
+            },
             transition: '0.15s ease',
           }}
           aria-label="rate this app"
         >
-          {hasMyRating ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
+          {hasMyRating ? (
+            <StarIcon fontSize="small" />
+          ) : (
+            <StarBorderIcon fontSize="small" />
+          )}
           {average !== null && (
-            <Typography component="span" sx={{ fontSize: '0.8rem', fontWeight: tokens.typography.weightBold, lineHeight: 1 }}>
+            <Typography
+              component="span"
+              sx={{
+                fontSize: '0.8rem',
+                fontWeight: tokens.typography.weightBold,
+                lineHeight: 1,
+              }}
+            >
               {average.toFixed(1)}
             </Typography>
           )}
@@ -169,12 +227,17 @@ export function RatingControl({ qdnName, service = 'APP', identifier = 'default'
 
         {canRate ? (
           <>
-            <Typography sx={{ fontSize: '0.7rem', color: c.textSecondary, mb: 0.5 }}>
+            <Typography
+              sx={{ fontSize: '0.7rem', color: c.textSecondary, mb: 0.5 }}
+            >
               {hasMyRating ? `Your rating: ${myRating} / 10` : 'Rate this app:'}
             </Typography>
             <Box sx={{ display: 'flex' }} onMouseLeave={() => setHovered(0)}>
               {STAR_VALUES.map((value) => {
-                const filled = hovered > 0 ? value <= hovered : hasMyRating && value <= (myRating ?? 0);
+                const filled =
+                  hovered > 0
+                    ? value <= hovered
+                    : hasMyRating && value <= (myRating ?? 0);
                 return (
                   <IconButton
                     key={value}
@@ -185,7 +248,11 @@ export function RatingControl({ qdnName, service = 'APP', identifier = 'default'
                     sx={{ p: 0.25, color: filled ? c.accent : c.textSecondary }}
                     aria-label={`rate ${value} out of 10`}
                   >
-                    {filled ? <StarIcon sx={{ fontSize: 18 }} /> : <StarBorderIcon sx={{ fontSize: 18 }} />}
+                    {filled ? (
+                      <StarIcon sx={{ fontSize: 18 }} />
+                    ) : (
+                      <StarBorderIcon sx={{ fontSize: 18 }} />
+                    )}
                   </IconButton>
                 );
               })}

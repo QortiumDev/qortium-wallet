@@ -25,12 +25,16 @@ export async function getNotificationRules(): Promise<NotificationRule[]> {
   }
 }
 
-export async function addNotificationRules(rules: NotificationRule[]): Promise<void> {
+export async function addNotificationRules(
+  rules: NotificationRule[]
+): Promise<void> {
   if (rules.length === 0) return;
   await qdnRequest({ action: 'NOTIFICATION_ADD', subscriptions: rules });
 }
 
-export async function removeNotificationRules(notificationIds?: string[]): Promise<void> {
+export async function removeNotificationRules(
+  notificationIds?: string[]
+): Promise<void> {
   await qdnRequest({
     action: 'NOTIFICATION_REMOVE',
     ...(notificationIds ? { notificationIds } : {}),

@@ -60,7 +60,11 @@ export function PriceTicker({ chains, prices, currency }: Props) {
           </Box>
           <Box
             component="span"
-            sx={{ fontFamily: c.monoFontFamily, fontSize: '0.7rem', color: c.textPrimary }}
+            sx={{
+              fontFamily: c.monoFontFamily,
+              fontSize: '0.7rem',
+              color: c.textPrimary,
+            }}
           >
             {item.label}
           </Box>

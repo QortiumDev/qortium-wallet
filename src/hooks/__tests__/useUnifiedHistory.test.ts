@@ -4,18 +4,32 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useUnifiedHistory } from '../useUnifiedHistory';
 import type { ChainConfig } from '../../config/chains';
 
-declare const qdnRequest: ReturnType<typeof vi.fn>;
-
 const QORT_CHAIN: ChainConfig = {
-  key: 'QORT', name: 'Qortal', ticker: 'QORT', coinEnum: 'QORT' as any,
-  route: 'qort', decimalPlaces: 8, isNative: true, defaultFee: 0.001,
-  activeNetwork: 'MAIN', supportsHtlc: false, supportsLocalChainTrades: false,
+  key: 'QORT',
+  name: 'Qortal',
+  ticker: 'QORT',
+  coinEnum: 'QORT' as any,
+  route: 'qort',
+  decimalPlaces: 8,
+  isNative: true,
+  defaultFee: 0.001,
+  activeNetwork: 'MAIN',
+  supportsHtlc: false,
+  supportsLocalChainTrades: false,
 };
 
 const LTC_CHAIN: ChainConfig = {
-  key: 'LTC', name: 'Litecoin', ticker: 'LTC', coinEnum: 'LTC' as any,
-  route: 'ltc', decimalPlaces: 8, isNative: false, defaultFee: 0,
-  activeNetwork: 'MAIN', supportsHtlc: true, supportsLocalChainTrades: true,
+  key: 'LTC',
+  name: 'Litecoin',
+  ticker: 'LTC',
+  coinEnum: 'LTC' as any,
+  route: 'ltc',
+  decimalPlaces: 8,
+  isNative: false,
+  defaultFee: 0,
+  activeNetwork: 'MAIN',
+  supportsHtlc: true,
+  supportsLocalChainTrades: true,
 };
 
 beforeEach(() => {
@@ -35,10 +49,18 @@ describe('useUnifiedHistory', () => {
 
   it('populates rows after both chains resolve and sorts by timestamp descending', async () => {
     (globalThis as any).qdnRequest.mockImplementation((opts: any) => {
-      if (opts.action === 'GET_USER_WALLET') return Promise.resolve({ address: 'Qabc' });
+      if (opts.action === 'GET_USER_WALLET')
+        return Promise.resolve({ address: 'Qabc' });
       if (opts.action === 'FETCH_NODE_API')
         return Promise.resolve([
-          { signature: 'sig1', amount: '1', fee: '0.001', timestamp: 2000, creatorAddress: 'Qsender', recipient: 'Qabc' },
+          {
+            signature: 'sig1',
+            amount: '1',
+            fee: '0.001',
+            timestamp: 2000,
+            creatorAddress: 'Qsender',
+            recipient: 'Qabc',
+          },
         ]);
       if (opts.action === 'GET_USER_WALLET_TRANSACTIONS')
         return Promise.resolve([
@@ -68,9 +90,17 @@ describe('useUnifiedHistory', () => {
   it('excludes ARRR from loadingChains', () => {
     (globalThis as any).qdnRequest.mockResolvedValue([]);
     const ARRR_CHAIN: ChainConfig = {
-      key: 'ARRR', name: 'Pirate Chain', ticker: 'ARRR', coinEnum: 'ARRR' as any,
-      route: 'arrr', decimalPlaces: 8, isNative: false, defaultFee: 0,
-      activeNetwork: 'MAIN', supportsHtlc: false, supportsLocalChainTrades: false,
+      key: 'ARRR',
+      name: 'Pirate Chain',
+      ticker: 'ARRR',
+      coinEnum: 'ARRR' as any,
+      route: 'arrr',
+      decimalPlaces: 8,
+      isNative: false,
+      defaultFee: 0,
+      activeNetwork: 'MAIN',
+      supportsHtlc: false,
+      supportsLocalChainTrades: false,
     };
     const { result } = renderHook(() =>
       useUnifiedHistory([QORT_CHAIN, ARRR_CHAIN])

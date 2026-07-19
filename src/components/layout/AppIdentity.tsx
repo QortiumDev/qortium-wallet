@@ -3,7 +3,10 @@ import { Box } from '@mui/material';
 import { useColors } from '../../theme/ColorTokensContext';
 import { tokens } from '../../theme/tokens';
 
-function requestQdn(options: { action: string; [key: string]: unknown }): Promise<unknown> {
+function requestQdn(options: {
+  action: string;
+  [key: string]: unknown;
+}): Promise<unknown> {
   if (typeof qdnRequest !== 'function') {
     return Promise.reject(new Error('qdnRequest unavailable'));
   }
@@ -16,7 +19,9 @@ function requestQdn(options: { action: string; [key: string]: unknown }): Promis
 // (/render/APP/<name>/...). Desktop archive mode renders from a file:// URL
 // that carries no name, so the build-time fallback still applies there.
 export function getOwnQdnName(fallback: string): string {
-  const match = window.location.pathname.match(/^\/render\/(?:APP|WEBSITE)\/([^/]+)/i);
+  const match = window.location.pathname.match(
+    /^\/render\/(?:APP|WEBSITE)\/([^/]+)/i
+  );
   if (!match) return fallback;
   try {
     const name = decodeURIComponent(match[1]);
@@ -35,13 +40,22 @@ function toImageDataUrl(base64: string): string {
   if (base64.startsWith('/9j/')) mime = 'image/jpeg';
   else if (base64.startsWith('R0lGOD')) mime = 'image/gif';
   else if (base64.startsWith('UklGR')) mime = 'image/webp';
-  else if (base64.startsWith('PHN2Zy') || base64.startsWith('PD94bW')) mime = 'image/svg+xml';
+  else if (base64.startsWith('PHN2Zy') || base64.startsWith('PD94bW'))
+    mime = 'image/svg+xml';
   return `data:${mime};base64,${base64}`;
 }
 
-export function AppIcon({ qdnName, size = 24 }: { qdnName: string; size?: number }) {
+export function AppIcon({
+  qdnName,
+  size = 24,
+}: {
+  qdnName: string;
+  size?: number;
+}) {
   const c = useColors();
-  const [src, setSrc] = useState<string | null>(() => avatarCache.get(qdnName) ?? null);
+  const [src, setSrc] = useState<string | null>(
+    () => avatarCache.get(qdnName) ?? null
+  );
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -52,10 +66,19 @@ export function AppIcon({ qdnName, size = 24 }: { qdnName: string; size?: number
     }
 
     let cancelled = false;
-    requestQdn({ action: 'FETCH_QDN_RESOURCE', service: 'THUMBNAIL', name: qdnName, identifier: 'avatar', encoding: 'base64' })
+    requestQdn({
+      action: 'FETCH_QDN_RESOURCE',
+      service: 'THUMBNAIL',
+      name: qdnName,
+      identifier: 'avatar',
+      encoding: 'base64',
+    })
       .then((result) => {
         const base64 = typeof result === 'string' ? result.trim() : '';
-        const url = base64 && /^[A-Za-z0-9+/=]+$/.test(base64) ? toImageDataUrl(base64) : null;
+        const url =
+          base64 && /^[A-Za-z0-9+/=]+$/.test(base64)
+            ? toImageDataUrl(base64)
+            : null;
         avatarCache.set(qdnName, url);
         if (!cancelled) setSrc(url);
       })
@@ -64,7 +87,9 @@ export function AppIcon({ qdnName, size = 24 }: { qdnName: string; size?: number
         if (!cancelled) setSrc(null);
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [qdnName]);
 
   return (
@@ -93,7 +118,12 @@ export function AppIcon({ qdnName, size = 24 }: { qdnName: string; size?: number
           src={src}
           alt=""
           onError={() => setFailed(true)}
-          sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          sx={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            display: 'block',
+          }}
         />
       ) : (
         (qdnName[0] ?? '?').toUpperCase()

@@ -53,10 +53,21 @@ export function UnifiedHistory() {
           gap: 2,
         }}
       >
-        <IconButton onClick={() => navigate('/')} size="small" sx={{ borderRadius: 0, color: c.textPrimary }}>
+        <IconButton
+          onClick={() => navigate('/')}
+          size="small"
+          sx={{ borderRadius: 0, color: c.textPrimary }}
+        >
           <ArrowBackIcon fontSize="small" />
         </IconButton>
-        <Box sx={{ fontWeight: tokens.typography.weightBold, letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: '0.85rem' }}>
+        <Box
+          sx={{
+            fontWeight: tokens.typography.weightBold,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            fontSize: '0.85rem',
+          }}
+        >
           All Transactions
         </Box>
         <Box sx={{ flexGrow: 1 }} />
@@ -65,10 +76,20 @@ export function UnifiedHistory() {
             Loaded {loadedCount} of {totalNonArrr}
           </Box>
         )}
-        {stillLoading && <CircularProgress size={14} sx={{ color: c.accent }} />}
+        {stillLoading && (
+          <CircularProgress size={14} sx={{ color: c.accent }} />
+        )}
       </Box>
 
-      <Box sx={{ width: '100%', maxWidth: isClassic ? c.layoutWideMaxWidth : c.layoutMaxWidth, mx: 'auto', px: { xs: isClassic ? 1.5 : 2, md: isClassic ? 3 : 4 }, py: isClassic ? 3 : 4 }}>
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: isClassic ? c.layoutWideMaxWidth : c.layoutMaxWidth,
+          mx: 'auto',
+          px: { xs: isClassic ? 1.5 : 2, md: isClassic ? 3 : 4 },
+          py: isClassic ? 3 : 4,
+        }}
+      >
         {errorChains.length > 0 && (
           <Box sx={{ mb: 2, fontSize: '0.75rem', color: c.textSecondary }}>
             Failed to load: {errorChains.join(', ')}
@@ -105,7 +126,11 @@ export function UnifiedHistory() {
                 fontSize: '0.72rem',
                 textTransform: 'capitalize',
                 ...(filter === f
-                  ? { bgcolor: c.accent, color: c.accentText, '&:hover': { bgcolor: c.accentHover } }
+                  ? {
+                      bgcolor: c.accent,
+                      color: c.accentText,
+                      '&:hover': { bgcolor: c.accentHover },
+                    }
                   : { borderColor: c.borderLight, color: c.textSecondary }),
               }}
             >
@@ -123,7 +148,14 @@ export function UnifiedHistory() {
           }}
         >
           {filteredRows.length === 0 && !stillLoading ? (
-            <Box sx={{ py: 6, textAlign: 'center', color: c.textSecondary, fontSize: '0.85rem' }}>
+            <Box
+              sx={{
+                py: 6,
+                textAlign: 'center',
+                color: c.textSecondary,
+                fontSize: '0.85rem',
+              }}
+            >
               No transactions found
             </Box>
           ) : (
@@ -136,26 +168,39 @@ export function UnifiedHistory() {
                   index={i}
                   isLastRow={i === filteredRows.length - 1}
                   chain={row.chain}
-                  userAddress={(row.totalAmount ?? 0) > 0 ? (row.recipient ?? '') : (row.sender ?? '')}
+                  userAddress={
+                    (row.totalAmount ?? 0) > 0
+                      ? (row.recipient ?? '')
+                      : (row.sender ?? '')
+                  }
                   expanded={expandedTxKey === rowKey}
-                  onToggleExpand={() => setExpandedTxKey(expandedTxKey === rowKey ? null : rowKey)}
+                  onToggleExpand={() =>
+                    setExpandedTxKey(expandedTxKey === rowKey ? null : rowKey)
+                  }
                   copiedHash={copiedHashKey === rowKey ? i : null}
                   onCopyHash={(_i: number, hash: string) => {
                     const finish = () => {
                       setCopiedHashKey(rowKey);
                       setTimeout(() => setCopiedHashKey(null), 2000);
                     };
-                    navigator.clipboard.writeText(hash).then(finish).catch(() => {
-                      const el = document.createElement('textarea');
-                      el.value = hash;
-                      el.style.cssText = 'position:fixed;top:-9999px';
-                      document.body.appendChild(el);
-                      el.focus();
-                      el.select();
-                      try { document.execCommand('copy'); } catch { /* */ }
-                      document.body.removeChild(el);
-                      finish();
-                    });
+                    navigator.clipboard
+                      .writeText(hash)
+                      .then(finish)
+                      .catch(() => {
+                        const el = document.createElement('textarea');
+                        el.value = hash;
+                        el.style.cssText = 'position:fixed;top:-9999px';
+                        document.body.appendChild(el);
+                        el.focus();
+                        el.select();
+                        try {
+                          document.execCommand('copy');
+                        } catch {
+                          /* */
+                        }
+                        document.body.removeChild(el);
+                        finish();
+                      });
                   }}
                   showCoinBadge
                 />
