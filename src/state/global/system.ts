@@ -95,6 +95,18 @@ export const walletReadyAtom = atom<boolean>(false);
 // notificationsEnabledAtom is the user's local on/off preference, off by default.
 export const notificationsSupportedAtom = atom<boolean>(false);
 export const notificationsEnabledAtom = atomWithStorage<boolean>(
-  'qw-notifications-enabled',
+  // v2 resets the earlier bell-only preference, which could be true even when
+  // Wallet never reached Home's permission/rule registration path.
+  'qw-notifications-enabled-v2',
   false
+);
+export type PaymentNotificationRegistrationStatus =
+  | 'idle'
+  | 'registering'
+  | 'registered'
+  | 'error';
+export const paymentNotificationRegistrationStatusAtom =
+  atom<PaymentNotificationRegistrationStatus>('idle');
+export const paymentNotificationRegistrationErrorAtom = atom<string | null>(
+  null
 );

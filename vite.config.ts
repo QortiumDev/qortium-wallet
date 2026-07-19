@@ -262,6 +262,7 @@ const MOCK_SCRIPT = `
   var BALANCES      = ${JSON.stringify(MOCK_BALANCES)};
   var QORT_TXS      = ${JSON.stringify(MOCK_QORT_TXS)};
   var FOREIGN_TXS   = ${JSON.stringify(MOCK_FOREIGN_TXS)};
+  var NOTIFICATION_RULES = [];
 
   // Reset persisted zoom so the demo always starts at a clean showcase level
   localStorage.setItem('qw-tile-zoom', '5');
@@ -322,18 +323,29 @@ const MOCK_SCRIPT = `
     return new Promise(function (resolve) {
       setTimeout(function () {
         var a = opts.action, c = opts.coin || '';
-        if      (a === 'GET_USER_WALLET')                resolve({ address: ADDRESSES[c] || ('mock_' + c) });
+        if      (a === 'SHOW_ACTIONS')                   resolve(['NOTIFICATION_ADD', 'NOTIFICATION_GET', 'NOTIFICATION_REMOVE']);
+        else if (a === 'GET_SELECTED_ACCOUNT')           resolve({ address: ADDRESSES.QORT, isUnlocked: true });
+        else if (a === 'GET_CROSSCHAIN_BLOCKCHAINS')     resolve(BLOCKCHAINS);
+        else if (a === 'GET_USER_WALLET')                resolve({ address: ADDRESSES[c] || ('mock_' + c), publicKey: 'xpub-mock-' + c });
         else if (a === 'GET_WALLET_BALANCE')             resolve(BALANCES[c] || '0');
+        else if (a === 'GET_QORT_BALANCE')               resolve(BALANCES.QORT);
         else if (a === 'GET_USER_WALLET_TRANSACTIONS')   resolve(FOREIGN_TXS);
         else if (a === 'GET_FOREIGN_FEE')                resolve({ fee: 0.0001 });
         else if (a === 'GET_ARRR_SYNC_STATUS')           resolve('Synchronized');
         else if (a === 'GET_CROSSCHAIN_SERVER_INFO')     resolve([{ hostName: 'lightwalletd.pirate.black', port: 443, connectionType: 'SSL' }]);
         else if (a === 'SET_CURRENT_FOREIGN_SERVER')     resolve({ success: true });
+        else if (a === 'NOTIFICATION_GET')               resolve(NOTIFICATION_RULES);
+        else if (a === 'NOTIFICATION_ADD')               { NOTIFICATION_RULES = opts.subscriptions || []; resolve(NOTIFICATION_RULES); }
+        else if (a === 'NOTIFICATION_REMOVE')            { NOTIFICATION_RULES = []; resolve([]); }
         else if (a === 'SEND_COIN')                      resolve(preparedSend(opts));
         else resolve(null);
       }, 350);
     });
   };
+
+  // Wallet uses the Qortium Home bridge name; qapp-core still calls the legacy
+  // alias internally, so expose both in the standalone preview.
+  window.qdnRequest = window.qortalRequest;
 
   console.info('[dev-mock] fetch + qortalRequest installed');
 })();
