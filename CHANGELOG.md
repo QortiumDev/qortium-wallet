@@ -6,7 +6,7 @@ All notable changes to Qortium Wallet will be documented in this file.
 
 ### Fixed
 
-- QORT transaction history now loads. It was empty for two reasons: the history query used `FETCH_NODE_API`, which targets the Qortium node instead of the Qortal chain the QORT payments live on, and the bridge's result envelope was never unwrapped (the transaction array is in `.data`). The query now uses Home's new `FETCH_QORTAL_NODE_API` action and reads `.data`; on Home builds without that action the list stays empty as before.
+- QORT transaction history now loads. It was empty for two reasons: the history query used `FETCH_NODE_API`, which targets the Qortium node instead of the Qortal chain the QORT payments live on, and the bridge's result envelope was never unwrapped (the transaction array is in `.data`). The query now uses Home's new `SEARCH_QORTAL_TRANSACTIONS` action, which searches the Qortal chain and returns the transaction array directly; on Home builds without that action the list stays empty as before.
 
 ## [1.7.9] - 2026-07-10
 

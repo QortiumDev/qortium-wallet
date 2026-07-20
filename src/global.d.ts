@@ -62,7 +62,7 @@ interface QdnRequestOptions {
   tags?: string[] | string;
   title?: string;
   txGroupId?: number;
-  txType?: TransactionType[];
+  txType?: TransactionType | TransactionType[];
   type?: string;
 }
 
