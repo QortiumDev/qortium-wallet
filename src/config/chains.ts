@@ -153,6 +153,49 @@ export const KNOWN_CHAINS: ChainConfig[] = [
     supportsHtlc: false,
     supportsLocalChainTrades: false,
   },
+  // Not yet supported by Qortium nodes (no GET_CROSSCHAIN_BLOCKCHAINS entry).
+  // Listed here so the wallet recognizes them the moment node support lands,
+  // without needing another app release. Non-key fields are placeholders that
+  // get overwritten by live node data once the node reports them.
+  {
+    key: 'IDNA',
+    name: 'Idena',
+    ticker: 'IDNA',
+    coinEnum: 'IDNA',
+    route: 'idena',
+    defaultFee: 0.001,
+    isNative: false,
+    decimalPlaces: 8,
+    activeNetwork: 'MAIN',
+    supportsHtlc: true,
+    supportsLocalChainTrades: true,
+  },
+  {
+    key: 'LYNX',
+    name: 'Lynx',
+    ticker: 'LYNX',
+    coinEnum: 'LYNX',
+    route: 'lynx',
+    defaultFee: 0.001,
+    isNative: false,
+    decimalPlaces: 8,
+    activeNetwork: 'MAIN',
+    supportsHtlc: true,
+    supportsLocalChainTrades: true,
+  },
+  {
+    key: 'ZANO',
+    name: 'Zano',
+    ticker: 'ZANO',
+    coinEnum: 'ZANO',
+    route: 'zano',
+    defaultFee: 0.001,
+    isNative: false,
+    decimalPlaces: 8,
+    activeNetwork: 'MAIN',
+    supportsHtlc: true,
+    supportsLocalChainTrades: true,
+  },
 ];
 
 export const DEFAULT_CHAIN_KEYS = new Set(DEFAULT_CHAINS.map((c) => c.key));
