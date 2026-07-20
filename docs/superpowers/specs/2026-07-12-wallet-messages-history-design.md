@@ -44,25 +44,31 @@ After a successful payment, if a message was entered and a recipient QORT addres
 2. Fetch the recipient's public key via their QORT address
 3. Build payload:
    ```json
-   { "message": "...", "txHash": "...", "coin": "LTC", "amount": "0.5", "timestamp": 1234567890 }
+   {
+     "message": "...",
+     "txHash": "...",
+     "coin": "LTC",
+     "amount": "0.5",
+     "timestamp": 1234567890
+   }
    ```
-3. Call `ENCRYPT_DATA` with the recipient's public key to encrypt the payload
-4. Publish encrypted blob as a QDN ARBITRARY resource:
+4. Call `ENCRYPT_DATA` with the recipient's public key to encrypt the payload
+5. Publish encrypted blob as a QDN ARBITRARY resource:
    - identifier: `wallet-payment-msg-{txHash}`
    - service: `ARBITRARY`
    - published under the sender's registered name
-5. Cache the plaintext message in localStorage keyed by `payment-msg-{txHash}` so the sender can read their own sent messages instantly without re-fetching
+6. Cache the plaintext message in localStorage keyed by `payment-msg-{txHash}` so the sender can read their own sent messages instantly without re-fetching
 
 ### Viewing messages in transaction detail
 
 In the expanded transaction detail row, a **Message** field appears at the top of the detail section under the following conditions:
 
-| Transaction type | Condition | Behavior |
-|---|---|---|
-| Sent (any coin) | `localStorage` has `payment-msg-{txHash}` | Show immediately, no fetch needed |
-| Received QORT | `creatorAddress` is in the tx data | Resolve sender name from address, fetch QDN resource, decrypt, show with loading state |
-| Received foreign chain | Sender is in address book with `qortAddress` set | Same fetch/decrypt flow as received QORT |
-| Received foreign chain | No sender QORT address known | Message field omitted entirely, no indication |
+| Transaction type       | Condition                                        | Behavior                                                                               |
+| ---------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| Sent (any coin)        | `localStorage` has `payment-msg-{txHash}`        | Show immediately, no fetch needed                                                      |
+| Received QORT          | `creatorAddress` is in the tx data               | Resolve sender name from address, fetch QDN resource, decrypt, show with loading state |
+| Received foreign chain | Sender is in address book with `qortAddress` set | Same fetch/decrypt flow as received QORT                                               |
+| Received foreign chain | No sender QORT address known                     | Message field omitted entirely, no indication                                          |
 
 If the QDN fetch returns no resource or decryption fails, the Message field is silently omitted.
 
@@ -124,6 +130,7 @@ New hook at `src/hooks/useUnifiedHistory.ts`. Fires parallel fetch requests for 
 Each chain's results are added to the merged list as they arrive (no waiting for all chains). The list is re-sorted descending by timestamp after each batch is added. Unconfirmed rows (no timestamp) sort to the top.
 
 Exposes:
+
 ```ts
 interface UnifiedTxRow extends TxRow {
   chain: ChainConfig;
@@ -132,7 +139,7 @@ interface UnifiedTxRow extends TxRow {
 interface UseUnifiedHistoryResult {
   rows: UnifiedTxRow[];
   loadingChains: string[]; // ticker names still in-flight
-  errorChains: string[];   // ticker names that failed
+  errorChains: string[]; // ticker names that failed
 }
 ```
 
@@ -161,20 +168,20 @@ Reuses the same expanded detail render as `CoinDetail` (hash, from/to, fee, date
 
 ## New files
 
-| File | Purpose |
-|---|---|
-| `src/hooks/useUnifiedHistory.ts` | Unified history data hook |
-| `src/components/wallet/UnifiedHistory.tsx` | `/history` route component |
-| `src/components/wallet/ContactCard.tsx` | `/contact/:qortName` route component |
-| `src/utils/paymentMessages.ts` | Encrypt/publish/fetch/decrypt message helpers |
+| File                                       | Purpose                                       |
+| ------------------------------------------ | --------------------------------------------- |
+| `src/hooks/useUnifiedHistory.ts`           | Unified history data hook                     |
+| `src/components/wallet/UnifiedHistory.tsx` | `/history` route component                    |
+| `src/components/wallet/ContactCard.tsx`    | `/contact/:qortName` route component          |
+| `src/utils/paymentMessages.ts`             | Encrypt/publish/fetch/decrypt message helpers |
 
 ## Modified files
 
-| File | Change |
-|---|---|
-| `src/utils/Types.tsx` | Add `qortAddress?: string` to `AddressBookEntry` |
-| `src/components/wallet/CoinDetail.tsx` | Message field + QORT recipient field in send dialog; message display in expanded tx row |
-| `src/components/wallet/CoinGrid.tsx` | Add Share Contact and History buttons |
-| `src/components/AddressBook/AddressBookDialog.tsx` | Add QORT address input |
-| `src/routes/Routes.tsx` | Add `/history` and `/contact/:qortName` routes |
-| `src/i18n/locales/en/core.json` | New i18n keys for all new UI strings |
+| File                                               | Change                                                                                  |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `src/utils/Types.tsx`                              | Add `qortAddress?: string` to `AddressBookEntry`                                        |
+| `src/components/wallet/CoinDetail.tsx`             | Message field + QORT recipient field in send dialog; message display in expanded tx row |
+| `src/components/wallet/CoinGrid.tsx`               | Add Share Contact and History buttons                                                   |
+| `src/components/AddressBook/AddressBookDialog.tsx` | Add QORT address input                                                                  |
+| `src/routes/Routes.tsx`                            | Add `/history` and `/contact/:qortName` routes                                          |
+| `src/i18n/locales/en/core.json`                    | New i18n keys for all new UI strings                                                    |

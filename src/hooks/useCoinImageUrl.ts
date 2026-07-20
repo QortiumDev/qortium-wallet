@@ -27,8 +27,8 @@ function getUrl(key: string): Promise<string | null> {
 
 export function useCoinImageUrl(ticker: string): string | null {
   const key = ticker.toLowerCase();
-  const [url, setUrl] = useState<string | null>(
-    () => (urlCache.has(key) ? urlCache.get(key)! : null),
+  const [url, setUrl] = useState<string | null>(() =>
+    urlCache.has(key) ? urlCache.get(key)! : null
   );
 
   useEffect(() => {

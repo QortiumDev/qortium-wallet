@@ -14,7 +14,7 @@ export type ForeignWalletXpub = { coin: string; xpub: string };
 // shouldn't be watched (e.g. ARRR, which the underlying Core watcher can't cover).
 export function buildPaymentNotificationRules(
   qortAddress: string | null,
-  foreignWallets: ForeignWalletXpub[],
+  foreignWallets: ForeignWalletXpub[]
 ): NotificationRule[] {
   const rules: NotificationRule[] = [];
 
@@ -38,7 +38,10 @@ export function buildPaymentNotificationRules(
   return rules;
 }
 
-export function findStaleNotificationIds(existingIds: string[], desiredIds: string[]): string[] {
+export function findStaleNotificationIds(
+  existingIds: string[],
+  desiredIds: string[]
+): string[] {
   const desired = new Set(desiredIds);
   return existingIds.filter((id) => !desired.has(id));
 }
@@ -47,7 +50,7 @@ export function findStaleNotificationIds(existingIds: string[], desiredIds: stri
 // returning its coin list in a different order) don't trigger a redundant re-sync.
 export function paymentNotificationSignature(
   qortAddress: string | null,
-  foreignWallets: ForeignWalletXpub[],
+  foreignWallets: ForeignWalletXpub[]
 ): string {
   const sortedWallets = [...foreignWallets]
     .map((wallet) => `${wallet.coin}:${wallet.xpub}`)

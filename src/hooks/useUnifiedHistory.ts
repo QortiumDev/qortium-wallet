@@ -49,7 +49,9 @@ async function fetchChainTxs(chain: ChainConfig): Promise<TxRow[]> {
   }
 }
 
-export function useUnifiedHistory(chains: ChainConfig[]): UseUnifiedHistoryResult {
+export function useUnifiedHistory(
+  chains: ChainConfig[]
+): UseUnifiedHistoryResult {
   const [rows, setRows] = useState<UnifiedTxRow[]>([]);
   const [loadingChains, setLoadingChains] = useState<string[]>([]);
   const [errorChains, setErrorChains] = useState<string[]>([]);
@@ -81,7 +83,8 @@ export function useUnifiedHistory(chains: ChainConfig[]): UseUnifiedHistoryResul
       } catch {
         if (!cancelled) setErrorChains((prev) => [...prev, chain.ticker]);
       } finally {
-        if (!cancelled) setLoadingChains((prev) => prev.filter((t) => t !== chain.ticker));
+        if (!cancelled)
+          setLoadingChains((prev) => prev.filter((t) => t !== chain.ticker));
       }
     });
 

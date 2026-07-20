@@ -36,7 +36,11 @@ const NumericFormat = _NumericFormat as React.FC<
 >;
 import { tokens } from '../../theme/tokens';
 import { useColors } from '../../theme/ColorTokensContext';
-import { uiStyleAtom, currencyAtom, walletReadyAtom } from '../../state/global/system';
+import {
+  uiStyleAtom,
+  currencyAtom,
+  walletReadyAtom,
+} from '../../state/global/system';
 import { useCoinImageUrl } from '../../hooks/useCoinImageUrl';
 import type { ChainConfig } from '../../config/chains';
 import {
@@ -56,7 +60,6 @@ import {
   TIME_SECONDS_3,
 } from '../../common/constants';
 import { TransactionRow, type TxRow } from './TransactionRow';
-
 
 interface Props {
   chain: ChainConfig;
@@ -290,8 +293,14 @@ export function CoinDetail({ chain }: Props) {
     qdnRequest({ action: 'SHOW_ACTIONS' })
       .then((actions: unknown) => {
         if (Array.isArray(actions)) {
-          setCanSend(chain.isNative ? actions.includes('SEND_QORT') : actions.includes('SEND_COIN'));
-          setWalletAvailable(chain.isNative || actions.includes('GET_WALLET_BALANCE'));
+          setCanSend(
+            chain.isNative
+              ? actions.includes('SEND_QORT')
+              : actions.includes('SEND_COIN')
+          );
+          setWalletAvailable(
+            chain.isNative || actions.includes('GET_WALLET_BALANCE')
+          );
         }
       })
       .catch(() => {
@@ -438,7 +447,8 @@ export function CoinDetail({ chain }: Props) {
           recipient,
           amount: parseFloat(amount),
         } as any);
-        if (res?.accepted === false) throw new Error(res.error ?? 'SEND_QORT failed');
+        if (res?.accepted === false)
+          throw new Error(res.error ?? 'SEND_QORT failed');
         result = res as any;
       } else {
         const payload: Record<string, unknown> = {
@@ -535,12 +545,9 @@ export function CoinDetail({ chain }: Props) {
       });
   };
 
-  const handleToggleExpand = useCallback(
-    (i: number) => {
-      setExpandedTx((prev) => (prev === i ? null : i));
-    },
-    []
-  );
+  const handleToggleExpand = useCallback((i: number) => {
+    setExpandedTx((prev) => (prev === i ? null : i));
+  }, []);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: isClassic ? c.frameBg : c.bg }}>

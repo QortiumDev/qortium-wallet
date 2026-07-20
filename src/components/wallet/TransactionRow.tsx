@@ -99,14 +99,23 @@ export function TransactionRow({
           gap: 2,
           cursor: 'pointer',
           bgcolor: expanded
-            ? isClassic ? c.controlSelected : c.borderLight
+            ? isClassic
+              ? c.controlSelected
+              : c.borderLight
             : 'transparent',
           '&:hover': { bgcolor: isClassic ? c.controlHover : c.borderLight },
           transition: 'background-color 0.12s ease',
         }}
       >
         {showCoinBadge && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              flexShrink: 0,
+            }}
+          >
             {coinImageUrl && (
               <Box
                 component="img"
@@ -164,7 +173,11 @@ export function TransactionRow({
             whiteSpace: 'nowrap',
           }}
         >
-          {cp ? (isPositive ? `from ${fmtAddr(cp)}` : `to ${fmtAddr(cp)}`) : '—'}
+          {cp
+            ? isPositive
+              ? `from ${fmtAddr(cp)}`
+              : `to ${fmtAddr(cp)}`
+            : '—'}
         </Box>
 
         <Box
@@ -195,24 +208,39 @@ export function TransactionRow({
         >
           {/* Standard detail rows */}
           {[
-            { label: 'Hash', value: str(row.txHash), mono: true, copyIdx: index },
+            {
+              label: 'Hash',
+              value: str(row.txHash),
+              mono: true,
+              copyIdx: index,
+            },
             { label: isPositive ? 'From' : 'To', value: cp, mono: true },
             {
               label: isPositive ? 'To' : 'From',
-              value: isPositive ? userAddress : (str(row.sender) ?? userAddress),
+              value: isPositive
+                ? userAddress
+                : (str(row.sender) ?? userAddress),
               mono: true,
             },
             {
               label: 'Fee',
-              value: row.feeAmount != null ? `${txFee()} ${chain.ticker}` : undefined,
+              value:
+                row.feeAmount != null
+                  ? `${txFee()} ${chain.ticker}`
+                  : undefined,
             },
             {
               label: 'Date',
-              value: row.timestamp ? new Date(row.timestamp).toLocaleString() : undefined,
+              value: row.timestamp
+                ? new Date(row.timestamp).toLocaleString()
+                : undefined,
             },
           ].map(({ label, value, mono, copyIdx }) =>
             value ? (
-              <Box key={label} sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              <Box
+                key={label}
+                sx={{ display: 'flex', gap: 2, alignItems: 'center' }}
+              >
                 <Box
                   sx={{
                     fontSize: '0.65rem',
@@ -240,13 +268,18 @@ export function TransactionRow({
                 {copyIdx != null && (
                   <IconButton
                     size="small"
-                    onClick={(e) => { e.stopPropagation(); onCopyHash(copyIdx, value!); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCopyHash(copyIdx, value!);
+                    }}
                     sx={{ flexShrink: 0, p: 0.5 }}
                   >
                     {copiedHash === copyIdx ? (
                       <CheckIcon sx={{ fontSize: 14, color: c.success }} />
                     ) : (
-                      <ContentCopyIcon sx={{ fontSize: 14, color: c.textSecondary }} />
+                      <ContentCopyIcon
+                        sx={{ fontSize: 14, color: c.textSecondary }}
+                      />
                     )}
                   </IconButton>
                 )}
@@ -255,28 +288,62 @@ export function TransactionRow({
           )}
 
           {/* Inputs / outputs */}
-          {(row.inputs?.length || row.outputs?.length) ? (
+          {row.inputs?.length || row.outputs?.length ? (
             <Box sx={{ mt: 0.5, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
               {row.inputs?.length ? (
                 <Box>
-                  <Box sx={{ fontSize: '0.65rem', fontWeight: tokens.typography.weightBold, letterSpacing: '0.1em', textTransform: 'uppercase', color: c.textSecondary, mb: 0.5 }}>
+                  <Box
+                    sx={{
+                      fontSize: '0.65rem',
+                      fontWeight: tokens.typography.weightBold,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      color: c.textSecondary,
+                      mb: 0.5,
+                    }}
+                  >
                     Inputs
                   </Box>
                   {row.inputs.map((inp, j) => (
-                    <Box key={j} sx={{ fontFamily: c.monoFontFamily, fontSize: '0.7rem', color: inp.addressInWallet ? c.accent : c.textSecondary }}>
-                      {fmtAddr(inp.address)} · {(inp.amount / divisor).toFixed(chain.decimalPlaces)}
+                    <Box
+                      key={j}
+                      sx={{
+                        fontFamily: c.monoFontFamily,
+                        fontSize: '0.7rem',
+                        color: inp.addressInWallet ? c.accent : c.textSecondary,
+                      }}
+                    >
+                      {fmtAddr(inp.address)} ·{' '}
+                      {(inp.amount / divisor).toFixed(chain.decimalPlaces)}
                     </Box>
                   ))}
                 </Box>
               ) : null}
               {row.outputs?.length ? (
                 <Box>
-                  <Box sx={{ fontSize: '0.65rem', fontWeight: tokens.typography.weightBold, letterSpacing: '0.1em', textTransform: 'uppercase', color: c.textSecondary, mb: 0.5 }}>
+                  <Box
+                    sx={{
+                      fontSize: '0.65rem',
+                      fontWeight: tokens.typography.weightBold,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      color: c.textSecondary,
+                      mb: 0.5,
+                    }}
+                  >
                     Outputs
                   </Box>
                   {row.outputs.map((out, j) => (
-                    <Box key={j} sx={{ fontFamily: c.monoFontFamily, fontSize: '0.7rem', color: out.addressInWallet ? c.accent : c.textSecondary }}>
-                      {fmtAddr(out.address)} · {(out.amount / divisor).toFixed(chain.decimalPlaces)}
+                    <Box
+                      key={j}
+                      sx={{
+                        fontFamily: c.monoFontFamily,
+                        fontSize: '0.7rem',
+                        color: out.addressInWallet ? c.accent : c.textSecondary,
+                      }}
+                    >
+                      {fmtAddr(out.address)} ·{' '}
+                      {(out.amount / divisor).toFixed(chain.decimalPlaces)}
                     </Box>
                   ))}
                 </Box>

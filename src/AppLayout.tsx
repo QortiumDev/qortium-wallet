@@ -30,7 +30,8 @@ export default function AppLayout() {
     function onMessage(e: MessageEvent<unknown>) {
       if (
         (e.source === window.parent || e.source === window) &&
-        typeof e.data === 'object' && e.data !== null &&
+        typeof e.data === 'object' &&
+        e.data !== null &&
         (e.data as { action?: unknown }).action === 'SELECTED_ACCOUNT_CHANGED'
       ) {
         authenticateUser().catch(() => {});
@@ -45,7 +46,9 @@ export default function AppLayout() {
     let cancelled = false;
     async function checkAndUnlock() {
       try {
-        const account = (await qdnRequest({ action: 'GET_SELECTED_ACCOUNT' })) as {
+        const account = (await qdnRequest({
+          action: 'GET_SELECTED_ACCOUNT',
+        })) as {
           isUnlocked?: boolean;
         } | null;
         if (!cancelled && !account?.isUnlocked) {

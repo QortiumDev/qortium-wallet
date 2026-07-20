@@ -18,28 +18,29 @@
 
 ## File Map
 
-| Action | Path | Responsibility |
-|---|---|---|
-| Create | `src/utils/paymentMessages.ts` | QDN encrypt/publish/fetch/decrypt + localStorage cache |
-| Create | `src/utils/__tests__/paymentMessages.test.ts` | Unit tests for pure functions |
-| Create | `src/components/wallet/TransactionRow.tsx` | Shared expandable tx row extracted from CoinDetail |
-| Create | `src/hooks/useUnifiedHistory.ts` | Parallel multi-chain fetch hook |
-| Create | `src/hooks/__tests__/useUnifiedHistory.test.ts` | Hook unit tests |
-| Create | `src/components/wallet/UnifiedHistory.tsx` | `/history` page component |
-| Create | `src/components/wallet/ContactCard.tsx` | `/contact/:qortName` page component |
-| Modify | `src/utils/Types.tsx` | Add `qortAddress?: string` to `AddressBookEntry` |
-| Modify | `src/components/AddressBook/AddressFormDialog.tsx` | Add QORT address field |
-| Modify | `src/components/AddressBook/AddressBookDialog.tsx` | Pass `qortAddress` through `handleSave` |
-| Modify | `src/components/wallet/CoinDetail.tsx` | Use `TransactionRow`, add send dialog message fields, post-send publish |
-| Modify | `src/components/wallet/CoinGrid.tsx` | Add History and Share Contact buttons |
-| Modify | `src/routes/Routes.tsx` | Add `/history` and `/contact/:qortName` |
-| Modify | `src/i18n/locales/en/core.json` | New i18n keys |
+| Action | Path                                               | Responsibility                                                          |
+| ------ | -------------------------------------------------- | ----------------------------------------------------------------------- |
+| Create | `src/utils/paymentMessages.ts`                     | QDN encrypt/publish/fetch/decrypt + localStorage cache                  |
+| Create | `src/utils/__tests__/paymentMessages.test.ts`      | Unit tests for pure functions                                           |
+| Create | `src/components/wallet/TransactionRow.tsx`         | Shared expandable tx row extracted from CoinDetail                      |
+| Create | `src/hooks/useUnifiedHistory.ts`                   | Parallel multi-chain fetch hook                                         |
+| Create | `src/hooks/__tests__/useUnifiedHistory.test.ts`    | Hook unit tests                                                         |
+| Create | `src/components/wallet/UnifiedHistory.tsx`         | `/history` page component                                               |
+| Create | `src/components/wallet/ContactCard.tsx`            | `/contact/:qortName` page component                                     |
+| Modify | `src/utils/Types.tsx`                              | Add `qortAddress?: string` to `AddressBookEntry`                        |
+| Modify | `src/components/AddressBook/AddressFormDialog.tsx` | Add QORT address field                                                  |
+| Modify | `src/components/AddressBook/AddressBookDialog.tsx` | Pass `qortAddress` through `handleSave`                                 |
+| Modify | `src/components/wallet/CoinDetail.tsx`             | Use `TransactionRow`, add send dialog message fields, post-send publish |
+| Modify | `src/components/wallet/CoinGrid.tsx`               | Add History and Share Contact buttons                                   |
+| Modify | `src/routes/Routes.tsx`                            | Add `/history` and `/contact/:qortName`                                 |
+| Modify | `src/i18n/locales/en/core.json`                    | New i18n keys                                                           |
 
 ---
 
 ## Task 1: Add `qortAddress` to AddressBookEntry and form
 
 **Files:**
+
 - Modify: `src/utils/Types.tsx`
 - Modify: `src/components/AddressBook/AddressFormDialog.tsx`
 - Modify: `src/components/AddressBook/AddressBookDialog.tsx`
@@ -55,7 +56,7 @@ export interface AddressBookEntry {
   name: string;
   address: string;
   note: string;
-  qortAddress?: string;  // QORT address or registered name; enables payment messages
+  qortAddress?: string; // QORT address or registered name; enables payment messages
   coinType: Coin;
   createdAt: number;
   updatedAt?: number;
@@ -75,20 +76,25 @@ In `src/i18n/locales/en/core.json`, add after `"address_book_note"`:
 In `src/components/AddressBook/AddressFormDialog.tsx`:
 
 After `const [note, setNote] = useState(EMPTY_STRING);`, add:
+
 ```ts
 const [qortAddress, setQortAddress] = useState(EMPTY_STRING);
 ```
 
 In the `useEffect` that initialises the form when `open` changes, inside the `if (entry)` block add:
+
 ```ts
 setQortAddress(entry.qortAddress ?? EMPTY_STRING);
 ```
+
 And in the `else` block add:
+
 ```ts
 setQortAddress(EMPTY_STRING);
 ```
 
 In `handleSave`, change the `onSave` call to:
+
 ```ts
 onSave({
   name: name.trim(),
@@ -100,8 +106,11 @@ onSave({
 ```
 
 Add a new TextField after the Note field, inside the column `Box`:
+
 ```tsx
-{/* QORT Address Field */}
+{
+  /* QORT Address Field */
+}
 <TextField
   fullWidth
   label={t('core:address_book_qort_address', {
@@ -109,7 +118,7 @@ Add a new TextField after the Note field, inside the column `Box`:
   })}
   value={qortAddress}
   onChange={(e) => setQortAddress(e.target.value.trim())}
-/>
+/>;
 ```
 
 - [ ] **Step 4: Pass `qortAddress` through AddressBookDialog.handleSave**
@@ -149,6 +158,7 @@ git commit -m "feat(address-book): add qortAddress field for payment message sup
 ## Task 2: paymentMessages.ts utilities
 
 **Files:**
+
 - Create: `src/utils/paymentMessages.ts`
 - Create: `src/utils/__tests__/paymentMessages.test.ts`
 
@@ -185,7 +195,12 @@ describe('paymentMessages', () => {
 
   it('buildMessagePayload includes all required fields with a numeric timestamp', () => {
     const p = buildMessagePayload('thanks', 'sig123', 'LTC', '0.5');
-    expect(p).toMatchObject({ message: 'thanks', txHash: 'sig123', coin: 'LTC', amount: '0.5' });
+    expect(p).toMatchObject({
+      message: 'thanks',
+      txHash: 'sig123',
+      coin: 'LTC',
+      amount: '0.5',
+    });
     expect(typeof p.timestamp).toBe('number');
   });
 });
@@ -251,7 +266,9 @@ export async function resolveQortName(name: string): Promise<string | null> {
  * Fetches the public key for a QORT address.
  * The account must have made at least one on-chain transaction for the key to be available.
  */
-export async function fetchPublicKey(qortAddress: string): Promise<string | null> {
+export async function fetchPublicKey(
+  qortAddress: string
+): Promise<string | null> {
   try {
     const res = await qdnRequest({
       action: 'FETCH_NODE_API',
@@ -264,7 +281,9 @@ export async function fetchPublicKey(qortAddress: string): Promise<string | null
 }
 
 /** Returns the first registered QORT name for an address, or null. */
-export async function fetchNameForAddress(qortAddress: string): Promise<string | null> {
+export async function fetchNameForAddress(
+  qortAddress: string
+): Promise<string | null> {
   try {
     const res = await qdnRequest({
       action: 'FETCH_NODE_API',
@@ -361,6 +380,7 @@ git commit -m "feat(payment-messages): add QDN encrypt/publish/fetch utilities a
 Extracts the tx row JSX from `CoinDetail.tsx` into `TransactionRow.tsx` so both CoinDetail and UnifiedHistory (Task 6) can use it without duplication. Message display is added here.
 
 **Files:**
+
 - Create: `src/components/wallet/TransactionRow.tsx`
 - Modify: `src/components/wallet/CoinDetail.tsx`
 
@@ -480,14 +500,23 @@ export function TransactionRow({
           gap: 2,
           cursor: 'pointer',
           bgcolor: expanded
-            ? isClassic ? c.controlSelected : c.borderLight
+            ? isClassic
+              ? c.controlSelected
+              : c.borderLight
             : 'transparent',
           '&:hover': { bgcolor: isClassic ? c.controlHover : c.borderLight },
           transition: 'background-color 0.12s ease',
         }}
       >
         {showCoinBadge && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              flexShrink: 0,
+            }}
+          >
             {coinImageUrl && (
               <Box
                 component="img"
@@ -545,7 +574,11 @@ export function TransactionRow({
             whiteSpace: 'nowrap',
           }}
         >
-          {cp ? (isPositive ? `from ${fmtAddr(cp)}` : `to ${fmtAddr(cp)}`) : '—'}
+          {cp
+            ? isPositive
+              ? `from ${fmtAddr(cp)}`
+              : `to ${fmtAddr(cp)}`
+            : '—'}
         </Box>
 
         {hasMessage && (
@@ -601,7 +634,12 @@ export function TransactionRow({
                 <CircularProgress size={12} sx={{ color: c.accent, mt: 0.5 }} />
               ) : (
                 <Box
-                  sx={{ fontSize: '0.78rem', color: c.textPrimary, flex: 1, wordBreak: 'break-word' }}
+                  sx={{
+                    fontSize: '0.78rem',
+                    color: c.textPrimary,
+                    flex: 1,
+                    wordBreak: 'break-word',
+                  }}
                 >
                   {displayMessage}
                 </Box>
@@ -611,24 +649,39 @@ export function TransactionRow({
 
           {/* Standard detail rows */}
           {[
-            { label: 'Hash', value: str(row.txHash), mono: true, copyIdx: index },
+            {
+              label: 'Hash',
+              value: str(row.txHash),
+              mono: true,
+              copyIdx: index,
+            },
             { label: isPositive ? 'From' : 'To', value: cp, mono: true },
             {
               label: isPositive ? 'To' : 'From',
-              value: isPositive ? userAddress : (str(row.sender) ?? userAddress),
+              value: isPositive
+                ? userAddress
+                : (str(row.sender) ?? userAddress),
               mono: true,
             },
             {
               label: 'Fee',
-              value: row.feeAmount != null ? `${txFee()} ${chain.ticker}` : undefined,
+              value:
+                row.feeAmount != null
+                  ? `${txFee()} ${chain.ticker}`
+                  : undefined,
             },
             {
               label: 'Date',
-              value: row.timestamp ? new Date(row.timestamp).toLocaleString() : undefined,
+              value: row.timestamp
+                ? new Date(row.timestamp).toLocaleString()
+                : undefined,
             },
           ].map(({ label, value, mono, copyIdx }) =>
             value ? (
-              <Box key={label} sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              <Box
+                key={label}
+                sx={{ display: 'flex', gap: 2, alignItems: 'center' }}
+              >
                 <Box
                   sx={{
                     fontSize: '0.65rem',
@@ -656,13 +709,18 @@ export function TransactionRow({
                 {copyIdx != null && (
                   <IconButton
                     size="small"
-                    onClick={(e) => { e.stopPropagation(); onCopyHash(copyIdx, value!); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCopyHash(copyIdx, value!);
+                    }}
                     sx={{ flexShrink: 0, p: 0.5 }}
                   >
                     {copiedHash === copyIdx ? (
                       <CheckIcon sx={{ fontSize: 14, color: c.success }} />
                     ) : (
-                      <ContentCopyIcon sx={{ fontSize: 14, color: c.textSecondary }} />
+                      <ContentCopyIcon
+                        sx={{ fontSize: 14, color: c.textSecondary }}
+                      />
                     )}
                   </IconButton>
                 )}
@@ -671,28 +729,62 @@ export function TransactionRow({
           )}
 
           {/* Inputs / outputs */}
-          {(row.inputs?.length || row.outputs?.length) ? (
+          {row.inputs?.length || row.outputs?.length ? (
             <Box sx={{ mt: 0.5, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
               {row.inputs?.length ? (
                 <Box>
-                  <Box sx={{ fontSize: '0.65rem', fontWeight: tokens.typography.weightBold, letterSpacing: '0.1em', textTransform: 'uppercase', color: c.textSecondary, mb: 0.5 }}>
+                  <Box
+                    sx={{
+                      fontSize: '0.65rem',
+                      fontWeight: tokens.typography.weightBold,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      color: c.textSecondary,
+                      mb: 0.5,
+                    }}
+                  >
                     Inputs
                   </Box>
                   {row.inputs.map((inp, j) => (
-                    <Box key={j} sx={{ fontFamily: c.monoFontFamily, fontSize: '0.7rem', color: inp.addressInWallet ? c.accent : c.textSecondary }}>
-                      {fmtAddr(inp.address)} · {(inp.amount / divisor).toFixed(chain.decimalPlaces)}
+                    <Box
+                      key={j}
+                      sx={{
+                        fontFamily: c.monoFontFamily,
+                        fontSize: '0.7rem',
+                        color: inp.addressInWallet ? c.accent : c.textSecondary,
+                      }}
+                    >
+                      {fmtAddr(inp.address)} ·{' '}
+                      {(inp.amount / divisor).toFixed(chain.decimalPlaces)}
                     </Box>
                   ))}
                 </Box>
               ) : null}
               {row.outputs?.length ? (
                 <Box>
-                  <Box sx={{ fontSize: '0.65rem', fontWeight: tokens.typography.weightBold, letterSpacing: '0.1em', textTransform: 'uppercase', color: c.textSecondary, mb: 0.5 }}>
+                  <Box
+                    sx={{
+                      fontSize: '0.65rem',
+                      fontWeight: tokens.typography.weightBold,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      color: c.textSecondary,
+                      mb: 0.5,
+                    }}
+                  >
                     Outputs
                   </Box>
                   {row.outputs.map((out, j) => (
-                    <Box key={j} sx={{ fontFamily: c.monoFontFamily, fontSize: '0.7rem', color: out.addressInWallet ? c.accent : c.textSecondary }}>
-                      {fmtAddr(out.address)} · {(out.amount / divisor).toFixed(chain.decimalPlaces)}
+                    <Box
+                      key={j}
+                      sx={{
+                        fontFamily: c.monoFontFamily,
+                        fontSize: '0.7rem',
+                        color: out.addressInWallet ? c.accent : c.textSecondary,
+                      }}
+                    >
+                      {fmtAddr(out.address)} ·{' '}
+                      {(out.amount / divisor).toFixed(chain.decimalPlaces)}
                     </Box>
                   ))}
                 </Box>
@@ -713,6 +805,7 @@ In `src/components/wallet/CoinDetail.tsx`:
 a) Remove the inline `interface TxRow { ... }` definition (lines 64-73) — it now lives in TransactionRow.tsx.
 
 b) Add imports:
+
 ```ts
 import { TransactionRow, type TxRow } from './TransactionRow';
 import {
@@ -723,12 +816,18 @@ import {
 ```
 
 c) Add new state for fetched QDN messages and loading flags (after the existing `const [copiedHash, ...]` state):
+
 ```ts
-const [qdnMessages, setQdnMessages] = useState<Record<string, string | null>>({});
-const [qdnMessagesLoading, setQdnMessagesLoading] = useState<Record<string, boolean>>({});
+const [qdnMessages, setQdnMessages] = useState<Record<string, string | null>>(
+  {}
+);
+const [qdnMessagesLoading, setQdnMessagesLoading] = useState<
+  Record<string, boolean>
+>({});
 ```
 
 d) Add a handler that fires when a row is expanded to fetch the QDN message for received txs:
+
 ```ts
 const handleToggleExpand = useCallback(
   (i: number) => {
@@ -741,7 +840,11 @@ const handleToggleExpand = useCallback(
       const txHash = row.txHash;
 
       // Already fetched or it's a sent tx (cached message takes priority)
-      if (qdnMessages[txHash] !== undefined || getCachedMessage(txHash) !== null) return;
+      if (
+        qdnMessages[txHash] !== undefined ||
+        getCachedMessage(txHash) !== null
+      )
+        return;
 
       // Determine sender QORT address
       let senderQortAddress: string | undefined;
@@ -777,23 +880,26 @@ const handleToggleExpand = useCallback(
 You will also need to import `getAddressBook` from `../../utils/addressBookStorage`.
 
 e) Replace the entire `transactions.map((row, i) => { ... })` block with:
+
 ```tsx
-{transactions.map((row, i) => (
-  <TransactionRow
-    key={i}
-    row={row}
-    index={i}
-    isLastRow={i === transactions.length - 1}
-    chain={chain}
-    userAddress={address}
-    expanded={expandedTx === i}
-    onToggleExpand={() => handleToggleExpand(i)}
-    copiedHash={copiedHash}
-    onCopyHash={handleCopyHash}
-    qdnMessage={row.txHash ? qdnMessages[row.txHash] : undefined}
-    qdnMessageLoading={row.txHash ? qdnMessagesLoading[row.txHash] : false}
-  />
-))}
+{
+  transactions.map((row, i) => (
+    <TransactionRow
+      key={i}
+      row={row}
+      index={i}
+      isLastRow={i === transactions.length - 1}
+      chain={chain}
+      userAddress={address}
+      expanded={expandedTx === i}
+      onToggleExpand={() => handleToggleExpand(i)}
+      copiedHash={copiedHash}
+      onCopyHash={handleCopyHash}
+      qdnMessage={row.txHash ? qdnMessages[row.txHash] : undefined}
+      qdnMessageLoading={row.txHash ? qdnMessagesLoading[row.txHash] : false}
+    />
+  ));
+}
 ```
 
 f) Remove the old inline `setExpandedTx(expanded ? null : i)` onClick and the old `expanded` const from inside the map — those are now handled by `handleToggleExpand` and the prop.
@@ -818,6 +924,7 @@ git commit -m "feat(tx-row): extract TransactionRow component and add message di
 ## Task 4: Add message and QORT recipient fields to send dialog
 
 **Files:**
+
 - Modify: `src/components/wallet/CoinDetail.tsx`
 - Modify: `src/i18n/locales/en/core.json`
 
@@ -839,12 +946,15 @@ In `src/components/wallet/CoinDetail.tsx`, add these state variables after the e
 ```ts
 const [paymentMessage, setPaymentMessage] = useState('');
 const [recipientQort, setRecipientQort] = useState('');
-const [recipientQortAddress, setRecipientQortAddress] = useState<string | null>(null);
+const [recipientQortAddress, setRecipientQortAddress] = useState<string | null>(
+  null
+);
 const [qortResolving, setQortResolving] = useState(false);
 const [qortResolveFailed, setQortResolveFailed] = useState(false);
 ```
 
 Add new imports at the top:
+
 ```ts
 import {
   getCachedMessage,
@@ -861,6 +971,7 @@ import { useAuth } from 'qapp-core';
 ```
 
 Add at the top of `CoinDetail`:
+
 ```ts
 const { address: userQortAddress, name: userQortName } = useAuth();
 ```
@@ -892,7 +1003,10 @@ Add a function to resolve the QORT field value to an address:
 ```ts
 const resolveQortField = useCallback(async () => {
   const val = recipientQort.trim();
-  if (!val) { setRecipientQortAddress(null); return; }
+  if (!val) {
+    setRecipientQortAddress(null);
+    return;
+  }
 
   // Already a Q address — use directly
   if (val.startsWith('Q') && val.length > 20) {
@@ -919,7 +1033,9 @@ const resolveQortField = useCallback(async () => {
 In the send dialog form section (the `<>` block inside `sendResult === null`), add these two fields after the existing Recipient `<TextField>` and before the Fee field:
 
 ```tsx
-{/* Payment message — optional */}
+{
+  /* Payment message — optional */
+}
 <TextField
   label={t('send_dialog.message_label')}
   value={paymentMessage}
@@ -931,41 +1047,46 @@ In the send dialog form section (the `<>` block inside `sendResult === null`), a
   rows={2}
   disabled={sending}
   helperText={paymentMessage ? `${paymentMessage.length}/280` : undefined}
-/>
+/>;
 
-{/* QORT recipient — only shown when message is non-empty */}
-{paymentMessage && (
-  <TextField
-    label={t('send_dialog.recipient_qort_label')}
-    value={recipientQort}
-    onChange={(e) => {
-      setRecipientQort(e.target.value);
-      setRecipientQortAddress(null);
-      setQortResolveFailed(false);
-    }}
-    onBlur={resolveQortField}
-    fullWidth
-    disabled={sending || qortResolving}
-    error={qortResolveFailed}
-    helperText={
-      qortResolveFailed
-        ? t('send_dialog.qort_resolve_failed')
-        : recipientQortAddress
-          ? '✓'
-          : undefined
-    }
-    InputProps={{
-      endAdornment: qortResolving ? (
-        <CircularProgress size={16} sx={{ color: c.accent }} />
-      ) : undefined,
-    }}
-  />
-)}
+{
+  /* QORT recipient — only shown when message is non-empty */
+}
+{
+  paymentMessage && (
+    <TextField
+      label={t('send_dialog.recipient_qort_label')}
+      value={recipientQort}
+      onChange={(e) => {
+        setRecipientQort(e.target.value);
+        setRecipientQortAddress(null);
+        setQortResolveFailed(false);
+      }}
+      onBlur={resolveQortField}
+      fullWidth
+      disabled={sending || qortResolving}
+      error={qortResolveFailed}
+      helperText={
+        qortResolveFailed
+          ? t('send_dialog.qort_resolve_failed')
+          : recipientQortAddress
+            ? '✓'
+            : undefined
+      }
+      InputProps={{
+        endAdornment: qortResolving ? (
+          <CircularProgress size={16} sx={{ color: c.accent }} />
+        ) : undefined,
+      }}
+    />
+  );
+}
 ```
 
 - [ ] **Step 6: Reset message state in `openSend` and `closeSend`**
 
 In `openSend`:
+
 ```ts
 setPaymentMessage('');
 setRecipientQort('');
@@ -974,6 +1095,7 @@ setQortResolveFailed(false);
 ```
 
 In `closeSend`:
+
 ```ts
 setPaymentMessage('');
 setRecipientQort('');
@@ -995,16 +1117,23 @@ const txHashForMsg =
   (chain.isNative ? (result as any)?.signature : undefined);
 
 if (msgToCopy && txHashForMsg && recipientQortAddress && userQortName) {
-  const payload = buildMessagePayload(msgToCopy, txHashForMsg, chain.ticker, amount);
+  const payload = buildMessagePayload(
+    msgToCopy,
+    txHashForMsg,
+    chain.ticker,
+    amount
+  );
   cacheMessage(txHashForMsg, msgToCopy);
   Promise.all([
     fetchPublicKey(recipientQortAddress),
     fetchPublicKey(userQortAddress ?? ''),
-  ]).then(([recipPk, senderPk]) => {
-    if (recipPk && senderPk) {
-      publishPaymentMessage(payload, senderPk, recipPk).catch(() => {});
-    }
-  }).catch(() => {});
+  ])
+    .then(([recipPk, senderPk]) => {
+      if (recipPk && senderPk) {
+        publishPaymentMessage(payload, senderPk, recipPk).catch(() => {});
+      }
+    })
+    .catch(() => {});
 }
 ```
 
@@ -1028,6 +1157,7 @@ git commit -m "feat(send-dialog): add optional payment message and QORT recipien
 ## Task 5: `useUnifiedHistory` hook
 
 **Files:**
+
 - Create: `src/hooks/useUnifiedHistory.ts`
 - Create: `src/hooks/__tests__/useUnifiedHistory.test.ts`
 
@@ -1089,10 +1219,18 @@ describe('useUnifiedHistory', () => {
 
   it('populates rows after both chains resolve and sorts by timestamp descending', async () => {
     (globalThis as any).qdnRequest.mockImplementation((opts: any) => {
-      if (opts.action === 'GET_USER_WALLET') return Promise.resolve({ address: 'Qabc' });
+      if (opts.action === 'GET_USER_WALLET')
+        return Promise.resolve({ address: 'Qabc' });
       if (opts.action === 'FETCH_NODE_API')
         return Promise.resolve([
-          { signature: 'sig1', amount: '1', fee: '0.001', timestamp: 2000, creatorAddress: 'Qsender', recipient: 'Qabc' },
+          {
+            signature: 'sig1',
+            amount: '1',
+            fee: '0.001',
+            timestamp: 2000,
+            creatorAddress: 'Qsender',
+            recipient: 'Qabc',
+          },
         ]);
       if (opts.action === 'GET_USER_WALLET_TRANSACTIONS')
         return Promise.resolve([
@@ -1184,7 +1322,9 @@ async function fetchChainTxs(chain: ChainConfig): Promise<TxRow[]> {
   }
 }
 
-export function useUnifiedHistory(chains: ChainConfig[]): UseUnifiedHistoryResult {
+export function useUnifiedHistory(
+  chains: ChainConfig[]
+): UseUnifiedHistoryResult {
   const [rows, setRows] = useState<UnifiedTxRow[]>([]);
   const [loadingChains, setLoadingChains] = useState<string[]>([]);
   const [errorChains, setErrorChains] = useState<string[]>([]);
@@ -1241,6 +1381,7 @@ git commit -m "feat(unified-history): add useUnifiedHistory hook with parallel m
 ## Task 6: UnifiedHistory page component
 
 **Files:**
+
 - Create: `src/components/wallet/UnifiedHistory.tsx`
 
 - [ ] **Step 1: Create `src/components/wallet/UnifiedHistory.tsx`**
@@ -1310,10 +1451,21 @@ export function UnifiedHistory() {
           gap: 2,
         }}
       >
-        <IconButton onClick={() => navigate('/')} size="small" sx={{ borderRadius: 0, color: c.textPrimary }}>
+        <IconButton
+          onClick={() => navigate('/')}
+          size="small"
+          sx={{ borderRadius: 0, color: c.textPrimary }}
+        >
           <ArrowBackIcon fontSize="small" />
         </IconButton>
-        <Box sx={{ fontWeight: tokens.typography.weightBold, letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: '0.85rem' }}>
+        <Box
+          sx={{
+            fontWeight: tokens.typography.weightBold,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            fontSize: '0.85rem',
+          }}
+        >
           All Transactions
         </Box>
         <Box sx={{ flexGrow: 1 }} />
@@ -1322,10 +1474,20 @@ export function UnifiedHistory() {
             Loaded {loadedCount} of {totalNonArrr}
           </Box>
         )}
-        {stillLoading && <CircularProgress size={14} sx={{ color: c.accent }} />}
+        {stillLoading && (
+          <CircularProgress size={14} sx={{ color: c.accent }} />
+        )}
       </Box>
 
-      <Box sx={{ width: '100%', maxWidth: isClassic ? c.layoutWideMaxWidth : c.layoutMaxWidth, mx: 'auto', px: { xs: isClassic ? 1.5 : 2, md: isClassic ? 3 : 4 }, py: isClassic ? 3 : 4 }}>
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: isClassic ? c.layoutWideMaxWidth : c.layoutMaxWidth,
+          mx: 'auto',
+          px: { xs: isClassic ? 1.5 : 2, md: isClassic ? 3 : 4 },
+          py: isClassic ? 3 : 4,
+        }}
+      >
         {/* Error notice */}
         {errorChains.length > 0 && (
           <Box sx={{ mb: 2, fontSize: '0.75rem', color: c.textSecondary }}>
@@ -1365,7 +1527,11 @@ export function UnifiedHistory() {
                 fontSize: '0.72rem',
                 textTransform: 'capitalize',
                 ...(filter === f
-                  ? { bgcolor: c.accent, color: c.accentText, '&:hover': { bgcolor: c.accentHover } }
+                  ? {
+                      bgcolor: c.accent,
+                      color: c.accentText,
+                      '&:hover': { bgcolor: c.accentHover },
+                    }
                   : { borderColor: c.borderLight, color: c.textSecondary }),
               }}
             >
@@ -1384,7 +1550,14 @@ export function UnifiedHistory() {
           }}
         >
           {filteredRows.length === 0 && !stillLoading ? (
-            <Box sx={{ py: 6, textAlign: 'center', color: c.textSecondary, fontSize: '0.85rem' }}>
+            <Box
+              sx={{
+                py: 6,
+                textAlign: 'center',
+                color: c.textSecondary,
+                fontSize: '0.85rem',
+              }}
+            >
               No transactions found
             </Box>
           ) : (
@@ -1397,7 +1570,9 @@ export function UnifiedHistory() {
                 chain={row.chain}
                 userAddress=""
                 expanded={expandedTx === i}
-                onToggleExpand={() => setExpandedTx(expandedTx === i ? null : i)}
+                onToggleExpand={() =>
+                  setExpandedTx(expandedTx === i ? null : i)
+                }
                 copiedHash={copiedHash}
                 onCopyHash={handleCopyHash}
                 showCoinBadge
@@ -1431,6 +1606,7 @@ git commit -m "feat(unified-history): add UnifiedHistory page component"
 ## Task 7: Add routes and CoinGrid navigation buttons
 
 **Files:**
+
 - Modify: `src/routes/Routes.tsx`
 - Modify: `src/components/wallet/CoinGrid.tsx`
 - Modify: `src/i18n/locales/en/core.json`
@@ -1449,12 +1625,14 @@ In `src/i18n/locales/en/core.json`, add at the top level:
 - [ ] **Step 2: Register new routes**
 
 In `src/routes/Routes.tsx`, add imports:
+
 ```ts
 import { UnifiedHistory } from '../components/wallet/UnifiedHistory';
 import { ContactCard } from '../components/wallet/ContactCard';
 ```
 
 Add two new routes inside the `children` array:
+
 ```ts
 { path: 'history', element: <UnifiedHistory /> },
 { path: 'contact/:qortName', element: <ContactCard /> },
@@ -1465,6 +1643,7 @@ Add two new routes inside the `children` array:
 In `src/components/wallet/CoinGrid.tsx`:
 
 Add imports:
+
 ```ts
 import HistoryIcon from '@mui/icons-material/History';
 import ShareIcon from '@mui/icons-material/Share';
@@ -1474,6 +1653,7 @@ import { useAuth } from 'qapp-core';
 ```
 
 Add state and auth hook after the existing `useState` calls:
+
 ```ts
 const { t } = useTranslation('core');
 const { name: userName } = useAuth();
@@ -1481,6 +1661,7 @@ const [shareToast, setShareToast] = useState('');
 ```
 
 Add a `handleShareContact` function inside `CoinGrid`:
+
 ```ts
 const handleShareContact = useCallback(async () => {
   setShareToast(t('share_contact_publishing'));
@@ -1540,7 +1721,15 @@ Add the two buttons in the CoinGrid return JSX, above the `<DndContext>` block:
 ```tsx
 <Box sx={{ display: 'flex', gap: 1, mb: 1.5, justifyContent: 'flex-end' }}>
   {shareToast && (
-    <Box sx={{ fontSize: '0.75rem', color: c.textSecondary, display: 'flex', alignItems: 'center', mr: 1 }}>
+    <Box
+      sx={{
+        fontSize: '0.75rem',
+        color: c.textSecondary,
+        display: 'flex',
+        alignItems: 'center',
+        mr: 1,
+      }}
+    >
       {shareToast}
     </Box>
   )}
@@ -1583,6 +1772,7 @@ git commit -m "feat: add /history and /contact routes, History and Share Contact
 ## Task 8: ContactCard page component
 
 **Files:**
+
 - Create: `src/components/wallet/ContactCard.tsx`
 - Modify: `src/i18n/locales/en/core.json`
 
@@ -1623,18 +1813,46 @@ interface ContactCardData {
   updatedAt: number;
 }
 
-function CoinAddressRow({ ticker, address }: { ticker: string; address: string }) {
+function CoinAddressRow({
+  ticker,
+  address,
+}: {
+  ticker: string;
+  address: string;
+}) {
   const c = useColors();
   const coinImageUrl = useCoinImageUrl(ticker);
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 0.75 }}>
       {coinImageUrl && (
-        <Box component="img" src={coinImageUrl} alt={ticker} sx={{ height: 18, width: 18, objectFit: 'contain', flexShrink: 0 }} />
+        <Box
+          component="img"
+          src={coinImageUrl}
+          alt={ticker}
+          sx={{ height: 18, width: 18, objectFit: 'contain', flexShrink: 0 }}
+        />
       )}
-      <Box sx={{ fontWeight: tokens.typography.weightBold, fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: c.textSecondary, minWidth: 36 }}>
+      <Box
+        sx={{
+          fontWeight: tokens.typography.weightBold,
+          fontSize: '0.7rem',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          color: c.textSecondary,
+          minWidth: 36,
+        }}
+      >
         {ticker}
       </Box>
-      <Box sx={{ fontFamily: c.monoFontFamily, fontSize: '0.75rem', color: c.textPrimary, wordBreak: 'break-all', flex: 1 }}>
+      <Box
+        sx={{
+          fontFamily: c.monoFontFamily,
+          fontSize: '0.75rem',
+          color: c.textPrimary,
+          wordBreak: 'break-all',
+          flex: 1,
+        }}
+      >
         {address}
       </Box>
     </Box>
@@ -1656,7 +1874,11 @@ export function ContactCard() {
   const [imported, setImported] = useState(false);
 
   useEffect(() => {
-    if (!qortName) { setLoading(false); setNotFound(true); return; }
+    if (!qortName) {
+      setLoading(false);
+      setNotFound(true);
+      return;
+    }
     setLoading(true);
     qdnRequest({
       action: 'FETCH_QDN_RESOURCE',
@@ -1713,21 +1935,47 @@ export function ContactCard() {
           gap: 2,
         }}
       >
-        <IconButton onClick={() => navigate('/')} size="small" sx={{ borderRadius: 0, color: c.textPrimary }}>
+        <IconButton
+          onClick={() => navigate('/')}
+          size="small"
+          sx={{ borderRadius: 0, color: c.textPrimary }}
+        >
           <ArrowBackIcon fontSize="small" />
         </IconButton>
-        <Box sx={{ fontWeight: tokens.typography.weightBold, letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: '0.85rem' }}>
+        <Box
+          sx={{
+            fontWeight: tokens.typography.weightBold,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            fontSize: '0.85rem',
+          }}
+        >
           {t('contact_card_title')}
         </Box>
       </Box>
 
-      <Box sx={{ width: '100%', maxWidth: isClassic ? c.layoutWideMaxWidth : c.layoutMaxWidth, mx: 'auto', px: { xs: isClassic ? 1.5 : 2, md: isClassic ? 3 : 4 }, py: isClassic ? 3 : 4 }}>
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: isClassic ? c.layoutWideMaxWidth : c.layoutMaxWidth,
+          mx: 'auto',
+          px: { xs: isClassic ? 1.5 : 2, md: isClassic ? 3 : 4 },
+          py: isClassic ? 3 : 4,
+        }}
+      >
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
             <CircularProgress size={28} sx={{ color: c.accent }} />
           </Box>
         ) : notFound || !card ? (
-          <Box sx={{ py: 6, textAlign: 'center', color: c.textSecondary, fontSize: '0.85rem' }}>
+          <Box
+            sx={{
+              py: 6,
+              textAlign: 'center',
+              color: c.textSecondary,
+              fontSize: '0.85rem',
+            }}
+          >
             {t('contact_card_not_found')}
           </Box>
         ) : (
@@ -1747,13 +1995,34 @@ export function ContactCard() {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               {[
                 { label: t('contact_card_qort_name'), value: card.qortName },
-                { label: t('contact_card_qort_address'), value: card.qortAddress, mono: true },
+                {
+                  label: t('contact_card_qort_address'),
+                  value: card.qortAddress,
+                  mono: true,
+                },
               ].map(({ label, value, mono }) => (
                 <Box key={label} sx={{ display: 'flex', gap: 2 }}>
-                  <Box sx={{ fontSize: '0.65rem', fontWeight: tokens.typography.weightBold, letterSpacing: '0.1em', textTransform: 'uppercase', color: c.textSecondary, minWidth: 90, flexShrink: 0 }}>
+                  <Box
+                    sx={{
+                      fontSize: '0.65rem',
+                      fontWeight: tokens.typography.weightBold,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      color: c.textSecondary,
+                      minWidth: 90,
+                      flexShrink: 0,
+                    }}
+                  >
                     {label}
                   </Box>
-                  <Box sx={{ fontFamily: mono ? c.monoFontFamily : undefined, fontSize: '0.8rem', color: c.textPrimary, wordBreak: 'break-all' }}>
+                  <Box
+                    sx={{
+                      fontFamily: mono ? c.monoFontFamily : undefined,
+                      fontSize: '0.8rem',
+                      color: c.textPrimary,
+                      wordBreak: 'break-all',
+                    }}
+                  >
                     {value}
                   </Box>
                 </Box>
@@ -1762,7 +2031,16 @@ export function ContactCard() {
 
             {/* Wallet addresses */}
             <Box>
-              <Box sx={{ fontSize: '0.65rem', fontWeight: tokens.typography.weightBold, letterSpacing: '0.14em', textTransform: 'uppercase', color: c.textSecondary, mb: 1 }}>
+              <Box
+                sx={{
+                  fontSize: '0.65rem',
+                  fontWeight: tokens.typography.weightBold,
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                  color: c.textSecondary,
+                  mb: 1,
+                }}
+              >
                 {t('contact_card_addresses')}
               </Box>
               {Object.entries(card.addresses).map(([ticker, addr]) => (
@@ -1786,7 +2064,9 @@ export function ContactCard() {
                 fontSize: '0.78rem',
               }}
             >
-              {imported ? t('contact_card_import_success') : t('contact_card_add_all')}
+              {imported
+                ? t('contact_card_import_success')
+                : t('contact_card_add_all')}
             </Button>
           </Box>
         )}
@@ -1816,15 +2096,19 @@ git commit -m "feat(contact-card): add ContactCard page for importing shared wal
 ## Self-check after all tasks
 
 - [ ] Run the full test suite one final time:
+
   ```bash
   npm test -- --run
   ```
+
   Expected: all tests pass, no regressions.
 
 - [ ] TypeScript check:
+
   ```bash
   npx tsc --noEmit
   ```
+
   Expected: no errors.
 
 - [ ] Manually test in Qortium Home:

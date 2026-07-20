@@ -10,12 +10,14 @@ import {
 describe('buildPaymentNotificationRules', () => {
   it('includes the QORT rule when an address is given', () => {
     const rules = buildPaymentNotificationRules('QAddress123', []);
-    expect(rules).toEqual([{
-      notificationId: QORT_PAYMENT_NOTIFICATION_ID,
-      event: 'PAYMENT_RECEIVED',
-      filters: { recipient: 'QAddress123' },
-      title: 'QORT payment received',
-    }]);
+    expect(rules).toEqual([
+      {
+        notificationId: QORT_PAYMENT_NOTIFICATION_ID,
+        event: 'PAYMENT_RECEIVED',
+        filters: { recipient: 'QAddress123' },
+        title: 'QORT payment received',
+      },
+    ]);
   });
 
   it('omits the QORT rule when no address is given', () => {
@@ -42,7 +44,9 @@ describe('buildPaymentNotificationRules', () => {
   });
 
   it('never emits a rule for a coin that was not passed in (e.g. ARRR)', () => {
-    const rules = buildPaymentNotificationRules('QAddress123', [{ coin: 'BTC', xpub: 'xpub-btc' }]);
+    const rules = buildPaymentNotificationRules('QAddress123', [
+      { coin: 'BTC', xpub: 'xpub-btc' },
+    ]);
     expect(rules.some((rule) => rule.filters.coin === 'ARRR')).toBe(false);
     expect(rules).toHaveLength(2);
   });
@@ -50,7 +54,9 @@ describe('buildPaymentNotificationRules', () => {
 
 describe('findStaleNotificationIds', () => {
   it('returns ids present in existing but not in desired', () => {
-    expect(findStaleNotificationIds(['a', 'b', 'c'], ['b', 'c'])).toEqual(['a']);
+    expect(findStaleNotificationIds(['a', 'b', 'c'], ['b', 'c'])).toEqual([
+      'a',
+    ]);
   });
 
   it('returns an empty array when nothing is stale', () => {
@@ -66,22 +72,33 @@ describe('paymentNotificationSignature', () => {
   it('is stable regardless of foreign wallet ordering', () => {
     const a = { coin: 'BTC', xpub: 'xpub-btc' };
     const b = { coin: 'LTC', xpub: 'xpub-ltc' };
-    expect(paymentNotificationSignature('Q1', [a, b])).toBe(paymentNotificationSignature('Q1', [b, a]));
+    expect(paymentNotificationSignature('Q1', [a, b])).toBe(
+      paymentNotificationSignature('Q1', [b, a])
+    );
   });
 
   it('changes when the QORT address changes', () => {
-    expect(paymentNotificationSignature('Q1', [])).not.toBe(paymentNotificationSignature('Q2', []));
+    expect(paymentNotificationSignature('Q1', [])).not.toBe(
+      paymentNotificationSignature('Q2', [])
+    );
   });
 
   it('changes when a coin xpub changes', () => {
     const before = [{ coin: 'BTC', xpub: 'xpub-old' }];
     const after = [{ coin: 'BTC', xpub: 'xpub-new' }];
-    expect(paymentNotificationSignature('Q1', before)).not.toBe(paymentNotificationSignature('Q1', after));
+    expect(paymentNotificationSignature('Q1', before)).not.toBe(
+      paymentNotificationSignature('Q1', after)
+    );
   });
 
   it('changes when a coin is added or removed', () => {
     const one = [{ coin: 'BTC', xpub: 'xpub-btc' }];
-    const two = [{ coin: 'BTC', xpub: 'xpub-btc' }, { coin: 'LTC', xpub: 'xpub-ltc' }];
-    expect(paymentNotificationSignature('Q1', one)).not.toBe(paymentNotificationSignature('Q1', two));
+    const two = [
+      { coin: 'BTC', xpub: 'xpub-btc' },
+      { coin: 'LTC', xpub: 'xpub-ltc' },
+    ];
+    expect(paymentNotificationSignature('Q1', one)).not.toBe(
+      paymentNotificationSignature('Q1', two)
+    );
   });
 });

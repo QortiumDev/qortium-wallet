@@ -19,12 +19,14 @@ import {
   sortableKeyboardCoordinates,
   useSortable,
   rectSortingStrategy,
+  verticalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useSupportedChains } from '../../hooks/useSupportedChains';
 import { useMarketPrices } from '../../hooks/useMarketPrices';
 import { useCoinImageUrl } from '../../hooks/useCoinImageUrl';
+import { CoinListRow } from './CoinListRow';
 import { requestWithTimeout, formatFiat } from '../../common/functions';
 import { tokens } from '../../theme/tokens';
 import { useColors } from '../../theme/ColorTokensContext';
@@ -38,6 +40,7 @@ import {
   portfolioFiatAtom,
   hideZeroAtom,
   walletReadyAtom,
+  viewModeAtom,
 } from '../../state/global/system';
 
 // Min tile width in px per zoom level — CSS auto-fill guarantees each level is visually distinct
@@ -52,7 +55,6 @@ const TILE_MIN_PX: Record<number, number> = {
   8: 50,
   9: 38,
 };
-
 
 function walletRequestForChain(chain: ChainConfig): QdnRequestOptions {
   return chain.isNative
@@ -110,17 +112,24 @@ function CoinBlock({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     };
-    navigator.clipboard.writeText(address).then(finish).catch(() => {
-      const el = document.createElement('textarea');
-      el.value = address;
-      el.style.cssText = 'position:fixed;top:-9999px';
-      document.body.appendChild(el);
-      el.focus();
-      el.select();
-      try { document.execCommand('copy'); } catch { /* */ }
-      document.body.removeChild(el);
-      finish();
-    });
+    navigator.clipboard
+      .writeText(address)
+      .then(finish)
+      .catch(() => {
+        const el = document.createElement('textarea');
+        el.value = address;
+        el.style.cssText = 'position:fixed;top:-9999px';
+        document.body.appendChild(el);
+        el.focus();
+        el.select();
+        try {
+          document.execCommand('copy');
+        } catch {
+          /* */
+        }
+        document.body.removeChild(el);
+        finish();
+      });
   };
 
   const handleSend = (e: React.MouseEvent) => {
@@ -372,7 +381,7 @@ function CoinBlock({
   );
 }
 
-function SortableCoinBlock({
+function SortableCoinItem({
   chain,
   balance,
   canSend,
@@ -380,6 +389,7 @@ function SortableCoinBlock({
   tileSize,
   fiatDisplay,
   isCustomMode,
+  viewMode,
 }: {
   chain: ChainConfig;
   balance: string | null;
@@ -388,6 +398,7 @@ function SortableCoinBlock({
   tileSize: number;
   fiatDisplay?: string;
   isCustomMode: boolean;
+  viewMode: 'grid' | 'list';
 }) {
   const {
     attributes,
@@ -401,7 +412,7 @@ function SortableCoinBlock({
   return (
     <Box
       ref={setNodeRef}
-      {...(attributes as any)}
+      {...(viewMode === 'grid' && isCustomMode ? (attributes as any) : {})}
       style={{
         transform: CSS.Transform.toString(transform),
         transition: isDragging ? undefined : (transition ?? undefined),
@@ -409,18 +420,34 @@ function SortableCoinBlock({
         position: 'relative',
       }}
     >
-      <CoinBlock
-        chain={chain}
-        balance={balance}
-        canSend={canSend}
-        loading={loading}
-        tileSize={tileSize}
-        fiatDisplay={fiatDisplay}
-        dragListeners={
-          isCustomMode ? (listeners as Record<string, unknown>) : undefined
-        }
-        isDragging={isDragging}
-      />
+      {viewMode === 'list' ? (
+        <CoinListRow
+          chain={chain}
+          balance={balance}
+          canSend={canSend}
+          loading={loading}
+          fiatDisplay={fiatDisplay}
+          dragHandleProps={
+            isCustomMode
+              ? ({ ...attributes, ...listeners } as Record<string, unknown>)
+              : undefined
+          }
+          isDragging={isDragging}
+        />
+      ) : (
+        <CoinBlock
+          chain={chain}
+          balance={balance}
+          canSend={canSend}
+          loading={loading}
+          tileSize={tileSize}
+          fiatDisplay={fiatDisplay}
+          dragListeners={
+            isCustomMode ? (listeners as Record<string, unknown>) : undefined
+          }
+          isDragging={isDragging}
+        />
+      )}
     </Box>
   );
 }
@@ -456,6 +483,7 @@ export function CoinGrid() {
   const [sortMode] = useAtom(sortModeAtom);
   const [customOrder, setCustomOrder] = useAtom(customOrderAtom);
   const [tileSize] = useAtom(tileSizeAtom);
+  const [viewMode] = useAtom(viewModeAtom);
 
   // Merge newly discovered chains into the persisted order; remove any that no longer exist
   useEffect(() => {
@@ -640,17 +668,25 @@ export function CoinGrid() {
       >
         <SortableContext
           items={visibleChains.map((c) => c.key)}
-          strategy={rectSortingStrategy}
+          strategy={
+            viewMode === 'list'
+              ? verticalListSortingStrategy
+              : rectSortingStrategy
+          }
         >
           <Box
             sx={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(auto-fill, minmax(${TILE_MIN_PX[tileSize] ?? 130}px, 1fr))`,
-              gap: 1.5,
+              display: viewMode === 'list' ? 'flex' : 'grid',
+              flexDirection: viewMode === 'list' ? 'column' : undefined,
+              gridTemplateColumns:
+                viewMode === 'grid'
+                  ? `repeat(auto-fill, minmax(${TILE_MIN_PX[tileSize] ?? 130}px, 1fr))`
+                  : undefined,
+              gap: viewMode === 'list' ? 1 : 1.5,
             }}
           >
             {visibleChains.map((chain) => (
-              <SortableCoinBlock
+              <SortableCoinItem
                 key={chain.key}
                 chain={chain}
                 balance={balances[chain.key] ?? null}
@@ -659,6 +695,7 @@ export function CoinGrid() {
                 tileSize={tileSize}
                 fiatDisplay={fiatDisplays[chain.key]}
                 isCustomMode={isCustom}
+                viewMode={viewMode}
               />
             ))}
           </Box>

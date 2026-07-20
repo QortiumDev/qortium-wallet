@@ -28,8 +28,8 @@ export type ForeignWalletXpub = { coin: string; xpub: string };
 
 export function buildPaymentNotificationRules(
   qortAddress: string | null,
-  foreignWallets: ForeignWalletXpub[],
-): NotificationRule[]
+  foreignWallets: ForeignWalletXpub[]
+): NotificationRule[];
 ```
 
 - If `qortAddress` is present, includes one rule:
@@ -57,10 +57,14 @@ export type NotificationRule = {
   link?: string;
 };
 
-export async function supportsNotifications(): Promise<boolean>;      // SHOW_ACTIONS includes NOTIFICATION_ADD
+export async function supportsNotifications(): Promise<boolean>; // SHOW_ACTIONS includes NOTIFICATION_ADD
 export async function getNotificationRules(): Promise<NotificationRule[]>; // NOTIFICATION_GET
-export async function addNotificationRules(rules: NotificationRule[]): Promise<void>; // NOTIFICATION_ADD, no-op if empty
-export async function removeNotificationRules(notificationIds?: string[]): Promise<void>; // NOTIFICATION_REMOVE
+export async function addNotificationRules(
+  rules: NotificationRule[]
+): Promise<void>; // NOTIFICATION_ADD, no-op if empty
+export async function removeNotificationRules(
+  notificationIds?: string[]
+): Promise<void>; // NOTIFICATION_REMOVE
 ```
 
 All four swallow errors the same way the sibling apps' equivalents do (best-effort background sync; no user-facing error surface).
@@ -73,7 +77,7 @@ New file `src/hooks/usePaymentNotifications.ts`, mirroring `useGroupNotification
 - On mount, calls `supportsNotifications()` once to set `notificationsSupportedAtom`.
 - Effect keyed on `[supported, enabled, walletReady, address, chains]`:
   - If not `supported`, not `enabled`, or not `walletReady`/no `address`: if a previous sync happened (tracked via a ref, not state), call `removeNotificationRules()` (no args - clears all of this app's rules, which are only ever these payment rules) and clear the ref.
-  - Otherwise: derive the foreign-coin subset from `chains` by filtering `!chain.isNative && chain.key !== 'ARRR'`. The `key !== 'ARRR'` check is required explicitly: `KNOWN_CHAIN_MAP` (used by the live-discovery path in `useSupportedChains`) includes ARRR, so if Core reports Pirate Chain as `walletEnabled`, ARRR *does* appear in the live `chains` array (it's only the offline `DEFAULT_CHAINS` fallback that omits it). For each remaining coin, call `qdnRequest({ action: 'GET_USER_WALLET', coin: chain.coinEnum })` in parallel via `Promise.all`, tolerating individual failures (locked wallet, node hiccup) by filtering out any coin whose request rejected or returned no `publicKey`.
+  - Otherwise: derive the foreign-coin subset from `chains` by filtering `!chain.isNative && chain.key !== 'ARRR'`. The `key !== 'ARRR'` check is required explicitly: `KNOWN_CHAIN_MAP` (used by the live-discovery path in `useSupportedChains`) includes ARRR, so if Core reports Pirate Chain as `walletEnabled`, ARRR _does_ appear in the live `chains` array (it's only the offline `DEFAULT_CHAINS` fallback that omits it). For each remaining coin, call `qdnRequest({ action: 'GET_USER_WALLET', coin: chain.coinEnum })` in parallel via `Promise.all`, tolerating individual failures (locked wallet, node hiccup) by filtering out any coin whose request rejected or returned no `publicKey`.
   - Compute the signature; if unchanged from the last successful sync, skip.
   - Otherwise: build the desired rules, fetch existing rules via `getNotificationRules()`, diff stale IDs, call `removeNotificationRules(staleIds)` if any, then `addNotificationRules(rules)`. Update the signature ref only after both calls resolve.
 
@@ -85,7 +89,10 @@ Two new atoms in `src/state/global/system.ts`:
 
 ```ts
 export const notificationsSupportedAtom = atom<boolean>(false);
-export const notificationsEnabledAtom = atomWithStorage<boolean>('qw-notifications-enabled', false);
+export const notificationsEnabledAtom = atomWithStorage<boolean>(
+  'qw-notifications-enabled',
+  false
+);
 ```
 
 Off by default - the user must discover and enable the bell, same as `qortium-group-manager`.

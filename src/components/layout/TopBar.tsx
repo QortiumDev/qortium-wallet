@@ -1,10 +1,18 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Box,
+  Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   IconButton,
   Menu,
   MenuItem,
+  Snackbar,
   Tooltip,
 } from '@mui/material';
 import SortIcon from '@mui/icons-material/Sort';
@@ -12,6 +20,8 @@ import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
+import GridViewIcon from '@mui/icons-material/GridView';
+import ViewListIcon from '@mui/icons-material/ViewList';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import PersonRemoveAlt1Icon from '@mui/icons-material/PersonRemoveAlt1';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
@@ -23,12 +33,15 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   uiStyleAtom,
   sortModeAtom,
+  viewModeAtom,
   tileSizeAtom,
   currencyAtom,
   portfolioFiatAtom,
   hideZeroAtom,
   notificationsEnabledAtom,
   notificationsSupportedAtom,
+  paymentNotificationRegistrationErrorAtom,
+  paymentNotificationRegistrationStatusAtom,
   FIAT_CURRENCIES,
   type SortMode,
 } from '../../state/global/system';
@@ -69,13 +82,22 @@ export function TopBar() {
   const { chains, status } = useSupportedChains();
   const uiStyle = useAtomValue(uiStyleAtom);
   const [sortMode, setSortMode] = useAtom(sortModeAtom);
+  const [viewMode, setViewMode] = useAtom(viewModeAtom);
   const [tileSize, setTileSize] = useAtom(tileSizeAtom);
   const [currency, setCurrency] = useAtom(currencyAtom);
   const portfolioFiat = useAtomValue(portfolioFiatAtom);
   const prices = useMarketPrices();
   const [hideZero, setHideZero] = useAtom(hideZeroAtom);
-  const [notificationsEnabled, setNotificationsEnabled] = useAtom(notificationsEnabledAtom);
+  const [notificationsEnabled, setNotificationsEnabled] = useAtom(
+    notificationsEnabledAtom
+  );
   const notificationsSupported = useAtomValue(notificationsSupportedAtom);
+  const notificationStatus = useAtomValue(
+    paymentNotificationRegistrationStatusAtom
+  );
+  const [notificationError, setNotificationError] = useAtom(
+    paymentNotificationRegistrationErrorAtom
+  );
   const headerRef = useRef<HTMLElement | null>(null);
   const [sortAnchor, setSortAnchor] = useState<null | HTMLElement>(null);
   const [zoomAnchor, setZoomAnchor] = useState<null | HTMLElement>(null);
@@ -88,9 +110,10 @@ export function TopBar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const isClassic = uiStyle === 'classic';
-  const isGrid = pathname === '/';
+  const isPortfolioRoute = pathname === '/';
   const [isFollowed, setIsFollowed] = useState(false);
   const [followBusy, setFollowBusy] = useState(false);
+  const [notificationConsentOpen, setNotificationConsentOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -99,7 +122,9 @@ export function TopBar() {
           action: 'GET_LIST',
           listName: 'followedNames',
         });
-        setIsFollowed(Array.isArray(list) && (list as string[]).includes(APP_QDN_NAME));
+        setIsFollowed(
+          Array.isArray(list) && (list as string[]).includes(APP_QDN_NAME)
+        );
       } catch {
         // Follow-list state is optional chrome; ignore unavailable list APIs.
       }
@@ -126,7 +151,7 @@ export function TopBar() {
     const observer = new ResizeObserver(updateHeight);
     observer.observe(header);
     return () => observer.disconnect();
-  }, [isClassic, isGrid, status]);
+  }, [isClassic, isPortfolioRoute, status]);
 
   async function handleToggleFollow() {
     if (followBusy) return;
@@ -162,6 +187,21 @@ export function TopBar() {
     } catch {
       // Help tab opening is optional and can fail outside Qortium Home.
     }
+  }
+
+  function handleNotificationToggle() {
+    if (notificationsEnabled) {
+      setNotificationsEnabled(false);
+      return;
+    }
+
+    setNotificationConsentOpen(true);
+  }
+
+  function enablePaymentNotifications() {
+    setNotificationConsentOpen(false);
+    setNotificationError(null);
+    setNotificationsEnabled(true);
   }
 
   const handleCopyAll = async () => {
@@ -222,6 +262,17 @@ export function TopBar() {
     },
     '&.Mui-disabled': { opacity: 0.3 },
   };
+
+  const notificationsRegistered =
+    notificationsEnabled && notificationStatus === 'registered';
+  const notificationTooltip =
+    notificationStatus === 'registering'
+      ? 'Updating payment notifications…'
+      : notificationStatus === 'error'
+        ? `Payment notifications failed: ${notificationError ?? 'Unknown error'}`
+        : notificationsRegistered
+          ? 'Payment notifications on'
+          : 'Payment notifications off';
 
   return (
     <Box
@@ -329,8 +380,61 @@ export function TopBar() {
           </Tooltip>
         )}
 
-        {/* Zoom (grid page only) */}
-        {isGrid && (
+        {/* Portfolio view selector */}
+        {isPortfolioRoute && (
+          <Box
+            role="group"
+            aria-label="portfolio view"
+            sx={{
+              display: 'flex',
+              flexShrink: 0,
+              border: `${tokens.shape.borderWidth} solid ${c.borderLight}`,
+              borderRadius: `${isClassic ? tokens.shape.radiusMd : tokens.shape.radius}px`,
+              overflow: 'hidden',
+            }}
+          >
+            <Tooltip title="Grid view" placement="bottom">
+              <IconButton
+                size="small"
+                onClick={() => setViewMode('grid')}
+                aria-label="grid view"
+                aria-pressed={viewMode === 'grid'}
+                sx={{
+                  ...buttonSx,
+                  minWidth: 40,
+                  width: 40,
+                  borderRadius: 0,
+                  color: viewMode === 'grid' ? c.accent : c.textSecondary,
+                  bgcolor: viewMode === 'grid' ? c.accentSoft : 'transparent',
+                }}
+              >
+                <GridViewIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="List view" placement="bottom">
+              <IconButton
+                size="small"
+                onClick={() => setViewMode('list')}
+                aria-label="list view"
+                aria-pressed={viewMode === 'list'}
+                sx={{
+                  ...buttonSx,
+                  minWidth: 40,
+                  width: 40,
+                  borderRadius: 0,
+                  borderInlineStart: `${tokens.shape.borderWidth} solid ${c.borderLight}`,
+                  color: viewMode === 'list' ? c.accent : c.textSecondary,
+                  bgcolor: viewMode === 'list' ? c.accentSoft : 'transparent',
+                }}
+              >
+                <ViewListIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        )}
+
+        {/* Zoom (portfolio grid view only) */}
+        {isPortfolioRoute && viewMode === 'grid' && (
           <>
             <Tooltip title="Zoom" placement="bottom">
               <IconButton
@@ -439,7 +543,7 @@ export function TopBar() {
         </Tooltip>
 
         {/* Sort (grid page only) */}
-        {isGrid && (
+        {isPortfolioRoute && (
           <>
             <Tooltip title="Sort" placement="bottom">
               <IconButton
@@ -619,7 +723,11 @@ export function TopBar() {
                 minWidth: 0,
               }}
             >
-              <PriceTicker chains={chains} prices={prices} currency={currency} />
+              <PriceTicker
+                chains={chains}
+                prices={prices}
+                currency={currency}
+              />
             </Box>
           </>
         )}
@@ -635,22 +743,36 @@ export function TopBar() {
         }}
       >
         {notificationsSupported && (
-          <Tooltip
-            title={notificationsEnabled ? 'Notify me of incoming payments' : 'Notifications off'}
-            placement="bottom"
-          >
-            <IconButton
-              size="small"
-              onClick={() => setNotificationsEnabled((v) => !v)}
-              sx={{ ...buttonSx, color: notificationsEnabled ? c.accent : c.textSecondary }}
-              aria-label={notificationsEnabled ? 'disable payment notifications' : 'enable payment notifications'}
-            >
-              {notificationsEnabled ? (
-                <NotificationsActiveIcon fontSize="small" />
-              ) : (
-                <NotificationsOffIcon fontSize="small" />
-              )}
-            </IconButton>
+          <Tooltip title={notificationTooltip} placement="bottom">
+            <span style={{ display: 'inline-flex' }}>
+              <IconButton
+                size="small"
+                onClick={handleNotificationToggle}
+                disabled={notificationStatus === 'registering'}
+                sx={{
+                  ...buttonSx,
+                  color:
+                    notificationStatus === 'error'
+                      ? c.danger
+                      : notificationsRegistered
+                        ? c.accent
+                        : c.textSecondary,
+                }}
+                aria-label={
+                  notificationsRegistered
+                    ? 'disable payment notifications'
+                    : 'enable payment notifications'
+                }
+              >
+                {notificationStatus === 'registering' ? (
+                  <CircularProgress size={18} color="inherit" />
+                ) : notificationsRegistered ? (
+                  <NotificationsActiveIcon fontSize="small" />
+                ) : (
+                  <NotificationsOffIcon fontSize="small" />
+                )}
+              </IconButton>
+            </span>
           </Tooltip>
         )}
 
@@ -691,6 +813,52 @@ export function TopBar() {
           </IconButton>
         </Tooltip>
       </Box>
+
+      <Dialog
+        open={notificationConsentOpen}
+        onClose={() => setNotificationConsentOpen(false)}
+        aria-labelledby="payment-notification-consent-title"
+      >
+        <DialogTitle id="payment-notification-consent-title">
+          Enable payment notifications?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Wallet will ask Home for permission to notify you about incoming
+            QORT and supported foreign-coin payments, including while Wallet is
+            closed or unfocused.
+          </DialogContentText>
+          <DialogContentText sx={{ mt: 2 }}>
+            Foreign-coin monitoring shares each wallet&apos;s watch-only
+            extended public key with your configured Core node. This can reveal
+            address history to that node, but it cannot be used to spend your
+            funds.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNotificationConsentOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={enablePaymentNotifications} variant="contained">
+            Continue
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={notificationError !== null}
+        autoHideDuration={8000}
+        onClose={() => setNotificationError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          severity="error"
+          variant="filled"
+          onClose={() => setNotificationError(null)}
+        >
+          Payment notifications were not enabled. {notificationError}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

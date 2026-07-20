@@ -72,7 +72,10 @@ export function useSupportedChains(): {
         if (!Array.isArray(data)) throw new Error('Unexpected response shape');
 
         const merged: ChainConfig[] = data
-          .filter((info) => info.walletEnabled && info.currencyCode?.toUpperCase() !== 'QORT')
+          .filter(
+            (info) =>
+              info.walletEnabled && info.currencyCode?.toUpperCase() !== 'QORT'
+          )
           .map((info) => {
             const code = info.currencyCode?.toUpperCase();
             const known = KNOWN_CHAIN_MAP.get(code);
@@ -97,7 +100,10 @@ export function useSupportedChains(): {
         setChains([QORT_CHAIN, ...merged]);
         setStatus('live');
       } catch (err) {
-        console.warn('[Walletium] GET_CROSSCHAIN_BLOCKCHAINS unavailable:', err);
+        console.warn(
+          '[Walletium] GET_CROSSCHAIN_BLOCKCHAINS unavailable:',
+          err
+        );
         setChains([QORT_CHAIN, ...DEFAULT_CHAINS]);
         setStatus('fallback');
       }

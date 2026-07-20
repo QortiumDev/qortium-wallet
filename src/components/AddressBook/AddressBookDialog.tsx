@@ -166,7 +166,9 @@ export const AddressBookDialog: React.FC<AddressBookDialogProps> = ({
     try {
       if (editingEntry) {
         // Update existing entry
-        const updates: Partial<Omit<AddressBookEntry, 'id' | 'createdAt' | 'coinType'>> = {
+        const updates: Partial<
+          Omit<AddressBookEntry, 'id' | 'createdAt' | 'coinType'>
+        > = {
           name: entry.name,
           address: entry.address,
           note: entry.note,
