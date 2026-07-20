@@ -51,7 +51,7 @@ describe('useUnifiedHistory', () => {
     (globalThis as any).qdnRequest.mockImplementation((opts: any) => {
       if (opts.action === 'GET_USER_WALLET')
         return Promise.resolve({ address: 'Qabc' });
-      if (opts.action === 'FETCH_NODE_API')
+      if (opts.action === 'SEARCH_QORTAL_TRANSACTIONS')
         return Promise.resolve([
           {
             signature: 'sig1',

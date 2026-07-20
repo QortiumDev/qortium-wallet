@@ -23,10 +23,19 @@ async function fetchChainTxs(chain: ChainConfig): Promise<TxRow[]> {
     const addr = wallet?.address;
     if (!addr) return [];
 
-    const data: any[] = await qdnRequest({
-      action: 'FETCH_NODE_API',
-      path: `/transactions/search?txType=PAYMENT&address=${encodeURIComponent(addr)}&confirmationStatus=CONFIRMED&limit=20&reverse=true`,
-    } as any).then((r: any) => (Array.isArray(r) ? r : []));
+    // QORT history lives on the Qortal chain, so it must go through Home's
+    // Qortal search action, not FETCH_NODE_API (which targets the Qortium
+    // node). On Home builds without the action this throws and the caller's
+    // catch leaves the chain's rows empty, as before.
+    const res = await qdnRequest({
+      action: 'SEARCH_QORTAL_TRANSACTIONS',
+      txType: 'PAYMENT',
+      address: addr,
+      confirmationStatus: 'CONFIRMED',
+      limit: 20,
+      reverse: true,
+    } as any);
+    const data: any[] = Array.isArray(res) ? res : [];
 
     return data.map((tx) => {
       const incoming = tx.recipient === addr;
