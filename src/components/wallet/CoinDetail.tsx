@@ -905,42 +905,42 @@ export function CoinDetail({ chain }: Props) {
                         {chain.ticker}
                       </Box>
                     </Typography>
-                    {pricePerUnit != null && (
-                      <Box
-                        sx={{
-                          mt: 1.5,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: 0.5,
-                        }}
-                      >
-                        {balance != null && parseFloat(balance) > 0 && (
-                          <Box
-                            sx={{
-                              fontSize: '1.1rem',
-                              fontWeight: tokens.typography.weightBold,
-                              color: c.textPrimary,
-                            }}
-                          >
-                            {formatFiat(
-                              parseFloat(balance) * pricePerUnit,
-                              currency
-                            )}
-                          </Box>
-                        )}
+                    <Box
+                      sx={{
+                        mt: 1.5,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 0.5,
+                      }}
+                    >
+                      {pricePerUnit != null && balance != null && (
                         <Box
                           sx={{
-                            fontSize: '0.78rem',
-                            color: c.textSecondary,
-                            letterSpacing: '0.02em',
+                            fontSize: '1.1rem',
+                            fontWeight: tokens.typography.weightBold,
+                            color: c.textPrimary,
                           }}
                         >
-                          1 {chain.ticker} ={' '}
-                          {formatFiat(pricePerUnit, currency)}
+                          {formatFiat(
+                            parseFloat(balance) * pricePerUnit,
+                            currency
+                          )}
                         </Box>
+                      )}
+                      <Box
+                        sx={{
+                          fontSize: '0.78rem',
+                          color: c.textSecondary,
+                          letterSpacing: '0.02em',
+                        }}
+                      >
+                        1 {chain.ticker} ={' '}
+                        {pricePerUnit != null
+                          ? formatFiat(pricePerUnit, currency)
+                          : '-'}
                       </Box>
-                    )}
+                    </Box>
                   </>
                 )}
               </Box>

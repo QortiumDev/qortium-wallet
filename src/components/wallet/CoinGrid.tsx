@@ -549,13 +549,20 @@ export function CoinGrid() {
     let total = 0;
     let hasAny = false;
     for (const chain of chains) {
-      if (chain.isNative) continue;
+      if (chain.isNative) {
+        displays[chain.key] = '-';
+        continue;
+      }
       const price = prices[chain.coinEnum];
+      if (price == null) {
+        displays[chain.key] = '-';
+        continue;
+      }
       const bal = balances[chain.key];
-      if (price == null || bal == null) continue;
+      if (bal == null) continue;
       const value = parseFloat(bal) * price;
+      displays[chain.key] = formatFiat(value, currency);
       if (value > 0) {
-        displays[chain.key] = formatFiat(value, currency);
         total += value;
         hasAny = true;
       }

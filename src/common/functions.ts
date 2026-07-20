@@ -108,13 +108,23 @@ export function humanFileSize(
 }
 
 export function formatFiat(value: number, currency: string): string {
+  const cur = currency.toUpperCase();
+  // Sub-cent values round to 0.00 at standard 2dp, hiding real dust/meme-coin
+  // prices. Extend precision to show ~2 significant digits instead, capped so
+  // near-zero dust doesn't produce an absurdly long string.
+  const decimals =
+    value > 0 && value < 0.01
+      ? Math.min(8, Math.max(2, -Math.floor(Math.log10(value)) + 1))
+      : 2;
   try {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: currency.toUpperCase(),
+      currency: cur,
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
     }).format(value);
   } catch {
-    return `${currency.toUpperCase()} ${value.toFixed(2)}`;
+    return `${cur} ${value.toFixed(decimals)}`;
   }
 }
 
