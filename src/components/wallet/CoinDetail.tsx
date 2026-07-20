@@ -30,7 +30,7 @@ const QRCode = ((_QRCodeDefault as any).default ??
 import { useAtomValue } from 'jotai';
 import { NumericFormat as _NumericFormat } from 'react-number-format';
 import { useMarketPrices } from '../../hooks/useMarketPrices';
-import { formatFiat } from '../../common/functions';
+import { copyToClipboard, formatFiat } from '../../common/functions';
 const NumericFormat = _NumericFormat as React.FC<
   React.ComponentProps<typeof _NumericFormat> & Record<string, unknown>
 >;
@@ -428,7 +428,7 @@ export function CoinDetail({ chain }: Props) {
 
   const handleCopy = () => {
     if (!address) return;
-    navigator.clipboard.writeText(address).then(() => {
+    copyToClipboard(address).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
