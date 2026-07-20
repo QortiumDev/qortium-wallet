@@ -351,10 +351,16 @@ export function CoinDetail({ chain }: Props) {
           setTransactions([]);
           return;
         }
-        const data: any[] = await qdnRequest({
-          action: 'FETCH_NODE_API',
+        // QORT history lives on the Qortal chain, so it must go through Home's
+        // Qortal-node passthrough, not FETCH_NODE_API (which targets the
+        // Qortium node). The bridge returns a result envelope with the
+        // transaction list in .data; on Home builds without the action this
+        // throws and the catch below leaves the list empty, as before.
+        const res = await qdnRequest({
+          action: 'FETCH_QORTAL_NODE_API',
           path: `/transactions/search?txType=PAYMENT&address=${encodeURIComponent(addr)}&confirmationStatus=CONFIRMED&limit=20&reverse=true`,
-        }).then((r) => (Array.isArray(r) ? r : []));
+        });
+        const data: any[] = Array.isArray(res?.data) ? res.data : [];
         const rows: TxRow[] = data.map((tx) => {
           const incoming = tx.recipient === addr;
           const raw = Math.round(parseFloat(tx.amount ?? '0') * 1e8);
