@@ -2,29 +2,23 @@
 
 A multi-coin wallet Q-App for the Qortium ecosystem. Supports QORT and all foreign chains available through the Qortium gateway. Includes send/receive, transaction history, and a QDN-backed encrypted address book.
 
-Built to be forked — see [Naming](#naming) below.
+Built to be forked - see [Naming](#naming) below.
+
+Started as a Q-wallets fork (Qortal), since diverged through considerable rewriting and development.
 
 ## Currently Supported Coins
 
-| Coin         | Ticker |
-| ------------ | ------ |
-| Qortal       | QORT   |
-| Bitcoin      | BTC    |
-| Litecoin     | LTC    |
-| Dogecoin     | DOGE   |
-| DigiByte     | DGB    |
-| Ravencoin    | RVN    |
-| Pirate Chain | ARRR   |
-| Bitcoin Cash | BCH    |
-| Dash         | DASH   |
-| Namecoin     | NMC    |
-| Peercoin     | PPC    |
-| Firo         | FIRO   |
-| Komodo       | KMD    |
-| VerusCoin    | VRSC   |
-| Zcash        | ZEC    |
-| LBRY Credits | LBC    |
-| Verge        | XVG    |
+| Coin      | Ticker |
+| --------- | ------ |
+| Qortal    | QORT   |
+| Bitcoin   | BTC    |
+| Litecoin  | LTC    |
+| Dogecoin  | DOGE   |
+| DigiByte  | DGB    |
+| Ravencoin | RVN    |
+| Dash      | DASH   |
+| Namecoin  | NMC    |
+| Firo      | FIRO   |
 
 ## Build
 
