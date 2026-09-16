@@ -315,6 +315,8 @@ export function CoinDetail({ chain }: Props) {
     const RETRY_DELAY = 1500;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       if (attempt > 0) await new Promise((r) => setTimeout(r, RETRY_DELAY));
+      if (!isMountedRef.current || revision !== balanceReadRevision.current)
+        return;
       try {
         let result: string;
         if (chain.isNative) {
@@ -330,7 +332,8 @@ export function CoinDetail({ chain }: Props) {
           const divisor = Math.pow(10, chain.decimalPlaces);
           result = res != null ? String(Number(res) / divisor) : '0';
         }
-        if (revision !== balanceReadRevision.current) return;
+        if (!isMountedRef.current || revision !== balanceReadRevision.current)
+          return;
         setBalance(result);
         setLoadingBalance(false);
         return;
@@ -338,7 +341,7 @@ export function CoinDetail({ chain }: Props) {
         /* retry */
       }
     }
-    if (revision === balanceReadRevision.current) {
+    if (isMountedRef.current && revision === balanceReadRevision.current) {
       setBalance(null);
       setLoadingBalance(false);
     }
