@@ -10,6 +10,7 @@ import type { ChainConfig } from '../../../config/chains';
 import { decimalToAtomic } from '../../../utils/walletSend';
 import * as resolveContactModule from '../../../utils/resolveContact';
 import { walletReadyAtom } from '../../../state/global/system';
+import { HOME_WALLET_CONTRACT } from '../../../common/homeWalletCapabilities';
 
 vi.mock('../../../utils/resolveContact');
 
@@ -37,6 +38,20 @@ const btcChain: ChainConfig = {
   activeNetwork: 'MAIN',
   supportsHtlc: true,
   supportsLocalChainTrades: true,
+  homeWallet: {
+    contract: HOME_WALLET_CONTRACT,
+    implemented: true,
+    protocol: 'qdnRequest',
+    read: true,
+    readMode: 'PUBLIC_NODE',
+    receive: true,
+    receiveMode: 'HOME_LOCAL',
+    requiresUnlockedAccount: true,
+    send: true,
+    serverManagement: true,
+    sendMode: 'HOME_SIGNED_PUBLIC_NODE',
+    serverManagementMode: 'HOME_LOCAL',
+  },
 };
 
 const qortChain: ChainConfig = {
@@ -84,9 +99,9 @@ function preparedResult(opts: Record<string, unknown>) {
   };
 }
 
-function renderDetail(chain = btcChain) {
+function renderDetail(chain = btcChain, initialEntries = ['/']) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={initialEntries}>
       <ThemeProviderWrapper>
         <CoinDetail chain={chain} />
       </ThemeProviderWrapper>
@@ -205,7 +220,7 @@ describe('CoinDetail foreign send flow', () => {
     qdnRequestMock = vi.fn(async (opts: Record<string, unknown>) => {
       switch (opts.action) {
         case 'SHOW_ACTIONS':
-          return ['SEND_COIN', 'GET_WALLET_BALANCE'];
+          return ['SEND_COIN', 'GET_WALLET_BALANCE', 'UNLOCK_SELECTED_ACCOUNT'];
         case 'GET_USER_WALLET':
           return { address: 'btc-wallet-address' };
         case 'GET_WALLET_BALANCE':
@@ -319,6 +334,92 @@ describe('CoinDetail foreign send flow', () => {
     expect(confirm).toBeDisabled();
     expect(sendCalls(qdnRequestMock)).toHaveLength(0);
   });
+
+  it('revokes an open send dialog immediately on a bridge-state change', async () => {
+    const user = userEvent.setup();
+    renderDetail();
+
+    await openSendDialog(user);
+    await user.type(screen.getByLabelText(/amount \(BTC\)/i), '1');
+    await user.type(
+      screen.getByLabelText(/recipient address/i),
+      'btc-recipient-address'
+    );
+    const confirm = screen.getByRole('button', { name: /confirm send/i });
+    expect(confirm).toBeEnabled();
+
+    qdnRequestMock.mockImplementation((opts: Record<string, unknown>) =>
+      opts.action === 'SHOW_ACTIONS'
+        ? new Promise(() => {})
+        : Promise.resolve(null)
+    );
+    window.dispatchEvent(new Event('qortiumBridgeStateChanged'));
+
+    await waitFor(() => expect(confirm).toBeDisabled());
+    fireEvent.click(confirm);
+    expect(sendCalls(qdnRequestMock)).toHaveLength(0);
+  });
+});
+
+describe('CoinDetail foreign capability refusal', () => {
+  beforeEach(async () => {
+    await i18n.changeLanguage('en');
+    getDefaultStore().set(walletReadyAtom, true);
+  });
+
+  afterEach(() => {
+    getDefaultStore().set(walletReadyAtom, false);
+    delete (globalThis as any).qdnRequest;
+  });
+
+  it('does not infer foreign wallet operations from generic actions without the versioned chain contract', async () => {
+    const request = vi.fn(async (opts: Record<string, unknown>) => {
+      if (opts.action === 'SHOW_ACTIONS') {
+        return ['SEND_COIN', 'GET_WALLET_BALANCE'];
+      }
+      return null;
+    });
+    (globalThis as any).qdnRequest = request;
+
+    renderDetail({ ...btcChain, homeWallet: undefined });
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /^send$/i })).toBeDisabled()
+    );
+    expect(
+      request.mock.calls.some(
+        ([options]) =>
+          options.action === 'GET_USER_WALLET' ||
+          options.action === 'GET_WALLET_BALANCE' ||
+          options.action === 'GET_USER_WALLET_TRANSACTIONS' ||
+          options.action === 'SEND_COIN'
+      )
+    ).toBe(false);
+  });
+
+  it('keeps a deep-linked send dialog inert without the versioned chain contract', async () => {
+    const request = vi.fn(async (opts: Record<string, unknown>) => {
+      if (opts.action === 'SHOW_ACTIONS') {
+        return ['SEND_COIN', 'GET_WALLET_BALANCE'];
+      }
+      return null;
+    });
+    (globalThis as any).qdnRequest = request;
+
+    renderDetail({ ...btcChain, homeWallet: undefined }, [
+      '/bitcoin?send=true',
+    ]);
+
+    await userEvent.type(screen.getByLabelText(/amount \(BTC\)/i), '1');
+    await userEvent.type(
+      screen.getByLabelText(/recipient address/i),
+      'btc-recipient-address'
+    );
+    const confirm = screen.getByRole('button', { name: /confirm send/i });
+    expect(confirm).toBeDisabled();
+    fireEvent.click(confirm);
+    expect(sendCalls(request)).toHaveLength(0);
+  });
 });
 
 describe('CoinDetail recipient-by-name flow', () => {
@@ -331,7 +432,7 @@ describe('CoinDetail recipient-by-name flow', () => {
     qdnRequestMock = vi.fn(async (opts: Record<string, unknown>) => {
       switch (opts.action) {
         case 'SHOW_ACTIONS':
-          return ['SEND_COIN', 'GET_WALLET_BALANCE'];
+          return ['SEND_COIN', 'GET_WALLET_BALANCE', 'UNLOCK_SELECTED_ACCOUNT'];
         case 'GET_USER_WALLET':
           return { address: 'btc-wallet-address' };
         case 'GET_WALLET_BALANCE':

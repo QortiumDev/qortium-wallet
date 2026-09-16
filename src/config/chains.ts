@@ -1,3 +1,25 @@
+export type HomeWalletMode =
+  | 'HOME_LOCAL'
+  | 'PUBLIC_NODE'
+  | 'HOME_SIGNED_PUBLIC_NODE'
+  | 'TRUSTED_CORE'
+  | 'NONE';
+
+export interface HomeWalletCapability {
+  contract?: string;
+  implemented: boolean;
+  protocol?: 'qdnRequest' | 'qortalRequest';
+  read: boolean;
+  receive: boolean;
+  requiresUnlockedAccount: boolean;
+  send: boolean;
+  serverManagement: boolean;
+  readMode: HomeWalletMode;
+  receiveMode: HomeWalletMode;
+  sendMode: HomeWalletMode;
+  serverManagementMode: HomeWalletMode;
+}
+
 export interface ChainConfig {
   key: string;
   name: string;
@@ -10,6 +32,7 @@ export interface ChainConfig {
   activeNetwork: 'MAIN' | 'TEST3' | 'TEST4' | 'REGTEST';
   supportsHtlc: boolean;
   supportsLocalChainTrades: boolean;
+  homeWallet?: HomeWalletCapability;
 }
 
 export const QORT_CHAIN: ChainConfig = {

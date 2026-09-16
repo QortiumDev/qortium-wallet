@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Box,
   CircularProgress,
@@ -23,6 +23,7 @@ import { requestWalletForChain } from '../../common/walletBridge';
 interface CoinListRowProps {
   chain: ChainConfig;
   balance: string | null;
+  canReceive: boolean;
   canSend: boolean;
   loading: boolean;
   fiatDisplay?: string;
@@ -52,6 +53,7 @@ async function copyText(text: string): Promise<void> {
 export function CoinListRow({
   chain,
   balance,
+  canReceive,
   canSend,
   loading,
   fiatDisplay,
@@ -66,6 +68,21 @@ export function CoinListRow({
   const [copyState, setCopyState] = useState<'idle' | 'loading' | 'done'>(
     'idle'
   );
+  const canReceiveRef = useRef(canReceive);
+  const previousCanReceive = useRef(canReceive);
+  const receiveRevision = useRef(0);
+  canReceiveRef.current = canReceive;
+  if (previousCanReceive.current !== canReceive) {
+    previousCanReceive.current = canReceive;
+    receiveRevision.current++;
+  }
+
+  useEffect(() => {
+    if (!canReceive) {
+      setAddress(null);
+      setCopyState('idle');
+    }
+  }, [canReceive]);
 
   const openWallet = () => {
     if (!isDragging) navigate(`/${chain.route}`);
@@ -73,13 +90,16 @@ export function CoinListRow({
 
   const handleCopy = async (event: React.MouseEvent) => {
     event.stopPropagation();
-    if (copyState === 'loading') return;
+    if (!canReceive || copyState === 'loading') return;
 
+    const revision = receiveRevision.current;
     setCopyState('loading');
     try {
       let walletAddress = address;
       if (!walletAddress) {
         const response = await requestWalletForChain(chain);
+        if (revision !== receiveRevision.current || !canReceiveRef.current)
+          return;
         walletAddress = response?.address ?? null;
         if (walletAddress) setAddress(walletAddress);
       }
@@ -87,11 +107,15 @@ export function CoinListRow({
         setCopyState('idle');
         return;
       }
+      if (revision !== receiveRevision.current || !canReceiveRef.current)
+        return;
       await copyText(walletAddress);
+      if (revision !== receiveRevision.current || !canReceiveRef.current)
+        return;
       setCopyState('done');
       setTimeout(() => setCopyState('idle'), 2000);
     } catch {
-      setCopyState('idle');
+      if (revision === receiveRevision.current) setCopyState('idle');
     }
   };
 
@@ -267,22 +291,32 @@ export function CoinListRow({
       </Box>
 
       <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-        <Tooltip title={copyState === 'done' ? 'Copied!' : 'Copy address'}>
-          <IconButton
-            size="small"
-            onClick={(event) => void handleCopy(event)}
-            disabled={copyState === 'loading'}
-            aria-label={`copy ${chain.ticker} address`}
-            sx={actionButtonSx}
-          >
-            {copyState === 'loading' ? (
-              <CircularProgress size={16} sx={{ color: c.textSecondary }} />
-            ) : copyState === 'done' ? (
-              <CheckIcon fontSize="small" />
-            ) : (
-              <ContentCopyIcon fontSize="small" />
-            )}
-          </IconButton>
+        <Tooltip
+          title={
+            copyState === 'done'
+              ? 'Copied!'
+              : canReceive
+                ? 'Copy address'
+                : 'Receive address unavailable'
+          }
+        >
+          <span>
+            <IconButton
+              size="small"
+              onClick={(event) => void handleCopy(event)}
+              disabled={!canReceive || copyState === 'loading'}
+              aria-label={`copy ${chain.ticker} address`}
+              sx={actionButtonSx}
+            >
+              {copyState === 'loading' ? (
+                <CircularProgress size={16} sx={{ color: c.textSecondary }} />
+              ) : copyState === 'done' ? (
+                <CheckIcon fontSize="small" />
+              ) : (
+                <ContentCopyIcon fontSize="small" />
+              )}
+            </IconButton>
+          </span>
         </Tooltip>
         <Tooltip title={canSend ? 'Send' : 'Requires a local node'}>
           <span>

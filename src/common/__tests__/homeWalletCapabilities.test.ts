@@ -1,0 +1,267 @@
+import { describe, expect, it } from 'vitest';
+import type { ChainConfig } from '../../config/chains';
+import {
+  foreignWalletAvailability,
+  HOME_1_WALLET_READ_CONTRACT,
+  HOME_WALLET_CONTRACT,
+  legacyHome1WalletCapability,
+} from '../homeWalletCapabilities';
+
+const chain: ChainConfig = {
+  key: 'BTC',
+  name: 'Bitcoin',
+  ticker: 'BTC',
+  coinEnum: 'BTC',
+  route: 'bitcoin',
+  defaultFee: 0.00001,
+  isNative: false,
+  decimalPlaces: 8,
+  activeNetwork: 'MAIN',
+  supportsHtlc: true,
+  supportsLocalChainTrades: true,
+  homeWallet: {
+    contract: HOME_WALLET_CONTRACT,
+    implemented: true,
+    protocol: 'qdnRequest',
+    read: true,
+    readMode: 'PUBLIC_NODE',
+    receive: true,
+    receiveMode: 'HOME_LOCAL',
+    requiresUnlockedAccount: true,
+    send: true,
+    serverManagement: true,
+    sendMode: 'HOME_SIGNED_PUBLIC_NODE',
+    serverManagementMode: 'HOME_LOCAL',
+  },
+};
+
+describe('foreign wallet capability contract', () => {
+  it('does not infer foreign sending from generic actions alone', () => {
+    const withoutCapability = foreignWalletAvailability(
+      { ...chain, homeWallet: undefined },
+      ['SEND_COIN', 'GET_WALLET_BALANCE']
+    );
+    expect(withoutCapability.canSend).toBe(false);
+
+    const unversioned = foreignWalletAvailability(
+      {
+        ...chain,
+        homeWallet: { ...chain.homeWallet!, contract: undefined },
+      },
+      ['SEND_COIN', 'GET_WALLET_BALANCE']
+    );
+    expect(unversioned.canSend).toBe(false);
+  });
+
+  it('gates each operation independently', () => {
+    const partial = foreignWalletAvailability(
+      {
+        ...chain,
+        homeWallet: {
+          ...chain.homeWallet!,
+          requiresUnlockedAccount: false,
+        },
+      },
+      ['SEND_COIN']
+    );
+    expect(partial).toEqual({
+      canManageServer: false,
+      canReadBalance: false,
+      canReadTransactions: false,
+      canReceive: false,
+      canSend: true,
+    });
+
+    const complete = foreignWalletAvailability(chain, [
+      'GET_USER_WALLET',
+      'GET_WALLET_BALANCE',
+      'GET_USER_WALLET_TRANSACTIONS',
+      'SEND_COIN',
+      'UNLOCK_SELECTED_ACCOUNT',
+      'GET_CROSSCHAIN_SERVER_INFO',
+      'SET_CURRENT_FOREIGN_SERVER',
+    ]);
+    expect(complete).toEqual({
+      canManageServer: true,
+      canReadBalance: true,
+      canReadTransactions: true,
+      canReceive: true,
+      canSend: true,
+    });
+  });
+
+  it('accepts Home 2 trusted-Core reads and server management', () => {
+    const home2Chain: ChainConfig = {
+      ...chain,
+      homeWallet: {
+        ...chain.homeWallet!,
+        readMode: 'TRUSTED_CORE',
+        send: false,
+        sendMode: 'NONE',
+        serverManagementMode: 'TRUSTED_CORE',
+      },
+    };
+    expect(
+      foreignWalletAvailability(home2Chain, [
+        'GET_USER_WALLET',
+        'GET_WALLET_BALANCE',
+        'GET_USER_WALLET_TRANSACTIONS',
+        'GET_CROSSCHAIN_SERVER_INFO',
+        'SET_CURRENT_FOREIGN_SERVER',
+      ])
+    ).toEqual({
+      canManageServer: true,
+      canReadBalance: true,
+      canReadTransactions: true,
+      canReceive: true,
+      canSend: false,
+    });
+  });
+
+  it('honors explicit per-chain send refusal', () => {
+    const availability = foreignWalletAvailability(
+      {
+        ...chain,
+        homeWallet: {
+          ...chain.homeWallet!,
+          send: false,
+          sendMode: 'NONE',
+        },
+      },
+      ['SEND_COIN', 'GET_WALLET_BALANCE']
+    );
+    expect(availability.canReadBalance).toBe(true);
+    expect(availability.canSend).toBe(false);
+  });
+
+  it('requires the advertised unlock action only when the chain contract does', () => {
+    expect(foreignWalletAvailability(chain, ['SEND_COIN']).canSend).toBe(false);
+    expect(
+      foreignWalletAvailability(chain, ['SEND_COIN', 'UNLOCK_SELECTED_ACCOUNT'])
+        .canSend
+    ).toBe(true);
+    expect(
+      foreignWalletAvailability(
+        {
+          ...chain,
+          homeWallet: {
+            ...chain.homeWallet!,
+            requiresUnlockedAccount: false,
+          },
+        },
+        ['SEND_COIN']
+      ).canSend
+    ).toBe(true);
+  });
+
+  it('requires both server read and update actions', () => {
+    expect(
+      foreignWalletAvailability(chain, ['SET_CURRENT_FOREIGN_SERVER'])
+        .canManageServer
+    ).toBe(false);
+    expect(
+      foreignWalletAvailability(chain, [
+        'GET_CROSSCHAIN_SERVER_INFO',
+        'SET_CURRENT_FOREIGN_SERVER',
+      ]).canManageServer
+    ).toBe(true);
+  });
+
+  it('rejects contradictory, missing, and Core-signed modes', () => {
+    for (const homeWallet of [
+      { ...chain.homeWallet!, readMode: 'NONE' as const },
+      { ...chain.homeWallet!, receiveMode: undefined as any },
+      { ...chain.homeWallet!, sendMode: 'TRUSTED_CORE' as const },
+      {
+        ...chain.homeWallet!,
+        serverManagement: false,
+        serverManagementMode: 'HOME_LOCAL' as const,
+      },
+    ]) {
+      expect(
+        foreignWalletAvailability({ ...chain, homeWallet }, [
+          'GET_USER_WALLET',
+          'GET_WALLET_BALANCE',
+          'GET_USER_WALLET_TRANSACTIONS',
+          'SEND_COIN',
+          'UNLOCK_SELECTED_ACCOUNT',
+          'GET_CROSSCHAIN_SERVER_INFO',
+          'SET_CURRENT_FOREIGN_SERVER',
+        ])
+      ).toEqual({
+        canManageServer: false,
+        canReadBalance: false,
+        canReadTransactions: false,
+        canReceive: false,
+        canSend: false,
+      });
+    }
+  });
+
+  it('grants exact Home 1.x read compatibility but never legacy send', () => {
+    const legacy = legacyHome1WalletCapability({
+      hostName: 'qortium-home',
+      hostVersion: '1.8.0',
+      platform: 'desktop',
+    });
+    expect(legacy?.contract).toBe(HOME_1_WALLET_READ_CONTRACT);
+    expect(
+      foreignWalletAvailability({ ...chain, homeWallet: legacy }, [
+        'GET_USER_WALLET',
+        'GET_WALLET_BALANCE',
+        'GET_USER_WALLET_TRANSACTIONS',
+        'SEND_COIN',
+        'UNLOCK_SELECTED_ACCOUNT',
+        'GET_CROSSCHAIN_SERVER_INFO',
+        'SET_CURRENT_FOREIGN_SERVER',
+      ])
+    ).toEqual({
+      canManageServer: true,
+      canReadBalance: true,
+      canReadTransactions: true,
+      canReceive: true,
+      canSend: false,
+    });
+    expect(
+      legacyHome1WalletCapability({
+        hostName: 'qortium-home',
+        hostVersion: '2.1.0',
+      })
+    ).toBeUndefined();
+    expect(
+      legacyHome1WalletCapability({
+        hostName: 'another-host',
+        hostVersion: '1.8.0',
+      })
+    ).toBeUndefined();
+  });
+
+  it('rejects an unverified copy of the Wallet-local Home 1.x marker', () => {
+    expect(
+      foreignWalletAvailability(
+        {
+          ...chain,
+          homeWallet: {
+            ...legacyHome1WalletCapability({
+              hostName: 'qortium-home',
+              hostVersion: '1.8.0',
+            })!,
+          },
+        },
+        [
+          'GET_USER_WALLET',
+          'GET_WALLET_BALANCE',
+          'GET_USER_WALLET_TRANSACTIONS',
+          'GET_CROSSCHAIN_SERVER_INFO',
+          'SET_CURRENT_FOREIGN_SERVER',
+        ]
+      )
+    ).toEqual({
+      canManageServer: false,
+      canReadBalance: false,
+      canReadTransactions: false,
+      canReceive: false,
+      canSend: false,
+    });
+  });
+});

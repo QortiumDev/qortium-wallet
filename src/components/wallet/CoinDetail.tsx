@@ -57,6 +57,7 @@ import {
   type ContactResolution,
 } from '../../utils/resolveContact';
 import { requestWithTimeout } from '../../common/functions';
+import { foreignWalletAvailability } from '../../common/homeWalletCapabilities';
 import {
   EMPTY_STRING,
   TIME_MINUTES_3,
@@ -96,6 +97,8 @@ async function ensureAccountUnlocked(
   qortCanUnlock: boolean
 ): Promise<boolean> {
   if (chain.isNative && !qortCanUnlock) return true;
+  if (!chain.isNative && chain.homeWallet?.requiresUnlockedAccount === false)
+    return true;
   const result = await (chain.isNative
     ? requestQortUnlock()
     : qdnRequest({ action: 'UNLOCK_SELECTED_ACCOUNT' }));
@@ -151,12 +154,23 @@ export function CoinDetail({ chain }: Props) {
 
   // SHOW_ACTIONS capability flags (updated on mount)
   const [canSend, setCanSend] = useState(false);
+  const canSendRef = useRef(false);
   const [qortSendAction, setQortSendAction] = useState<QortSendAction | null>(
     null
   );
   const [qortCanUnlock, setQortCanUnlock] = useState(false);
   const [walletAvailable, setWalletAvailable] = useState(true);
+  const [canReceive, setCanReceive] = useState(chain.isNative);
+  const [canReadBalance, setCanReadBalance] = useState(chain.isNative);
+  const canReadBalanceRef = useRef(chain.isNative);
+  const [canReadTransactions, setCanReadTransactions] = useState(
+    chain.isNative
+  );
   const [canManageForeignServer, setCanManageForeignServer] = useState(false);
+  const canManageForeignServerRef = useRef(false);
+  const addressReadRevision = useRef(0);
+  const balanceReadRevision = useRef(0);
+  const transactionReadRevision = useRef(0);
 
   // ARRR initialization state
   const cancelSyncRef = useRef(false);
@@ -275,20 +289,34 @@ export function CoinDetail({ chain }: Props) {
   }, []);
 
   const fetchAddress = useCallback(async () => {
+    if (!chain.isNative && !canReceive) {
+      setAddress(EMPTY_STRING);
+      return;
+    }
+    const revision = addressReadRevision.current;
     try {
       const res = await requestWalletForChain(chain);
-      if (res?.address) setAddress(res.address);
+      if (revision === addressReadRevision.current && res?.address)
+        setAddress(res.address);
     } catch {
       /* silent */
     }
-  }, [chain]);
+  }, [canReceive, chain]);
 
   const fetchBalance = useCallback(async () => {
+    if (!chain.isNative && !canReadBalanceRef.current) {
+      setBalance(null);
+      setLoadingBalance(false);
+      return;
+    }
+    const revision = balanceReadRevision.current;
     setLoadingBalance(true);
     const MAX_ATTEMPTS = 3;
     const RETRY_DELAY = 1500;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       if (attempt > 0) await new Promise((r) => setTimeout(r, RETRY_DELAY));
+      if (!isMountedRef.current || revision !== balanceReadRevision.current)
+        return;
       try {
         let result: string;
         if (chain.isNative) {
@@ -304,6 +332,8 @@ export function CoinDetail({ chain }: Props) {
           const divisor = Math.pow(10, chain.decimalPlaces);
           result = res != null ? String(Number(res) / divisor) : '0';
         }
+        if (!isMountedRef.current || revision !== balanceReadRevision.current)
+          return;
         setBalance(result);
         setLoadingBalance(false);
         return;
@@ -311,9 +341,11 @@ export function CoinDetail({ chain }: Props) {
         /* retry */
       }
     }
-    setBalance(null);
-    setLoadingBalance(false);
-  }, [chain]);
+    if (isMountedRef.current && revision === balanceReadRevision.current) {
+      setBalance(null);
+      setLoadingBalance(false);
+    }
+  }, [canReadBalance, chain]);
 
   // Check which actions are available on the current node
   useEffect(() => {
@@ -326,35 +358,97 @@ export function CoinDetail({ chain }: Props) {
             shouldAttemptAccountUnlock(protocol === 'qdnRequest', actions)
           );
           setCanSend(action !== null);
+          canSendRef.current = action !== null;
+          setCanReceive(true);
+          setCanReadBalance(true);
+          canReadBalanceRef.current = true;
+          setCanReadTransactions(true);
           setWalletAvailable(true);
         })
         .catch(() => {
           setQortSendAction(null);
           setQortCanUnlock(false);
           setCanSend(false);
+          canSendRef.current = false;
+          setCanReceive(false);
+          setCanReadBalance(false);
+          canReadBalanceRef.current = false;
+          setCanReadTransactions(false);
+          setWalletAvailable(false);
+          setCanManageForeignServer(false);
         });
       return;
     }
 
-    qdnRequest({ action: 'SHOW_ACTIONS' })
-      .then((actions: unknown) => {
-        const advertised = Array.isArray(actions) ? actions : [];
-        const foreignWalletAvailable =
-          advertised.includes('GET_WALLET_BALANCE');
-        setCanSend(foreignWalletAvailable && advertised.includes('SEND_COIN'));
-        setWalletAvailable(foreignWalletAvailable);
-        setCanManageForeignServer(
-          advertised.includes('SET_CURRENT_FOREIGN_SERVER')
-        );
-      })
-      .catch(() => {
-        setCanSend(false);
-        setWalletAvailable(false);
-        setCanManageForeignServer(false);
-      });
-  }, [chain.isNative]);
+    const resetForeignAvailability = () => {
+      setCanReceive(false);
+      setCanReadBalance(false);
+      canReadBalanceRef.current = false;
+      setCanReadTransactions(false);
+      setCanSend(false);
+      canSendRef.current = false;
+      setWalletAvailable(false);
+      setCanManageForeignServer(false);
+      canManageForeignServerRef.current = false;
+      addressReadRevision.current++;
+      balanceReadRevision.current++;
+      transactionReadRevision.current++;
+      setAddress(EMPTY_STRING);
+      setBalance(null);
+      setLoadingBalance(false);
+      setTransactions([]);
+      setLoadingTx(false);
+    };
+    let revision = 0;
+    const refreshForeignAvailability = () => {
+      const requestRevision = ++revision;
+      if (typeof qdnRequest !== 'function') {
+        resetForeignAvailability();
+        return;
+      }
+      qdnRequest({ action: 'SHOW_ACTIONS' })
+        .then((actions: unknown) => {
+          if (requestRevision !== revision) return;
+          const availability = foreignWalletAvailability(
+            chain,
+            Array.isArray(actions) ? actions : []
+          );
+          setCanReceive(availability.canReceive);
+          setCanReadBalance(availability.canReadBalance);
+          canReadBalanceRef.current = availability.canReadBalance;
+          setCanReadTransactions(availability.canReadTransactions);
+          setCanSend(availability.canSend);
+          canSendRef.current = availability.canSend;
+          setWalletAvailable(
+            availability.canReceive ||
+              availability.canReadBalance ||
+              availability.canReadTransactions
+          );
+          setCanManageForeignServer(availability.canManageServer);
+          canManageForeignServerRef.current = availability.canManageServer;
+        })
+        .catch(() => {
+          if (requestRevision === revision) resetForeignAvailability();
+        });
+    };
+    const handleBridgeChange = () => {
+      resetForeignAvailability();
+      refreshForeignAvailability();
+    };
+    resetForeignAvailability();
+    refreshForeignAvailability();
+    window.addEventListener('qortiumBridgeStateChanged', handleBridgeChange);
+    return () => {
+      revision++;
+      window.removeEventListener(
+        'qortiumBridgeStateChanged',
+        handleBridgeChange
+      );
+    };
+  }, [chain]);
 
   const openForeignServerDialog = useCallback(async () => {
+    if (!canManageForeignServerRef.current) return;
     setForeignServers([]);
     setForeignServerOpen(true);
     setForeignServerLoading(true);
@@ -363,7 +457,8 @@ export function CoinDetail({ chain }: Props) {
         action: 'GET_CROSSCHAIN_SERVER_INFO',
         coin: chain.coinEnum,
       });
-      if (Array.isArray(servers)) setForeignServers(servers);
+      if (canManageForeignServerRef.current && Array.isArray(servers))
+        setForeignServers(servers);
     } catch {
       /* */
     }
@@ -373,6 +468,7 @@ export function CoinDetail({ chain }: Props) {
   const handleForeignServerChange = useCallback(
     async (server: any) => {
       setForeignServerOpen(false);
+      if (!canManageForeignServerRef.current) return;
       try {
         await qdnRequest({
           action: 'SET_CURRENT_FOREIGN_SERVER',
@@ -382,12 +478,20 @@ export function CoinDetail({ chain }: Props) {
       } catch {
         /* */
       }
+      if (!canManageForeignServerRef.current || !canReadBalanceRef.current)
+        return;
       fetchBalance();
     },
     [chain.coinEnum, fetchBalance]
   );
 
   const fetchTransactions = useCallback(async () => {
+    if (!chain.isNative && !canReadTransactions) {
+      setTransactions([]);
+      setLoadingTx(false);
+      return;
+    }
+    const revision = transactionReadRevision.current;
     setLoadingTx(true);
     try {
       if (chain.isNative) {
@@ -416,21 +520,22 @@ export function CoinDetail({ chain }: Props) {
             recipient: tx.recipient,
           };
         });
-        setTransactions(rows);
+        if (revision === transactionReadRevision.current) setTransactions(rows);
       } else {
         const res = await requestWithTimeout(
           { action: 'GET_USER_WALLET_TRANSACTIONS', coin: chain.coinEnum },
           TIME_MINUTES_5
         );
         const txs = Array.isArray(res) ? res : [];
-        setTransactions(chain.coinEnum === 'ARRR' ? [...txs].reverse() : txs);
+        if (revision === transactionReadRevision.current)
+          setTransactions(chain.coinEnum === 'ARRR' ? [...txs].reverse() : txs);
       }
     } catch {
-      setTransactions([]);
+      if (revision === transactionReadRevision.current) setTransactions([]);
     } finally {
-      setLoadingTx(false);
+      if (revision === transactionReadRevision.current) setLoadingTx(false);
     }
-  }, [chain]);
+  }, [canReadTransactions, chain]);
 
   useEffect(() => {
     fetchAddress();
@@ -518,7 +623,7 @@ export function CoinDetail({ chain }: Props) {
   };
 
   const handleSend = async () => {
-    if (!canConfirmSend) return;
+    if (!canSendRef.current || !canConfirmSend) return;
 
     setSending(true);
     try {
@@ -540,6 +645,10 @@ export function CoinDetail({ chain }: Props) {
         }
         effectiveRecipient = fresh.address;
       }
+
+      // A bridge-state change can revoke foreign send authority while account
+      // unlock or name resolution is in progress.
+      if (!canSendRef.current) return;
 
       let result: SendCoinResult | null = null;
       if (chain.isNative) {
@@ -619,6 +728,7 @@ export function CoinDetail({ chain }: Props) {
     chain.coinEnum === 'ARRR' ||
     isOptionalPositiveDecimal(foreignFeePerByte, 8);
   const canConfirmSend =
+    canSend &&
     !sending &&
     amountIsValid &&
     recipientIsValid &&

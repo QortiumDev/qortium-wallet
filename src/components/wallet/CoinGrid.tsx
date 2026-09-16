@@ -57,6 +57,7 @@ import {
   requestWalletForChain,
 } from '../../common/walletBridge';
 import { requestAssetActions } from '../../common/assetBridge';
+import { foreignWalletAvailability } from '../../common/homeWalletCapabilities';
 
 type WalletItem =
   | { kind: 'chain'; key: string; chain: ChainConfig }
@@ -84,6 +85,7 @@ const TILE_MIN_PX: Record<number, number> = {
 interface BlockProps {
   chain: ChainConfig;
   balance: string | null;
+  canReceive: boolean;
   canSend: boolean;
   loading: boolean;
   tileSize: number;
@@ -95,6 +97,7 @@ interface BlockProps {
 function CoinBlock({
   chain,
   balance,
+  canReceive,
   canSend,
   loading,
   tileSize,
@@ -109,16 +112,27 @@ function CoinBlock({
   const [address, setAddress] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const fetchedRef = useRef(false);
+  const receiveRevision = useRef(0);
   const coinImageUrl = useCoinImageUrl(chain.ticker);
   const isClassic = uiStyle === 'classic';
 
+  useEffect(() => {
+    if (!canReceive) {
+      receiveRevision.current++;
+      setAddress(null);
+      fetchedRef.current = false;
+    }
+  }, [canReceive]);
+
   const handleMouseEnter = () => {
     setHovered(true);
-    if (!fetchedRef.current) {
+    if (canReceive && !fetchedRef.current) {
       fetchedRef.current = true;
+      const revision = receiveRevision.current;
       requestWalletForChain(chain)
         .then((res: any) => {
-          if (res?.address) setAddress(res.address);
+          if (revision === receiveRevision.current && res?.address)
+            setAddress(res.address);
         })
         .catch(() => {});
     }
@@ -283,7 +297,8 @@ function CoinBlock({
             <IconButton
               size="small"
               onClick={handleCopy}
-              disableRipple={!address}
+              disabled={!canReceive}
+              disableRipple={!address || !canReceive}
               sx={{
                 color: c.accentText,
                 bgcolor: 'rgba(255,255,255,0.15)',
@@ -403,6 +418,7 @@ function CoinBlock({
 function SortableCoinItem({
   chain,
   balance,
+  canReceive,
   canSend,
   loading,
   tileSize,
@@ -412,6 +428,7 @@ function SortableCoinItem({
 }: {
   chain: ChainConfig;
   balance: string | null;
+  canReceive: boolean;
   canSend: boolean;
   loading: boolean;
   tileSize: number;
@@ -443,6 +460,7 @@ function SortableCoinItem({
         <CoinListRow
           chain={chain}
           balance={balance}
+          canReceive={canReceive}
           canSend={canSend}
           loading={loading}
           fiatDisplay={fiatDisplay}
@@ -457,6 +475,7 @@ function SortableCoinItem({
         <CoinBlock
           chain={chain}
           balance={balance}
+          canReceive={canReceive}
           canSend={canSend}
           loading={loading}
           tileSize={tileSize}
@@ -540,7 +559,8 @@ export function CoinGrid() {
   const [balances, setBalances] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [canSendNative, setCanSendNative] = useState(false);
-  const [canSendForeign, setCanSendForeign] = useState(false);
+  const [foreignActions, setForeignActions] = useState<string[]>([]);
+  const foreignActionRevision = useRef(0);
   const [canSendAssets, setCanSendAssets] = useState<
     Record<AssetNetwork, boolean>
   >({ qortium: false, qortal: false });
@@ -560,22 +580,33 @@ export function CoinGrid() {
       })
       .catch(() => setCanSendNative(false));
 
+    let removeForeignListener = () => {};
     if (typeof qdnRequest === 'function') {
-      qdnRequest({ action: 'SHOW_ACTIONS' })
-        .then((actions: unknown) => {
-          if (Array.isArray(actions)) {
-            // Home 2 also uses SEND_COIN for its own Qortium native asset.
-            // Require the foreign read family so that action does not
-            // accidentally enable every foreign-chain send button.
-            setCanSendForeign(
-              actions.includes('SEND_COIN') &&
-                actions.includes('GET_WALLET_BALANCE')
-            );
-          }
-        })
-        .catch(() => {
-          setCanSendForeign(false);
-        });
+      const refreshForeignActions = () => {
+        const revision = ++foreignActionRevision.current;
+        return qdnRequest({ action: 'SHOW_ACTIONS' })
+          .then((actions: unknown) => {
+            if (revision !== foreignActionRevision.current) return;
+            setForeignActions(Array.isArray(actions) ? actions : []);
+          })
+          .catch(() => {
+            if (revision !== foreignActionRevision.current) return;
+            setForeignActions([]);
+          });
+      };
+      const handleBridgeChange = () => {
+        setForeignActions([]);
+        void refreshForeignActions();
+      };
+      refreshForeignActions();
+      window.addEventListener('qortiumBridgeStateChanged', handleBridgeChange);
+      removeForeignListener = () => {
+        foreignActionRevision.current++;
+        window.removeEventListener(
+          'qortiumBridgeStateChanged',
+          handleBridgeChange
+        );
+      };
     }
 
     assetNetworks.forEach((network) => {
@@ -590,7 +621,9 @@ export function CoinGrid() {
           setCanSendAssets((previous) => ({ ...previous, [network]: false }));
         });
     });
-    // Bridge globals are fixed for the lifetime of the page.
+    return removeForeignListener;
+    // Asset bridge globals are fixed for the lifetime of the page. Foreign
+    // wallet actions are refreshed above when Home's bridge state changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -742,6 +775,8 @@ export function CoinGrid() {
   useEffect(() => {
     if (!walletReady) return;
 
+    let cancelled = false;
+
     const init: Record<string, boolean> = {};
     chains.forEach((c) => {
       init[c.key] = true;
@@ -768,8 +803,20 @@ export function CoinGrid() {
       const MAX_ATTEMPTS = 3;
       const RETRY_DELAY = 1200;
       try {
+        if (cancelled) return;
+        if (
+          !chain.isNative &&
+          !foreignWalletAvailability(chain, foreignActions).canReadBalance
+        ) {
+          if (!cancelled) {
+            setBalances((prev) => ({ ...prev, [chain.key]: null }));
+            setLoading((prev) => ({ ...prev, [chain.key]: false }));
+          }
+          return;
+        }
         for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
           if (attempt > 0) await new Promise((r) => setTimeout(r, RETRY_DELAY));
+          if (cancelled) return;
           try {
             let balance: string;
             if (chain.isNative) {
@@ -785,6 +832,7 @@ export function CoinGrid() {
               const divisor = Math.pow(10, chain.decimalPlaces);
               balance = res != null ? String(Number(res) / divisor) : '0';
             }
+            if (cancelled) return;
             setBalances((prev) => ({ ...prev, [chain.key]: balance }));
             setLoading((prev) => ({ ...prev, [chain.key]: false }));
             return;
@@ -792,13 +840,18 @@ export function CoinGrid() {
             /* retry */
           }
         }
-        setBalances((prev) => ({ ...prev, [chain.key]: null }));
-        setLoading((prev) => ({ ...prev, [chain.key]: false }));
+        if (!cancelled) {
+          setBalances((prev) => ({ ...prev, [chain.key]: null }));
+          setLoading((prev) => ({ ...prev, [chain.key]: false }));
+        }
       } finally {
         release();
       }
     });
-  }, [chains, walletReady]);
+    return () => {
+      cancelled = true;
+    };
+  }, [chains, foreignActions, walletReady]);
 
   const isCustom = sortMode === 'custom';
   const isClassic = uiStyle === 'classic';
@@ -837,17 +890,28 @@ export function CoinGrid() {
           >
             {visibleItems.map((item) =>
               item.kind === 'chain' ? (
-                <SortableCoinItem
-                  key={item.key}
-                  chain={item.chain}
-                  balance={balances[item.key] ?? null}
-                  canSend={item.chain.isNative ? canSendNative : canSendForeign}
-                  loading={loading[item.key] ?? true}
-                  tileSize={tileSize}
-                  fiatDisplay={fiatDisplays[item.key]}
-                  isCustomMode={isCustom}
-                  viewMode={viewMode}
-                />
+                (() => {
+                  const foreign = foreignWalletAvailability(
+                    item.chain,
+                    foreignActions
+                  );
+                  return (
+                    <SortableCoinItem
+                      key={item.key}
+                      chain={item.chain}
+                      balance={balances[item.key] ?? null}
+                      canReceive={item.chain.isNative || foreign.canReceive}
+                      canSend={
+                        item.chain.isNative ? canSendNative : foreign.canSend
+                      }
+                      loading={loading[item.key] ?? true}
+                      tileSize={tileSize}
+                      fiatDisplay={fiatDisplays[item.key]}
+                      isCustomMode={isCustom}
+                      viewMode={viewMode}
+                    />
+                  );
+                })()
               ) : (
                 <SortableAssetItem
                   key={item.key}

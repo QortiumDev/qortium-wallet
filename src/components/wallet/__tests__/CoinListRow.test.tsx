@@ -56,6 +56,7 @@ function renderRow(
         <CoinListRow
           chain={btcChain}
           balance="1.25"
+          canReceive
           canSend
           loading={false}
           fiatDisplay="$75,000.00"
@@ -149,6 +150,7 @@ describe('CoinListRow', () => {
           <CoinListRow
             chain={btcChain}
             balance="1.25"
+            canReceive
             canSend
             loading={false}
           />

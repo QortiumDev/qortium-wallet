@@ -7,6 +7,7 @@ import {
   requestQortTransactions,
   requestQortWallet,
 } from '../common/walletBridge';
+import { foreignWalletAvailability } from '../common/homeWalletCapabilities';
 
 export interface UnifiedTxRow extends TxRow {
   chain: ChainConfig;
@@ -59,6 +60,7 @@ export function useUnifiedHistory(
   const [rows, setRows] = useState<UnifiedTxRow[]>([]);
   const [loadingChains, setLoadingChains] = useState<string[]>([]);
   const [errorChains, setErrorChains] = useState<string[]>([]);
+  const [foreignActions, setForeignActions] = useState<string[]>([]);
 
   const addRows = useCallback((newRows: UnifiedTxRow[]) => {
     setRows((prev) =>
@@ -70,17 +72,60 @@ export function useUnifiedHistory(
     );
   }, []);
 
-  const chainKeys = chains.map((c) => c.key).join(',');
+  const chainKeys = chains
+    .map((chain) => `${chain.key}:${JSON.stringify(chain.homeWallet ?? null)}`)
+    .join(',');
 
   useEffect(() => {
-    const nonArrR = chains.filter((c) => c.coinEnum !== 'ARRR');
-    setLoadingChains(nonArrR.map((c) => c.ticker));
+    if (typeof qdnRequest !== 'function') {
+      setForeignActions([]);
+      return;
+    }
+
+    let cancelled = false;
+    let revision = 0;
+    const refresh = () => {
+      const requestRevision = ++revision;
+      qdnRequest({ action: 'SHOW_ACTIONS' })
+        .then((actions: unknown) => {
+          if (!cancelled && requestRevision === revision)
+            setForeignActions(Array.isArray(actions) ? actions : []);
+        })
+        .catch(() => {
+          if (!cancelled && requestRevision === revision) setForeignActions([]);
+        });
+    };
+    const handleBridgeChange = () => {
+      setForeignActions([]);
+      refresh();
+    };
+
+    refresh();
+    window.addEventListener('qortiumBridgeStateChanged', handleBridgeChange);
+    return () => {
+      cancelled = true;
+      revision++;
+      window.removeEventListener(
+        'qortiumBridgeStateChanged',
+        handleBridgeChange
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    const readableChains = chains.filter(
+      (chain) =>
+        chain.coinEnum !== 'ARRR' &&
+        (chain.isNative ||
+          foreignWalletAvailability(chain, foreignActions).canReadTransactions)
+    );
+    setLoadingChains(readableChains.map((chain) => chain.ticker));
     setRows([]);
     setErrorChains([]);
 
     let cancelled = false;
 
-    nonArrR.forEach(async (chain) => {
+    readableChains.forEach(async (chain) => {
       try {
         const txs = await fetchChainTxs(chain);
         if (!cancelled) addRows(txs.map((row) => ({ ...row, chain })));
@@ -95,7 +140,7 @@ export function useUnifiedHistory(
     return () => {
       cancelled = true;
     };
-  }, [chainKeys]);
+  }, [addRows, chainKeys, foreignActions]);
 
   return { rows, loadingChains, errorChains };
 }
