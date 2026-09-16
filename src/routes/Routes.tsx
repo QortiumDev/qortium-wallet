@@ -1,6 +1,7 @@
 import { createHashRouter, RouterProvider, useParams } from 'react-router-dom';
+import { resolveStartRoute } from '../utils/startRoute';
 
-const _startRoute = new URLSearchParams(window.location.search).get('_route');
+const _startRoute = resolveStartRoute(window.location.search);
 if (_startRoute) window.location.hash = _startRoute;
 import { AppWrapper } from '../AppWrapper';
 import { CoinGrid } from '../components/wallet/CoinGrid';

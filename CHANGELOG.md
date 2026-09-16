@@ -4,6 +4,10 @@ All notable changes to Qortium Wallet will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- Home `wallet` assignment-role deep link: opening the app with a top-level `?to=<address or name>` (or `?send=true`) now lands on the native-coin send form with the recipient filled in, so Home's account context menu "Send coins" works without the caller knowing the app's hash routes. `?_route=` still wins when present.
+
 ### Fixed
 
 - Assets are now keyed by chain as well as asset ID. Qortium assets continue to use `qdnRequest`, while Qortal assets use `qortalRequest`; balances, metadata, transfers, receive addresses, pins, routes, and sends stay on the selected chain even when the same asset ID exists on both.
