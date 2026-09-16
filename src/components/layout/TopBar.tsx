@@ -382,7 +382,11 @@ export function TopBar() {
         {/* Portfolio view selector */}
         {isPortfolioRoute && (
           <Tooltip
-            title={viewMode === 'grid' ? 'Change to list view?' : 'Change to grid view?'}
+            title={
+              viewMode === 'grid'
+                ? 'Change to list view?'
+                : 'Change to grid view?'
+            }
             placement="bottom"
           >
             <IconButton
