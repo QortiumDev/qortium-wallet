@@ -6,6 +6,12 @@ import type {
 
 export const HOME_WALLET_CONTRACT = 'qortium-home-wallet-v1';
 export const HOME_1_WALLET_READ_CONTRACT = 'qortium-home-1.x-wallet-read-v1';
+// ARRR-only custody wire contract (round 5) - see the ARRR row of
+// qortium-home's HOME_V2_BRIDGE_COMPATIBILITY.md. A capability advertising
+// TRUSTED_CORE_CUSTODY for any other coin, or with a different/missing
+// `custodyContract`, is rejected by arrrCustodyWalletAvailability below.
+export const ARRR_SEND_CONTRACT = 'qortium-home-arrr-send-v2';
+export const ARRR_CUSTODY_CONTRACT = 'qortium-home-arrr-custody-v1';
 
 // The legacy marker is Wallet-local provenance, not a wire contract. Only the
 // exact object created after GET_HOST_INFO verification is trusted.
@@ -96,10 +102,69 @@ export function legacyHome1WalletCapability(
   return capability;
 }
 
-export function foreignWalletAvailability(
-  chain: Pick<ChainConfig, 'homeWallet' | 'isNative'>,
+// ARRR-only gate (round 5): a coin-aware branch of the capability check
+// above. TRUSTED_CORE_CUSTODY is deliberately absent from READ_MODES /
+// RECEIVE_MODES / SEND_MODES, so the generic bitcoiny gate above already
+// refuses it for every other coin via hasConsistentModes() - this function
+// is the ONLY path that can ever grant it, and only for ARRR, and only
+// alongside the exact custody contract, structured-sync support, and a
+// separate v2 send contract and status actions.
+function arrrCustodyWalletAvailability(
+  capability: HomeWalletCapability | undefined,
   advertisedActions: readonly string[]
 ): ForeignWalletAvailability {
+  if (
+    !capability ||
+    capability.contract !== HOME_WALLET_CONTRACT ||
+    capability.implemented !== true ||
+    capability.protocol !== 'qdnRequest' ||
+    typeof capability.requiresUnlockedAccount !== 'boolean' ||
+    capability.custodyContract !== ARRR_CUSTODY_CONTRACT ||
+    capability.syncStatus !== true ||
+    capability.readMode !== 'TRUSTED_CORE_CUSTODY' ||
+    capability.receiveMode !== 'TRUSTED_CORE_CUSTODY' ||
+    capability.read !== true ||
+    capability.receive !== true ||
+    // A host can offer custody sends only with the exact durable-operation contract.
+    !(
+      (capability.send === false && capability.sendMode === 'NONE') ||
+      (capability.send === true &&
+        capability.sendMode === 'TRUSTED_CORE_CUSTODY' &&
+        capability.sendContract === ARRR_SEND_CONTRACT)
+    )
+  ) {
+    return unavailable;
+  }
+
+  // The four ARRR reads share one custody grant; GET_ARRR_SYNC_STATUS is
+  // the tell that the route is actually admin-trusted (Home only advertises
+  // it there), so require it before trusting read/receive at all.
+  const actions = new Set(advertisedActions);
+  if (!actions.has('GET_ARRR_SYNC_STATUS')) return unavailable;
+
+  return Object.freeze({
+    canManageServer: false,
+    canReadBalance: actions.has('GET_WALLET_BALANCE'),
+    canReadTransactions: actions.has('GET_USER_WALLET_TRANSACTIONS'),
+    canReceive: actions.has('GET_USER_WALLET'),
+    canSend:
+      capability.send === true &&
+      actions.has('SEND_COIN') &&
+      actions.has('GET_ARRR_SEND_READINESS') &&
+      actions.has('GET_ARRR_SEND_OPERATION'),
+  });
+}
+
+export function foreignWalletAvailability(
+  chain: Pick<ChainConfig, 'homeWallet' | 'isNative' | 'coinEnum'>,
+  advertisedActions: readonly string[]
+): ForeignWalletAvailability {
+  // XMR uses only its dedicated custody adapter, never bitcoiny or legacy actions.
+  if (chain.coinEnum === 'XMR') return unavailable;
+  if (!chain.isNative && chain.coinEnum === 'ARRR') {
+    return arrrCustodyWalletAvailability(chain.homeWallet, advertisedActions);
+  }
+
   const capability = chain.homeWallet;
   const isCurrentContract = capability?.contract === HOME_WALLET_CONTRACT;
   const isVerifiedLegacyContract =

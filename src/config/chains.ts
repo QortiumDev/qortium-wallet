@@ -3,9 +3,16 @@ export type HomeWalletMode =
   | 'PUBLIC_NODE'
   | 'HOME_SIGNED_PUBLIC_NODE'
   | 'TRUSTED_CORE'
+  // ARRR-only (round 5): a desktop, admin-trusted Core holds the wallet's
+  // spending key and keeps a synced copy on the user's behalf. Distinct
+  // from TRUSTED_CORE (which still signs from Home) - never valid for any
+  // other coin. Sending requires its separate v2 send contract. See
+  // homeWalletCapabilities.ts's coin-aware gate.
+  | 'TRUSTED_CORE_CUSTODY'
   | 'NONE';
 
 export interface HomeWalletCapability {
+  requestContract?: string;
   contract?: string;
   implemented: boolean;
   protocol?: 'qdnRequest' | 'qortalRequest';
@@ -13,11 +20,25 @@ export interface HomeWalletCapability {
   receive: boolean;
   requiresUnlockedAccount: boolean;
   send: boolean;
+  sendContract?: string;
   serverManagement: boolean;
   readMode: HomeWalletMode;
   receiveMode: HomeWalletMode;
   sendMode: HomeWalletMode;
   serverManagementMode: HomeWalletMode;
+  // ARRR custody extension (round 5) - see the ARRR row of
+  // HOME_V2_BRIDGE_COMPATIBILITY.md. `custodyContract` names the exact
+  // custody wire contract; `syncStatus` advertises GET_ARRR_SYNC_STATUS
+  // support; `unavailableReason` explains a false read/receive for ARRR
+  // (locked account, Android, non-trusted route, old Home).
+  custodyContract?: string;
+  stopContract?: string;
+  scanStartContract?: string;
+  scanModes?: readonly string[];
+  syncStatus?: boolean;
+  syncControlContract?: string;
+  walletSessionContract?: string;
+  unavailableReason?: string;
 }
 
 export interface ChainConfig {
@@ -162,6 +183,19 @@ export const DEFAULT_CHAINS: ChainConfig[] = [
 // Full registry of chains the wallet can handle, including ones excluded from
 // the fallback (e.g. ARRR requires a sync phase that makes no sense offline).
 export const KNOWN_CHAINS: ChainConfig[] = [
+  {
+    key: 'XMR',
+    name: 'Monero',
+    ticker: 'XMR',
+    coinEnum: 'XMR',
+    route: 'monero',
+    defaultFee: 0,
+    isNative: false,
+    decimalPlaces: 12,
+    activeNetwork: 'MAIN',
+    supportsHtlc: false,
+    supportsLocalChainTrades: false,
+  },
   ...DEFAULT_CHAINS,
   {
     key: 'ARRR',

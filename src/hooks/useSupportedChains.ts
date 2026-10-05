@@ -1,3 +1,4 @@
+import { configureWalletRequests } from '../common/walletRequest';
 import { useState, useEffect, useRef } from 'react';
 import {
   DEFAULT_CHAINS,
@@ -10,6 +11,7 @@ import {
   HOME_WALLET_CONTRACT,
   legacyHome1WalletCapability,
 } from '../common/homeWalletCapabilities';
+import { isSelectedAccountChangedMessage } from '../common/accountChangedMessage';
 
 const SESSION_KEY = 'qortium_supported_chains_v2';
 const SESSION_STATUS_KEY = 'qortium_chain_status_v2';
@@ -74,6 +76,7 @@ export function useSupportedChains(): {
       const revision = ++discoveryRevision.current;
       if (typeof qdnRequest !== 'function') {
         if (cancelled || revision !== discoveryRevision.current) return;
+        configureWalletRequests([]);
         setChains([QORT_CHAIN]);
         setStatus('fallback');
         setWalletAuthorityReady(false);
@@ -106,7 +109,15 @@ export function useSupportedChains(): {
         const merged: ChainConfig[] = data
           .filter(
             (info) =>
-              info.walletEnabled && info.currencyCode?.toUpperCase() !== 'QORT'
+              info.currencyCode?.toUpperCase() !== 'QORT' &&
+              (info.walletEnabled ||
+                // Stopping ARRR flips Core's runtime walletEnabled flag.
+                // Keep Home's restart-capable wallet discoverable so its
+                // listing and detail route still expose Start syncing.
+                (info.currencyCode?.toUpperCase() === 'ARRR' &&
+                  info.homeWallet?.contract === HOME_WALLET_CONTRACT &&
+                  info.homeWallet.syncControlContract ===
+                    'qortium-home-arrr-sync-control-v1'))
           )
           .map((info): ChainConfig | undefined => {
             const code = info.currencyCode?.toUpperCase();
@@ -135,6 +146,7 @@ export function useSupportedChains(): {
           })
           .filter((c): c is ChainConfig => c !== undefined);
         if (cancelled || revision !== discoveryRevision.current) return;
+        configureWalletRequests(data);
         sessionStorage.setItem(SESSION_KEY, JSON.stringify(merged));
         sessionStorage.setItem(SESSION_STATUS_KEY, 'live');
         setChains([QORT_CHAIN, ...merged]);
@@ -142,6 +154,7 @@ export function useSupportedChains(): {
         setWalletAuthorityReady(authorityReady);
       } catch (err) {
         if (cancelled || revision !== discoveryRevision.current) return;
+        configureWalletRequests([]);
         console.warn(
           '[Walletium] GET_CROSSCHAIN_BLOCKCHAINS unavailable:',
           err
@@ -154,6 +167,7 @@ export function useSupportedChains(): {
 
     discover();
     const refresh = () => {
+      configureWalletRequests([]);
       // Revoke cached live authority immediately while the current Home
       // instance is rediscovered.
       setChains((current) =>
@@ -165,10 +179,24 @@ export function useSupportedChains(): {
       setWalletAuthorityReady(false);
       discover();
     };
+    // Home's per-coin answer depends on the selected account's lock state
+    // (a locked account gets ARRR custody `available:false` and `send:false`
+    // elsewhere) and is recomputed on every call, but the unlock itself is
+    // not part of the bridge route revision, so qortiumBridgeStateChanged
+    // never fires for it. Home does post SELECTED_ACCOUNT_CHANGED on
+    // lock/unlock/switch (and once on page load), so rediscover on it.
+    // This is a soft refresh: the current capabilities stay in place until
+    // the fresh answer lands (no `pending` flash on the page-load copy), and
+    // the revision bump in discover() discards any in-flight stale answer.
+    const onAccountChanged = (event: MessageEvent<unknown>) => {
+      if (isSelectedAccountChangedMessage(event)) discover();
+    };
     window.addEventListener('qortiumBridgeStateChanged', refresh);
+    window.addEventListener('message', onAccountChanged);
     return () => {
       cancelled = true;
       window.removeEventListener('qortiumBridgeStateChanged', refresh);
+      window.removeEventListener('message', onAccountChanged);
     };
   }, []);
 
